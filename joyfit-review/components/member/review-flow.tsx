@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import Link from "next/link";
 import { Copy, ExternalLink, Star } from "lucide-react";
 
-import { submitLowRatingFeedback } from "@/app/actions/submit-low-rating";
+import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -18,22 +19,57 @@ type Props = {
 };
 
 const stars = [1, 2, 3, 4, 5];
-const pointOptions = ["最新設備", "清潔感", "スタッフ", "通いやすさ"] as const;
-const toneOptions = ["フォーマル", "カジュアル", "キュート"] as const;
-const volumeOptions = ["短め", "普通", "長め"] as const;
-
-const pointPhrases: Record<(typeof pointOptions)[number], string> = {
-  最新設備: "設備が充実していて、トレーニングのモチベーションが上がります。",
-  清潔感: "館内が清潔で、いつも気持ちよく利用できます。",
-  スタッフ: "スタッフの対応が丁寧で、安心して通える雰囲気です。",
-  通いやすさ: "立地がよく、仕事帰りやスキマ時間にも通いやすいです。",
-};
+const genderOptions = ["男性", "女性", "その他"] as const;
+const ageOptions = ["10代", "20代", "30代", "40代", "50代", "60代以上"] as const;
+const menuServiceOptions = [
+  "24時間いつでも通える",
+  "年中無休で利用しやすい",
+  "全国のJOYFITを相互利用可能",
+  "初心者向けのオリエンテーション",
+  "マシンの使い方を丁寧にサポート",
+  "スタッフによる丁寧なサポート",
+  "パーソナルトレーニング対応",
+  "目的別のトレーニング相談が可能",
+  "本格的なフリーウエイト設備",
+  "使いやすいスミスマシン",
+  "有酸素マシンが豊富で使いやすい",
+] as const;
+const environmentOptions = [
+  "経堂駅から徒歩圏内の好立地",
+  "24時間安心のセキュリティ",
+  "清掃が行き届いた清潔な館内",
+  "落ち着いて集中できる環境",
+  "整理整頓されたマシンエリア",
+  "個室シャワールーム完備",
+  "無料の鍵付きロッカー設置",
+  "全館フリーWi-Fi完備",
+  "土足利用可能で手間なく通える",
+  "広々としたストレッチエリア",
+] as const;
+const sceneOptions = [
+  "24時間ジムを探している方に",
+  "自分のペースでトレーニング",
+  "仕事帰りにサクッと筋トレ",
+  "運動不足にお悩みの方に",
+  "スキマ時間に体を動かしたい",
+  "運動でストレス発散したい方に",
+  "安心安全に夜間利用したい",
+  "理想の体型を目指したい方に",
+  "健康維持にジムを使いたい",
+  "全国のJOYFITを活用したい方に",
+] as const;
 
 export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Props) {
   const [rating, setRating] = useState<number | null>(null);
-  const [points, setPoints] = useState<string[]>([]);
-  const [tone, setTone] = useState<(typeof toneOptions)[number]>("カジュアル");
-  const [volume, setVolume] = useState<(typeof volumeOptions)[number]>("普通");
+  const [menuPoints, setMenuPoints] = useState<string[]>([]);
+  const [envPoints, setEnvPoints] = useState<string[]>([]);
+  const [scenes, setScenes] = useState<string[]>([]);
+  const [fullName, setFullName] = useState("");
+  const [memberCode, setMemberCode] = useState("");
+  const [gender, setGender] = useState<(typeof genderOptions)[number] | "">("");
+  const [ageRange, setAgeRange] = useState("");
+  const [email, setEmail] = useState("");
+  const [visitDate, setVisitDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState(false);
@@ -53,87 +89,81 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     }
   }
 
-  function togglePoint(point: string) {
-    setPoints((current) =>
+  function toggleList(point: string, setter: Dispatch<SetStateAction<string[]>>) {
+    setter((current) =>
       current.includes(point) ? current.filter((item) => item !== point) : [...current, point],
     );
   }
 
+  function toggleScene(scene: string) {
+    setScenes((current) => {
+      if (current.includes(scene)) return current.filter((item) => item !== scene);
+      if (current.length >= 3) return current;
+      return [...current, scene];
+    });
+  }
+
+  const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
+  const profileComplete =
+    fullName.trim() && gender && ageRange && email.trim() && /^\S+@\S+\.\S+$/.test(email.trim());
+
   function buildDraft() {
-    if (!rating) return;
+    if (!rating || !profileComplete) return;
 
-    const pointLines = points
-      .map((p) => pointPhrases[p as keyof typeof pointPhrases])
-      .filter(Boolean);
+    const picked = allPositives.slice(0, 3);
+    const sceneLine = scenes.length ? `おすすめの利用シーン: ${scenes.join("、")}` : "";
+    const goodPoints =
+      picked.length > 0
+        ? `良かった点は、${picked.join("、")}です。`
+        : "館内が使いやすく、継続して通いやすいと感じました。";
+    const extra = feedback.trim();
 
-    const intro =
-      tone === "フォーマル"
-        ? `${storeName}を利用しました。`
-        : tone === "カジュアル"
-          ? `${storeName}に通っています！`
-          : `${storeName}、すごく良かったです♪`;
-
-    const ratingLine = `星${rating}の評価です。`;
-
-    const bridge =
-      volume === "短め"
-        ? ""
-        : tone === "フォーマル"
-          ? "特に良かった点は次のとおりです。"
-          : tone === "カジュアル"
-            ? "良かったポイントはこんな感じです。"
-            : "特におすすめしたいのは…";
-
-    const filler =
-      pointLines.length === 0
-        ? tone === "フォーマル"
-          ? "設備と雰囲気のバランスが良く、継続して通いやすいと感じました。"
-          : tone === "カジュアル"
-            ? "雰囲気も使い勝手も良くて、続けられそうです。"
-            : "雰囲気もスタッフも◎で、また行きたくなりました！"
-        : "";
-
-    const closing =
-      tone === "フォーマル"
-        ? "今後も継続して利用したいです。"
-        : tone === "カジュアル"
-          ? "これからも利用していきたいです。"
-          : "これからも通いたいです！";
-
-    let body = "";
-
-    if (volume === "短め") {
-      const core = pointLines[0] ?? filler;
-      body = [intro, ratingLine, core, closing].filter(Boolean).join("");
-    } else if (volume === "普通") {
-      const mid = pointLines.length ? pointLines.join("") : filler;
-      const extra = feedback.trim();
-      body = [intro, ratingLine, mid, extra, closing].filter(Boolean).join("\n");
-    } else {
-      const midParts: string[] = [];
-      if (bridge) midParts.push(bridge);
-      midParts.push(...pointLines);
-      if (volume === "長め" && pointLines.length >= 2) {
-        midParts.push(
-          tone === "フォーマル"
-            ? "総じて、通いやすく安心してトレーニングに集中できる環境だと感じています。"
-            : tone === "カジュアル"
-              ? "総じて通いやすくて、トレーニングに集中できるのが嬉しいです。"
-              : "総じて通いやすくて、また行きたくなるお店でした！",
-        );
-      } else if (pointLines.length === 0) {
-        midParts.push(filler);
-      }
-      const extra = feedback.trim();
-      body = [intro, ratingLine, ...midParts, extra, closing].filter(Boolean).join("\n");
-    }
+    const body = [
+      `${storeName}を利用しました。`,
+      `星${rating}の評価です。`,
+      goodPoints,
+      sceneLine,
+      extra,
+      "今後も継続して利用したいです。",
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     setDraft(body);
     setCopied(false);
   }
 
+  async function submitSurvey(payloadReview: string) {
+    if (!rating || !profileComplete) return { ok: false as const, error: "必須項目を入力してください。" };
+    return submitMemberSurvey({
+      storeId,
+      storeName,
+      rating,
+      fullName,
+      memberCode,
+      gender,
+      ageRange,
+      email,
+      visitDate,
+      positives: allPositives,
+      useScenes: scenes,
+      freeComment: feedback,
+      generatedReview: payloadReview,
+      storeFeedbackEmail: feedbackEmail,
+    });
+  }
+
   async function copyDraftAndOpen() {
     if (!draft) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const result = await submitSurvey(draft);
+    setSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(draft);
       setCopied(true);
@@ -147,13 +177,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     if (!rating || rating >= 4 || !feedback.trim()) return;
     setSubmitting(true);
     setSubmitError(null);
-    const result = await submitLowRatingFeedback({
-      storeId,
-      storeName,
-      rating,
-      message: feedback.trim(),
-      storeFeedbackEmail: feedbackEmail,
-    });
+    const result = await submitSurvey("");
     setSubmitting(false);
     if (result.ok) {
       setSent(true);
@@ -194,6 +218,70 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       </div>
 
       <div className="space-y-6 border-t border-primary/10 p-5 md:p-6">
+        <div className="space-y-3 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+          <p className="text-sm font-semibold text-foreground">会員情報の入力</p>
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">名前（フルネーム）*</p>
+            <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">会員番号（わかる方のみ）</p>
+            <Input value={memberCode} onChange={(event) => setMemberCode(event.target.value)} />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              JOYFIT APP 右上「サービス」→「契約情報」から確認できます。
+            </p>
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">性別*</p>
+            <div className="grid grid-cols-3 gap-2">
+              {genderOptions.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setGender(item)}
+                  className={`rounded-xl border-2 px-3 py-2 text-xs font-semibold transition ${
+                    gender === item
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-primary/15 bg-card text-foreground hover:border-primary/35"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">年齢*</p>
+              <select
+                value={ageRange}
+                onChange={(event) => setAgeRange(event.target.value)}
+                className="h-11 w-full rounded-xl border border-primary/15 bg-card px-3 text-sm shadow-sm"
+              >
+                <option value="">- 年齢を選択してください -</option>
+                {ageOptions.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">メールアドレス*</p>
+              <Input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="sample@example.com"
+              />
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">ご利用日*</p>
+            <Input type="date" value={visitDate} onChange={(event) => setVisitDate(event.target.value)} />
+          </div>
+        </div>
+
         <div>
           <p className="mb-3 text-sm font-semibold text-foreground">満足度（星をタップ）</p>
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
@@ -215,55 +303,68 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {canBuildGoogleDraft && (
           <div className="space-y-4 rounded-2xl border border-primary/12 bg-[var(--joyfit-green-soft)]/60 p-4 md:p-5">
-            <p className="text-sm font-semibold text-foreground">よかった点（複数選択可）</p>
-            <div className="grid grid-cols-2 gap-2">
-              {pointOptions.map((point) => (
-                <button
-                  key={point}
-                  type="button"
-                  onClick={() => togglePoint(point)}
-                  className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
-                    points.includes(point)
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
-                  }`}
-                >
-                  {point}
-                </button>
-              ))}
+            <p className="text-sm font-semibold text-foreground">よかった点を教えてください（複数選択可）</p>
+            <div>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                1. メニュー・サービスで良かった点
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {menuServiceOptions.map((point) => (
+                  <button
+                    key={point}
+                    type="button"
+                    onClick={() => toggleList(point, setMenuPoints)}
+                    className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
+                      menuPoints.includes(point)
+                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
+                    }`}
+                  >
+                    {point}
+                  </button>
+                ))}
+              </div>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <p className="mb-1.5 text-xs font-semibold text-muted-foreground">文章のトーン</p>
-                <select
-                  value={tone}
-                  onChange={(event) => setTone(event.target.value as (typeof toneOptions)[number])}
-                  className="h-11 w-full rounded-xl border border-primary/15 bg-card px-3 text-sm shadow-sm"
-                >
-                  {toneOptions.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+            <div>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">2. 環境・設備で良かった点</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {environmentOptions.map((point) => (
+                  <button
+                    key={point}
+                    type="button"
+                    onClick={() => toggleList(point, setEnvPoints)}
+                    className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
+                      envPoints.includes(point)
+                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
+                    }`}
+                  >
+                    {point}
+                  </button>
+                ))}
               </div>
-              <div>
-                <p className="mb-1.5 text-xs font-semibold text-muted-foreground">文章のボリューム</p>
-                <select
-                  value={volume}
-                  onChange={(event) =>
-                    setVolume(event.target.value as (typeof volumeOptions)[number])
-                  }
-                  className="h-11 w-full rounded-xl border border-primary/15 bg-card px-3 text-sm shadow-sm"
-                >
-                  {volumeOptions.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                3. おすすめの利用シーン（最大3つ）
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {sceneOptions.map((scene) => (
+                  <button
+                    key={scene}
+                    type="button"
+                    onClick={() => toggleScene(scene)}
+                    className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
+                      scenes.includes(scene)
+                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
+                    }`}
+                  >
+                    {scene}
+                  </button>
+                ))}
               </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">選択中: {scenes.length} / 3</p>
             </div>
 
             <div>
@@ -277,9 +378,16 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               />
             </div>
 
-            <Button onClick={buildDraft} className="h-12 w-full rounded-xl text-base font-semibold shadow-md">
-              文章を作成する
+            <Button
+              onClick={buildDraft}
+              disabled={!profileComplete || submitting}
+              className="h-12 w-full rounded-xl text-base font-semibold shadow-md"
+            >
+              文章を自動作成する
             </Button>
+            {!profileComplete && (
+              <p className="text-xs text-muted-foreground">※ 先に会員情報の必須項目を入力してください。</p>
+            )}
           </div>
         )}
 
@@ -302,13 +410,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             )}
             <Button
               onClick={() => void handleLowRatingSubmit()}
-              disabled={!feedback.trim() || submitting}
+              disabled={!feedback.trim() || !profileComplete || submitting}
               className="h-12 w-full rounded-xl text-base font-semibold shadow-md"
             >
-              {submitting ? "送信中…" : "担当者へメールで送信する"}
+              {submitting ? "送信中…" : "担当者へ送信する"}
             </Button>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              ※店舗・管理者へメールで共有します（Googleマップの口コミとは別です）。通知先はスプレッドシートのC列、またはシステムの既定メールです。
+              ※入力内容は店舗別シートへ保存され、低評価時は担当者へメール通知されます。
             </p>
           </div>
         )}
@@ -322,9 +430,18 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <p className="text-xs text-muted-foreground">
               ボタンで文章をコピーしたうえで、Googleマップの口コミ欄に貼り付けてください。
             </p>
-            <Button onClick={copyDraftAndOpen} className="h-12 w-full rounded-xl text-base font-semibold shadow-md">
+            {submitError && (
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {submitError}
+              </p>
+            )}
+            <Button
+              onClick={copyDraftAndOpen}
+              disabled={submitting}
+              className="h-12 w-full rounded-xl text-base font-semibold shadow-md"
+            >
               <Copy className="h-4 w-4" />
-              文章をコピーしてGoogleマップを開く
+              {submitting ? "保存中…" : "文章をコピーしてGoogleマップを開く"}
             </Button>
             {copied && <p className="text-center text-xs font-medium text-primary">コピーしました</p>}
           </div>

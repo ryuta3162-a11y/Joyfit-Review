@@ -39,16 +39,26 @@ function doGet() {
   return outputJson(rows);
 }
 
-/**
- * 低評価フィードバック用。Next.js のサーバーから JSON POST される想定。
- * body: { "to": "a@x.com,b@y.com", "subject": "...", "body": "..." }
- */
 function doPost(e) {
   try {
     if (!e.postData || !e.postData.contents) {
       return outputJson({ ok: false, error: "empty body" });
     }
     var data = JSON.parse(e.postData.contents);
+    var action = String(data.action || "").trim();
+
+    if (action === "survey") {
+      var result = saveSurveyResponse(data);
+      if (!result.ok) {
+        return outputJson(result);
+      }
+      if (result.shouldNotify) {
+        sendLowRatingMail(data, result.to);
+      }
+      return outputJson({ ok: true, savedSheet: result.sheetName });
+    }
+
+    // 旧互換: メール送信だけのPOST
     var to = String(data.to || "").trim();
     if (!to || to.indexOf("@") < 0) {
       return outputJson({ ok: false, error: "invalid recipient" });
@@ -135,4 +145,106 @@ function isHeaderRow(cellA) {
 
 function defaultSearchText(name, id) {
   return [name, id].filter(Boolean).join(" ");
+}
+
+function saveSurveyResponse(data) {
+  var storeId = String(data.storeId || "").trim() || "unknown";
+  var storeName = String(data.storeName || "").trim() || "unknown";
+  var rating = Number(data.rating || 0);
+  if (!rating) {
+    return { ok: false, error: "rating is required" };
+  }
+
+  var to = String(data.to || "").trim();
+  var sheet = getOrCreateSurveySheet(storeId, storeName);
+  sheet.appendRow([
+    new Date(),
+    storeId,
+    storeName,
+    rating,
+    String(data.fullName || "").trim(),
+    String(data.memberCode || "").trim(),
+    String(data.gender || "").trim(),
+    String(data.ageRange || "").trim(),
+    String(data.email || "").trim(),
+    String(data.visitDate || "").trim(),
+    to,
+    toArray(data.positives).join(" / "),
+    toArray(data.useScenes).join(" / "),
+    String(data.freeComment || "").trim(),
+    String(data.generatedReview || "").trim(),
+  ]);
+
+  return {
+    ok: true,
+    to: to,
+    shouldNotify: rating <= 3 && to.indexOf("@") >= 0,
+    sheetName: sheet.getName(),
+  };
+}
+
+function getOrCreateSurveySheet(storeId, storeName) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var base = ("回答_" + safeSheetName(storeName) + "_" + safeSheetName(storeId)).slice(0, 90);
+  var sheet = ss.getSheetByName(base);
+  if (sheet) return sheet;
+
+  sheet = ss.insertSheet(base);
+  sheet.appendRow([
+    "timestamp",
+    "storeId",
+    "storeName",
+    "rating",
+    "fullName",
+    "memberCode",
+    "gender",
+    "ageRange",
+    "email",
+    "visitDate",
+    "notifyTo",
+    "positives",
+    "useScenes",
+    "freeComment",
+    "generatedReview",
+  ]);
+  return sheet;
+}
+
+function safeSheetName(value) {
+  return String(value || "unknown")
+    .replace(/[\\\/\?\*\[\]:]/g, "_")
+    .trim()
+    .slice(0, 40);
+}
+
+function toArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [String(value)];
+}
+
+function sendLowRatingMail(data, to) {
+  var storeName = String(data.storeName || "");
+  var subject = "【JOYFIT】低評価フィードバック（" + storeName + "）";
+  var body = [
+    "【JOYFIT 口コミアプリ】低評価フィードバック",
+    "",
+    "店舗名: " + storeName,
+    "店舗ID: " + String(data.storeId || ""),
+    "評価: 星" + String(data.rating || ""),
+    "",
+    "氏名: " + String(data.fullName || ""),
+    "会員番号: " + String(data.memberCode || ""),
+    "性別: " + String(data.gender || ""),
+    "年齢: " + String(data.ageRange || ""),
+    "メール: " + String(data.email || ""),
+    "利用日: " + String(data.visitDate || ""),
+    "",
+    "--- ご意見 ---",
+    String(data.freeComment || "").trim(),
+    "",
+    "（このメールはアプリから自動送信されています）",
+  ].join("\n");
+
+  MailApp.sendEmail(to, subject, body);
 }
