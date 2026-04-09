@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { ReviewFlow } from "@/components/member/review-flow";
 import { getStoreByIdRemote } from "@/lib/stores-remote";
 
@@ -16,10 +17,13 @@ export default async function MemberStorePage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 p-4 md:p-8">
-      <div className="mx-auto max-w-xl">
-        <ReviewFlow storeName={store.name} reviewUrl={store.googleReviewUrl} />
-      </div>
-    </div>
+    <MemberPageShell>
+      <ReviewFlow
+        storeId={store.id}
+        storeName={store.name}
+        reviewUrl={store.googleReviewUrl}
+        feedbackEmail={store.feedbackEmail}
+      />
+    </MemberPageShell>
   );
 }

@@ -3,6 +3,8 @@ export type StoreMasterRow = {
   name: string;
   searchText: string;
   googleReviewUrl: string;
+  /** 星3以下のフィードバック送信先（カンマ区切りで複数可） */
+  feedbackEmail: string;
 };
 
 /** GAS未設定・取得失敗時に使うバックアップ */
@@ -12,6 +14,7 @@ export const STORES_FALLBACK: StoreMasterRow[] = [
     name: "JOYFIT24経堂",
     searchText: "経堂 きょうどう キョウドウ kyodo joyfit24 ジョイフィット",
     googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
+    feedbackEmail: "",
   },
 ];
 

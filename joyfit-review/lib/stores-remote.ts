@@ -18,6 +18,12 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
   const googleReviewUrl = pickString(r, ["googleReviewUrl", "google_review_url", "reviewUrl", "レビューURL"]);
   const id = pickString(r, ["id", "storeId", "店舗ID"]);
   const searchText = pickString(r, ["searchText", "search_text", "検索用", "検索用テキスト"]);
+  const feedbackEmail = pickString(r, [
+    "feedbackEmail",
+    "feedback_email",
+    "低評価通知メール",
+    "通知メール",
+  ]);
 
   if (!name || !googleReviewUrl || !id) return null;
 
@@ -26,6 +32,7 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
     name,
     searchText: searchText || name,
     googleReviewUrl,
+    feedbackEmail,
   };
 }
 
