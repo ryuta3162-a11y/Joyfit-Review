@@ -34,9 +34,19 @@ function authorizeMailOnce() {
   MailApp.sendEmail(me, "【JOYFIT GAS】送信テスト", "このメールが届けば MailApp の権限はOKです。");
 }
 
-function doGet() {
-  const rows = readStoreRows();
-  return outputJson(rows);
+function doGet(e) {
+  var format = e && e.parameter ? String(e.parameter.format || "").toLowerCase() : "";
+  if (format === "json") {
+    var rows = readStoreRows();
+    return outputJson(rows);
+  }
+
+  var template = HtmlService.createTemplateFromFile("index");
+  template.stores = readStoreRows();
+  return template
+    .evaluate()
+    .setTitle("JOYFIT 口コミサポート")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function doPost(e) {
@@ -70,6 +80,27 @@ function doPost(e) {
   } catch (err) {
     return outputJson({ ok: false, error: String(err) });
   }
+}
+
+function getStoresForWeb() {
+  return readStoreRows();
+}
+
+function submitSurveyFromWeb(data) {
+  var payload = data || {};
+  payload.action = "survey";
+
+  var to = String(payload.feedbackEmail || "").trim();
+  payload.to = to;
+
+  var result = saveSurveyResponse(payload);
+  if (!result.ok) {
+    return result;
+  }
+  if (result.shouldNotify) {
+    sendLowRatingMail(payload, result.to);
+  }
+  return { ok: true, savedSheet: result.sheetName };
 }
 
 function outputJson(obj) {
