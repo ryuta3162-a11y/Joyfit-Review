@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Copy, ExternalLink, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
+import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
@@ -104,8 +105,17 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
+  const memberCodeOk = useMemo(() => {
+    const mc = memberCode.trim();
+    return !mc || /^\d{10}$/.test(mc);
+  }, [memberCode]);
   const profileComplete =
-    fullName.trim() && gender && ageRange && email.trim() && /^\S+@\S+\.\S+$/.test(email.trim());
+    fullName.trim() &&
+    gender &&
+    ageRange &&
+    email.trim() &&
+    /^\S+@\S+\.\S+$/.test(email.trim()) &&
+    memberCodeOk;
 
   function buildDraft() {
     if (!rating || !profileComplete) return;
@@ -201,35 +211,65 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-primary/15 bg-card shadow-xl ring-1 ring-black/5">
-      <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-primary-foreground md:px-6 md:pt-8">
+    <div className="overflow-hidden rounded-3xl border border-white/10 bg-card text-foreground shadow-2xl ring-1 ring-black/20">
+      <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
           href="/select-store"
-          className="mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
+          className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
         >
           ← 店舗選択に戻る
         </Link>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80">JOYFIT</p>
-        <h1 className="mt-2 text-xl font-bold md:text-2xl">{storeName}</h1>
-        <p className="mt-2 text-sm text-white/90">本日のトレーニングのご感想をお聞かせください</p>
-        <p className="mt-3 rounded-full border border-amber-300/35 bg-amber-400/15 px-3 py-1 text-[11px] font-semibold text-amber-50">
+        <JoyfitHeaderLogo className="mb-1" />
+        <h1 className="relative z-[1] mt-3 text-xl font-bold md:text-2xl">{storeName}</h1>
+        <p className="relative z-[1] mt-2 text-sm text-white/90">本日のトレーニングのご感想をお聞かせください</p>
+        <p className="relative z-[1] mt-3 inline-block rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-semibold text-white">
           特典：{ENJOY_POINT_REWARD_LABEL}
         </p>
       </div>
 
-      <div className="space-y-6 border-t border-primary/10 p-5 md:p-6">
-        <div className="space-y-3 rounded-2xl border border-primary/10 bg-primary/5 p-4">
-          <p className="text-sm font-semibold text-foreground">会員情報の入力</p>
+      <div className="space-y-6 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-6">
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+          aria-label="入力の流れ"
+        >
+          {["会員情報", "満足度", "コメント", "送信"].map((label, i) => (
+            <div
+              key={label}
+              className="rounded-xl border border-zinc-200 bg-white px-2 py-2 text-center text-[10px] font-bold text-zinc-600 shadow-sm"
+            >
+              <span className="block text-[9px] font-extrabold tracking-wide text-[color:var(--joyfit-red)]">
+                STEP {i + 1}
+              </span>
+              {label}
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <p className="text-sm font-semibold text-zinc-900">会員情報の入力</p>
           <div>
             <p className="mb-1.5 text-xs font-semibold text-muted-foreground">名前（フルネーム）*</p>
             <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
           </div>
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">会員番号（わかる方のみ）</p>
-            <Input value={memberCode} onChange={(event) => setMemberCode(event.target.value)} />
+            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">会員番号（任意・10桁）</p>
+            <Input
+              value={memberCode}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="1234567890"
+              onChange={(event) =>
+                setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
+              }
+            />
             <p className="mt-1 text-[11px] text-muted-foreground">
               JOYFIT APP 右上「サービス」→「契約情報」から確認できます。
             </p>
+            {!memberCodeOk && (
+              <p className="mt-1 text-[11px] font-medium text-[color:var(--joyfit-red)]">
+                会員番号は空欄か、10桁の数字で入力してください。
+              </p>
+            )}
           </div>
           <div>
             <p className="mb-1.5 text-xs font-semibold text-muted-foreground">性別*</p>
@@ -241,8 +281,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   onClick={() => setGender(item)}
                   className={`rounded-xl border-2 px-3 py-2 text-xs font-semibold transition ${
                     gender === item
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-primary/15 bg-card text-foreground hover:border-primary/35"
+                      ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white"
+                      : "border-zinc-200 bg-zinc-50 text-foreground hover:border-zinc-300"
                   }`}
                 >
                   {item}
@@ -256,7 +296,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               <select
                 value={ageRange}
                 onChange={(event) => setAgeRange(event.target.value)}
-                className="h-11 w-full rounded-xl border border-primary/15 bg-card px-3 text-sm shadow-sm"
+                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm"
               >
                 <option value="">- 年齢を選択してください -</option>
                 {ageOptions.map((item) => (
@@ -294,7 +334,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 aria-label={`${value}つ星`}
               >
                 <Star
-                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-amber-400 text-amber-400 drop-shadow-sm" : "text-muted-foreground/35"}`}
+                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[color:var(--joyfit-red)] text-[color:var(--joyfit-red)] drop-shadow-sm" : "text-zinc-300"}`}
                 />
               </button>
             ))}
@@ -302,7 +342,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         </div>
 
         {canBuildGoogleDraft && (
-          <div className="space-y-4 rounded-2xl border border-primary/12 bg-[var(--joyfit-green-soft)]/60 p-4 md:p-5">
+          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/90 p-4 shadow-sm md:p-5">
             <p className="text-sm font-semibold text-foreground">よかった点を教えてください（複数選択可）</p>
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
@@ -316,8 +356,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     onClick={() => toggleList(point, setMenuPoints)}
                     className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
                       menuPoints.includes(point)
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
+                        ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
+                        : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
                     }`}
                   >
                     {point}
@@ -335,8 +375,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     onClick={() => toggleList(point, setEnvPoints)}
                     className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
                       envPoints.includes(point)
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
+                        ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
+                        : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
                     }`}
                   >
                     {point}
@@ -356,8 +396,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     onClick={() => toggleScene(scene)}
                     className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
                       scenes.includes(scene)
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "border-transparent bg-card text-foreground shadow-sm ring-1 ring-primary/10 hover:border-primary/25"
+                        ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
+                        : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
                     }`}
                   >
                     {scene}
@@ -381,7 +421,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={buildDraft}
               disabled={!profileComplete || submitting}
-              className="h-12 w-full rounded-xl text-base font-semibold shadow-md"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white shadow-md hover:bg-[color:var(--joyfit-red-dark)]"
             >
               文章を自動作成する
             </Button>
@@ -411,7 +451,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={() => void handleLowRatingSubmit()}
               disabled={!feedback.trim() || !profileComplete || submitting}
-              className="h-12 w-full rounded-xl text-base font-semibold shadow-md"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white shadow-md hover:bg-[color:var(--joyfit-red-dark)]"
             >
               {submitting ? "送信中…" : "担当者へ送信する"}
             </Button>
@@ -422,7 +462,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         )}
 
         {draft && isHigh && (
-          <div className="space-y-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 md:p-5">
+          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
             <p className="text-sm font-semibold text-foreground">生成された口コミ文</p>
             <p className="whitespace-pre-wrap rounded-xl border border-primary/10 bg-card p-4 text-sm leading-relaxed text-foreground shadow-inner">
               {draft}
@@ -438,7 +478,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={copyDraftAndOpen}
               disabled={submitting}
-              className="h-12 w-full rounded-xl text-base font-semibold shadow-md"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white shadow-md hover:bg-[color:var(--joyfit-red-dark)]"
             >
               <Copy className="h-4 w-4" />
               {submitting ? "保存中…" : "文章をコピーしてGoogleマップを開く"}

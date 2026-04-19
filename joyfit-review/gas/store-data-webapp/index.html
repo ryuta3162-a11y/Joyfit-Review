@@ -1,272 +1,719 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>サウナマット利用案内（2枚セット）</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JOYFIT 口コミサポート</title>
     <style>
-        body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background-color: #e5e7eb;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
-            padding: 2rem;
+      :root {
+        --bg0: #7d2231;
+        --bg1: #a62c3e;
+        --bg2: #521720;
+        --card: #fff;
+        --text: #111827;
+        --muted: #5b6574;
+        --line: #d9dee7;
+        --brand: #a62c3e;
+        --brand-strong: #7d2231;
+        --ok-bg: #f0f0f0;
+        --ok-text: #1f2937;
+        --ok-border: #c5c5c5;
+        --err-bg: #fff0f3;
+        --err-text: #9f1431;
+        --err-border: #f4c8d1;
+        --shadow: 0 24px 60px rgba(7, 13, 25, 0.16);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1000px 520px at 50% -18%, rgba(255, 255, 255, 0.14), transparent 58%),
+          radial-gradient(720px 420px at 0% 100%, rgba(0, 0, 0, 0.22), transparent 52%),
+          linear-gradient(168deg, #b84a5a 0%, var(--bg1) 42%, var(--bg0) 78%, var(--bg2) 100%);
+      }
+      .page {
+        width: min(920px, 100%);
+        margin: 0 auto;
+        padding: 28px 16px 52px;
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 22px;
+        padding: 24px;
+        color: #fff;
+        background: linear-gradient(
+          125deg,
+          color-mix(in srgb, var(--brand) 82%, black) 0%,
+          var(--brand) 48%,
+          color-mix(in srgb, var(--brand) 78%, white) 100%
+        );
+        box-shadow: var(--shadow);
+      }
+      .hero::after {
+        content: "";
+        position: absolute;
+        right: -80px;
+        top: -80px;
+        width: 240px;
+        height: 240px;
+        border-radius: 999px;
+        background: radial-gradient(circle at center, rgba(255, 255, 255, 0.22), transparent 68%);
+      }
+      .hero-brand {
+        font-size: 11px;
+        letter-spacing: 0.25em;
+        font-weight: 700;
+        opacity: 0.86;
+      }
+      .hero h1 {
+        margin: 8px 0 0;
+        font-size: clamp(26px, 4.6vw, 36px);
+      }
+      .hero p {
+        margin: 10px 0 0;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.6;
+      }
+      .hero-badge {
+        display: inline-block;
+        margin-top: 14px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+        color: #fff;
+        font-size: 12px;
+        padding: 6px 12px;
+        font-weight: 700;
+      }
+      .panel {
+        margin-top: 16px;
+        border-radius: 22px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, #fff 0%, #fafbfd 100%);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .step {
+        border: 1px solid #d4d9e2;
+        background: #f4f7fb;
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #445065;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      }
+      .step b {
+        display: block;
+        color: var(--brand);
+        font-size: 10px;
+        margin-bottom: 2px;
+      }
+      .step.current {
+        border-color: var(--brand);
+        background: #fff;
+        box-shadow: 0 0 0 2px rgba(166, 44, 62, 0.12);
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .field {
+        margin-top: 10px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #2a3443;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        font: inherit;
+        font-size: 14px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        border: 1px solid #cfd6e2;
+        background: #fff;
+        color: #111827;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 2px solid rgba(166, 44, 62, 0.2);
+        border-color: var(--brand);
+      }
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+      .note {
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .section-title {
+        margin: 20px 0 10px;
+        padding-top: 14px;
+        border-top: 1px dashed #d8dce5;
+        color: var(--brand);
+        font-size: 15px;
+        font-weight: 900;
+      }
+      .stars {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .star-btn {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        border: 1px solid #cfd6e2;
+        background: #fff;
+        cursor: pointer;
+        font-size: 22px;
+        line-height: 1;
+        color: #c1c7d3;
+        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+      }
+      .star-btn:hover {
+        transform: translateY(-1px);
+        border-color: #9eabc0;
+      }
+      .star-btn.active {
+        background: #ffe8ed;
+        color: var(--brand);
+        border-color: var(--brand);
+      }
+      .star-btn:focus-visible {
+        outline: 2px solid rgba(166, 44, 62, 0.35);
+        outline-offset: 2px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        border: 1px solid #cfd6e2;
+        background: #fff;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+      }
+      .chip:hover {
+        background: #f5f8fc;
+      }
+      .chip:focus-visible {
+        outline: 2px solid rgba(166, 44, 62, 0.35);
+        outline-offset: 2px;
+      }
+      .chip.active {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+      .sub-card {
+        margin-top: 12px;
+        border-radius: 14px;
+        border: 1px solid #e0e0e0;
+        background: #f6f6f6;
+        padding: 12px;
+      }
+      .sub-card.low {
+        border-color: #e8d0d4;
+        background: #faf7f7;
+      }
+      .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        border: 0;
+        border-radius: 10px;
+        padding: 11px 14px;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .btn:focus-visible {
+        outline: 2px solid rgba(166, 44, 62, 0.45);
+        outline-offset: 2px;
+      }
+      .btn.primary {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--brand-strong);
+      }
+      .btn.secondary {
+        border: 1px solid #cfd6e2;
+        background: #f6f8fb;
+        color: #243042;
+      }
+      .btn.secondary:hover {
+        background: #edf1f7;
+      }
+      .result {
+        margin-top: 10px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+        border-radius: 12px;
+        border: 1px solid #dce3ef;
+        background: #fff;
+        padding: 12px;
+        font-size: 13px;
+      }
+      .status {
+        margin-top: 10px;
+        border-radius: 10px;
+        border: 1px solid;
+        padding: 10px 12px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status.ok {
+        background: var(--ok-bg);
+        border-color: var(--ok-border);
+        color: var(--ok-text);
+      }
+      .status.err {
+        background: var(--err-bg);
+        border-color: var(--err-border);
+        color: var(--err-text);
+      }
+      .hidden {
+        display: none !important;
+      }
+      @media (max-width: 768px) {
+        .steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        /* A4縦サイズの比率を意識したコンテナ */
-        .pop-container {
-            width: 100%;
-            max-width: 800px;
-            aspect-ratio: 1 / 1.414; /* A4縦の比率 */
-            background-color: #fffaf0; /* 温かみのあるオフホワイト */
-            border: 12px solid #8c5e42; /* サウナを連想させる茶色 */
-            border-radius: 20px;
-            padding: 4rem 3rem;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            overflow: hidden;
-            /* 印刷時にページを分ける */
-            page-break-after: always;
+      }
+      @media (max-width: 640px) {
+        .field-grid {
+          grid-template-columns: 1fr;
         }
-        /* サウナ風の背景装飾 */
-        .pop-container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 15px,
-                rgba(140, 94, 66, 0.03) 15px,
-                rgba(140, 94, 66, 0.03) 30px
-            );
-            pointer-events: none;
+        .btn {
+          width: 100%;
         }
-        
-        /* カゴのCSSアート（全体を少し拡大） */
-        .basket-wrapper {
-            transform: scale(1.5);
-            margin: 60px 0;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .star-btn,
+        .step {
+          transition: none;
         }
-        .basket-base {
-            width: 240px;
-            height: 180px;
-            background-color: #fcfcfc;
-            border: 3px solid #9ca3af;
-            border-radius: 8px;
-            position: relative;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 15px;
-            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.05), 0 5px 15px rgba(0,0,0,0.1);
-            overflow: hidden;
+        .star-btn:hover {
+          transform: none;
         }
-        .basket-top {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 30px;
-            background-color: #8c93a0;
-            border-bottom: 4px solid #717784;
-            border-radius: 4px 4px 0 0;
-            z-index: 10;
-        }
-        .basket-slits {
-            position: absolute;
-            top: 40px;
-            width: 90%;
-            height: 120px;
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 8px;
-            opacity: 0.3;
-        }
-        .basket-slit {
-            background-color: #9ca3af;
-            border-radius: 4px;
-        }
-
-        /* タオル（サウナマット）のCSSアート */
-        .towel {
-            width: 200px;
-            height: 100px;
-            background-color: #8c5e42;
-            border-radius: 12px;
-            position: relative;
-            z-index: 20;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2), inset 0 2px 5px rgba(255,255,255,0.2);
-            border: 2px solid #734c34;
-        }
-        .towel::after {
-            content: "";
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 30px;
-            height: 20px;
-            background-color: #f3f4f6;
-            border-radius: 2px;
-            border: 1px solid #d1d5db;
-        }
-        .towel::before {
-            content: "";
-            position: absolute;
-            top: 30%;
-            left: 5%;
-            width: 90%;
-            height: 2px;
-            background-color: rgba(0,0,0,0.1);
-            box-shadow: 0 30px 0 rgba(0,0,0,0.1);
-        }
-
-        /* 印刷用の設定 */
-        @media print {
-            body {
-                padding: 0;
-                background-color: #fff;
-                gap: 0;
-            }
-            .pop-container {
-                box-shadow: none;
-                border: none;
-                width: 100vw;
-                height: 100vh;
-                max-width: none;
-                border-radius: 0;
-                aspect-ratio: auto;
-                padding: 4rem; /* 印刷時の余白 */
-            }
-        }
+      }
     </style>
-</head>
-<body>
-
-    <!-- 1枚目：使用前（棚の上段用） -->
-    <div class="pop-container">
-        <!-- ヘッダー部分 -->
-        <div class="text-center relative z-10">
-            <h1 class="text-5xl font-black text-[#5c3a21] tracking-wider">サウナマットのご利用方法</h1>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="hero-brand">JOYFIT REVIEW SUPPORT</div>
+        <h1>JOYFIT 口コミサポート</h1>
+        <p>満足度に応じて口コミ文の作成、または改善要望の送信を行えます。</p>
+        <div class="hero-badge">特典: エンジョイポイント500ポイント付与</div>
+      </section>
+      <section class="panel">
+        <div class="steps" id="stepsRow" aria-label="入力の流れ">
+          <div class="step current" id="stepEl1"><b>STEP 1</b>会員情報</div>
+          <div class="step" id="stepEl2"><b>STEP 2</b>満足度評価</div>
+          <div class="step" id="stepEl3"><b>STEP 3</b>コメント作成</div>
+          <div class="step" id="stepEl4"><b>STEP 4</b>送信</div>
         </div>
-
-        <!-- イラストと指示部分 -->
-        <div class="flex flex-col items-center justify-center flex-grow relative z-10 my-8">
-            <div class="bg-[#8c5e42] text-white text-3xl font-bold py-3 px-12 rounded-full mb-8 shadow-md border-4 border-white">
-                使用前
-            </div>
-            
-            <div class="basket-wrapper">
-                <div class="basket-base">
-                    <div class="basket-top">
-                        <div class="w-16 h-4 bg-[#717784] mx-auto mt-2 rounded-full shadow-inner"></div>
-                    </div>
-                    <div class="basket-slits">
-                        <div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div>
-                        <div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div>
-                        <div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div>
-                    </div>
-                    <!-- 茶色いタオルが入っている -->
-                    <div class="towel flex items-center justify-center">
-                        <span class="text-white opacity-80 font-bold text-sm">サウナマット</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-8 text-3xl font-bold text-gray-800 bg-white px-8 py-4 rounded-xl shadow-md border border-gray-200">
-                こちらのカゴから<span class="text-red-600 text-5xl mx-2 align-bottom">1枚</span>お取りください
-            </div>
+        <div class="field">
+          <label for="storeSelect">店舗 *</label>
+          <select id="storeSelect">
+            <option value="">選択してください</option>
+          </select>
         </div>
-
-        <!-- 注意事項部分 -->
-        <div class="relative z-10 bg-white rounded-xl p-8 border-l-8 border-red-500 shadow-md">
-            <h2 class="text-3xl font-bold text-red-600 mb-6 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                ご利用のお願い
-            </h2>
-            <ul class="space-y-6 text-3xl font-bold text-gray-800 ml-4">
-                <li class="flex items-start">
-                    <span class="text-red-500 mr-4">✔</span>
-                    サウナをご利用の際は、必ず<span class="text-red-600 border-b-4 border-red-600 pb-1 mx-2">マットを敷いてお座り</span>ください。
-                </li>
-                <li class="flex items-start">
-                    <span class="text-red-500 mr-4">✔</span>
-                    マットのご利用は<span class="text-red-600 border-b-4 border-red-600 pb-1 mx-2">お一人様１枚まで</span>でお願いいたします。
-                </li>
-            </ul>
+        <div class="field-grid">
+          <div class="field">
+            <label for="fullName">名前（フルネーム）*</label>
+            <input id="fullName" type="text" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="memberCode">会員番号（任意）</label>
+            <input
+              id="memberCode"
+              type="text"
+              inputmode="numeric"
+              maxlength="10"
+              placeholder="10桁（例: 1234567890）"
+              autocomplete="off"
+            />
+            <p class="note">JOYFIT APP 右上「サービス」→「契約情報」から確認できます。</p>
+          </div>
         </div>
-    </div>
-
-    <!-- 2枚目：使用後（棚の下段用） -->
-    <div class="pop-container">
-        <!-- ヘッダー部分 -->
-        <div class="text-center relative z-10">
-            <h1 class="text-5xl font-black text-[#5c3a21] tracking-wider">サウナマットのご利用方法</h1>
+        <div class="field-grid">
+          <div class="field">
+            <label for="gender">性別 *</label>
+            <select id="gender">
+              <option value="">選択してください</option>
+              <option value="男性">男性</option>
+              <option value="女性">女性</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ageRange">年齢 *</label>
+            <select id="ageRange">
+              <option value="">選択してください</option>
+              <option value="10代">10代</option>
+              <option value="20代">20代</option>
+              <option value="30代">30代</option>
+              <option value="40代">40代</option>
+              <option value="50代">50代</option>
+              <option value="60代以上">60代以上</option>
+            </select>
+          </div>
         </div>
-
-        <!-- イラストと指示部分 -->
-        <div class="flex flex-col items-center justify-center flex-grow relative z-10 my-8">
-            <div class="bg-gray-500 text-white text-3xl font-bold py-3 px-12 rounded-full mb-8 shadow-md border-4 border-white">
-                使用後
+        <div class="field-grid">
+          <div class="field">
+            <label for="email">メールアドレス *</label>
+            <input id="email" type="email" placeholder="sample@example.com" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="visitDate">ご利用日 *</label>
+            <input id="visitDate" type="date" />
+          </div>
+        </div>
+        <p class="section-title">満足度評価</p>
+        <div class="stars" id="ratingStars" role="group" aria-label="満足度（5段階）">
+          <button type="button" class="star-btn" data-rating="1" aria-label="星1">★</button>
+          <button type="button" class="star-btn" data-rating="2" aria-label="星2">★</button>
+          <button type="button" class="star-btn" data-rating="3" aria-label="星3">★</button>
+          <button type="button" class="star-btn" data-rating="4" aria-label="星4">★</button>
+          <button type="button" class="star-btn" data-rating="5" aria-label="星5">★</button>
+        </div>
+        <section id="highRatingSection" class="hidden">
+          <p class="section-title">高評価口コミ（星4-5）</p>
+          <div class="sub-card">
+            <label>1. メニュー・サービスで良かった点</label>
+            <div id="positiveChips" class="chips"></div>
+            <label style="margin-top: 14px">2. おすすめシーン（最大3つ）</label>
+            <div id="sceneChips" class="chips"></div>
+            <p id="sceneCount" class="note">選択中: 0 / 3</p>
+            <label for="freeCommentHigh">自由な感想（任意）</label>
+            <textarea id="freeCommentHigh" placeholder="マシンやスタッフの対応など、自由にご記入ください"></textarea>
+            <div class="actions">
+              <button id="buildDraftBtn" class="btn secondary" type="button">文章を自動作成する</button>
+              <button id="copyAndOpenBtn" class="btn primary" type="button">保存してコピーしGoogleレビューへ</button>
             </div>
-            
-            <div class="basket-wrapper opacity-90">
-                <div class="basket-base">
-                    <div class="basket-top">
-                        <div class="w-16 h-4 bg-[#717784] mx-auto mt-2 rounded-full shadow-inner"></div>
-                    </div>
-                    <div class="basket-slits">
-                        <div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div>
-                        <div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div>
-                        <div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div><div class="basket-slit"></div>
-                    </div>
-                    <!-- カゴは空 -->
-                    <div class="absolute inset-0 flex items-center justify-center pt-8 pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                    </div>
-                </div>
+            <div id="draftWrap" class="hidden"><div id="draftText" class="result"></div></div>
+          </div>
+        </section>
+        <section id="lowRatingSection" class="hidden">
+          <p class="section-title">改善要望（星1-3）</p>
+          <div class="sub-card low">
+            <p class="note" style="margin-top: 0">改善のため、気になった点をご記入ください。</p>
+            <label for="freeCommentLow">ご意見 *</label>
+            <textarea id="freeCommentLow" placeholder="ご意見をご記入ください"></textarea>
+            <div class="actions">
+              <button id="sendLowBtn" class="btn primary" type="button">担当者へ送信する</button>
             </div>
-            
-            <div class="mt-8 text-3xl font-bold text-gray-800 bg-white px-8 py-4 rounded-xl shadow-md border border-gray-200">
-                こちらのカゴにお入れください
-            </div>
-        </div>
+          </div>
+        </section>
+        <p id="statusMsg" class="status ok">店舗と会員情報を入力し、満足度を選択してください。</p>
+      </section>
+    </main>
+    <script id="stores-data" type="application/json"><?!= JSON.stringify(stores || []) ?></script>
+    <script>
+      const STORES = JSON.parse(document.getElementById("stores-data").textContent || "[]");
+      const POSITIVE_OPTIONS = [
+        "24時間いつでも通える",
+        "清掃が行き届いていて清潔",
+        "スタッフの対応が丁寧",
+        "マシン設備が充実",
+        "通いやすい立地",
+        "館内が使いやすい",
+      ];
+      const SCENE_OPTIONS = ["仕事帰りに利用", "朝活トレーニング", "ダイエット目的", "健康維持", "筋力アップ", "ストレス解消"];
+      let rating = 0;
+      let draft = "";
+      let selectedPositives = [];
+      let selectedScenes = [];
+      const els = {
+        storeSelect: document.getElementById("storeSelect"),
+        fullName: document.getElementById("fullName"),
+        memberCode: document.getElementById("memberCode"),
+        gender: document.getElementById("gender"),
+        ageRange: document.getElementById("ageRange"),
+        email: document.getElementById("email"),
+        visitDate: document.getElementById("visitDate"),
+        ratingStars: document.getElementById("ratingStars"),
+        highRatingSection: document.getElementById("highRatingSection"),
+        lowRatingSection: document.getElementById("lowRatingSection"),
+        positiveChips: document.getElementById("positiveChips"),
+        sceneChips: document.getElementById("sceneChips"),
+        sceneCount: document.getElementById("sceneCount"),
+        freeCommentHigh: document.getElementById("freeCommentHigh"),
+        freeCommentLow: document.getElementById("freeCommentLow"),
+        buildDraftBtn: document.getElementById("buildDraftBtn"),
+        draftWrap: document.getElementById("draftWrap"),
+        draftText: document.getElementById("draftText"),
+        copyAndOpenBtn: document.getElementById("copyAndOpenBtn"),
+        sendLowBtn: document.getElementById("sendLowBtn"),
+        statusMsg: document.getElementById("statusMsg"),
+        stepEls: [1, 2, 3, 4].map((n) => document.getElementById("stepEl" + n)),
+      };
 
-        <!-- 注意事項部分 -->
-        <div class="relative z-10 bg-white rounded-xl p-8 border-l-8 border-red-500 shadow-md">
-            <h2 class="text-3xl font-bold text-red-600 mb-6 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                ご利用のお願い
-            </h2>
-            <ul class="space-y-6 text-3xl font-bold text-gray-800 ml-4">
-                <li class="flex items-start">
-                    <span class="text-red-500 mr-4">✔</span>
-                    サウナをご利用の際は、必ず<span class="text-red-600 border-b-4 border-red-600 pb-1 mx-2">マットを敷いてお座り</span>ください。
-                </li>
-                <li class="flex items-start">
-                    <span class="text-red-500 mr-4">✔</span>
-                    マットのご利用は<span class="text-red-600 border-b-4 border-red-600 pb-1 mx-2">お一人様１枚まで</span>でお願いいたします。
-                </li>
-            </ul>
-        </div>
-    </div>
+      init();
 
-</body>
+      function init() {
+        els.visitDate.value = new Date().toISOString().slice(0, 10);
+        renderStoreOptions();
+        renderChips(els.positiveChips, POSITIVE_OPTIONS, selectedPositives, togglePositive);
+        renderChips(els.sceneChips, SCENE_OPTIONS, selectedScenes, toggleScene);
+        bindEvents();
+        updateSteps();
+      }
+
+      function renderStoreOptions() {
+        (STORES || []).forEach((s) => {
+          const o = document.createElement("option");
+          o.value = s.id || "";
+          o.textContent = s.name || "(名称未設定)";
+          els.storeSelect.appendChild(o);
+        });
+      }
+
+      function bindEvents() {
+        els.ratingStars.addEventListener("click", (e) => {
+          const t = e.target.closest("button[data-rating]");
+          if (!t) return;
+          rating = Number(t.dataset.rating || 0);
+          refreshStars();
+          refreshSections();
+          updateSteps();
+        });
+        els.buildDraftBtn.addEventListener("click", () => {
+          if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は空欄か10桁です。", true);
+          if (!rating || rating < 4) return setStatus("星4以上で口コミ文を生成できます。", true);
+          const s = getSelectedStore();
+          const c = els.freeCommentHigh.value.trim();
+          const line = selectedScenes.length ? "おすすめシーン: " + selectedScenes.join("、") : "";
+          const points = selectedPositives.length ? selectedPositives.join("、") : "館内が使いやすく継続しやすい";
+          draft = [(s.name || "店舗") + "を利用しました。", "星" + rating + "の評価です。", "良かった点は、" + points + "です。", line, c, "今後も継続して利用したいです."]
+            .filter(Boolean)
+            .join("\n");
+          els.draftText.textContent = draft;
+          els.draftWrap.classList.remove("hidden");
+          setStatus("口コミ文を生成しました。", false);
+          updateSteps();
+        });
+        els.copyAndOpenBtn.addEventListener("click", async () => {
+          if (!draft) return setStatus("先に口コミ文を生成してください。", true);
+          const s = getSelectedStore();
+          if (!s.googleReviewUrl) return setStatus("店舗のレビューURLが設定されていません。", true);
+          const p = buildPayload(draft);
+          try {
+            setStatus("保存中です...", false);
+            await submitSurvey(p);
+            await navigator.clipboard.writeText(draft);
+            window.open(s.googleReviewUrl, "_blank", "noopener,noreferrer");
+            setStatus("保存してコピーしました。Googleマップを開きます。", false);
+            updateSteps();
+          } catch (err) {
+            setStatus("送信に失敗しました: " + String(err), true);
+          }
+        });
+        els.sendLowBtn.addEventListener("click", async () => {
+          if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は空欄か10桁です。", true);
+          if (!rating || rating >= 4) return setStatus("低評価時のみ送信できます。", true);
+          const low = els.freeCommentLow.value.trim();
+          if (!low) return setStatus("ご意見を入力してください。", true);
+          const p = buildPayload("");
+          p.freeComment = low;
+          try {
+            setStatus("送信中です...", false);
+            await submitSurvey(p);
+            setStatus("担当者へ送信しました。ご協力ありがとうございます。", false);
+            updateSteps();
+          } catch (err) {
+            setStatus("送信に失敗しました: " + String(err), true);
+          }
+        });
+        els.memberCode.addEventListener("input", (e) => {
+          e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+          updateSteps();
+        });
+        ["storeSelect", "fullName", "gender", "ageRange", "email", "visitDate", "freeCommentHigh", "freeCommentLow"].forEach((id) => {
+          document.getElementById(id).addEventListener("input", updateSteps);
+          document.getElementById(id).addEventListener("change", updateSteps);
+        });
+      }
+
+      function refreshStars() {
+        els.ratingStars.querySelectorAll("button[data-rating]").forEach((b) => {
+          const n = Number(b.dataset.rating || 0);
+          b.classList.toggle("active", n <= rating);
+          b.setAttribute("aria-pressed", n <= rating ? "true" : "false");
+        });
+      }
+
+      function refreshSections() {
+        const high = rating >= 4;
+        const low = rating > 0 && rating <= 3;
+        els.highRatingSection.classList.toggle("hidden", !high);
+        els.lowRatingSection.classList.toggle("hidden", !low);
+        if (!high) {
+          draft = "";
+          els.draftWrap.classList.add("hidden");
+        }
+      }
+
+      function renderChips(container, options, selected, onClick) {
+        container.innerHTML = "";
+        options.forEach((item) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.textContent = item;
+          b.className = "chip";
+          b.classList.toggle("active", selected.includes(item));
+          b.addEventListener("click", () => onClick(item));
+          container.appendChild(b);
+        });
+      }
+
+      function updateSceneCount() {
+        els.sceneCount.textContent = "選択中: " + selectedScenes.length + " / 3";
+      }
+
+      function togglePositive(item) {
+        selectedPositives = selectedPositives.includes(item)
+          ? selectedPositives.filter((v) => v !== item)
+          : selectedPositives.concat(item);
+        renderChips(els.positiveChips, POSITIVE_OPTIONS, selectedPositives, togglePositive);
+        updateSteps();
+      }
+
+      function toggleScene(item) {
+        if (selectedScenes.includes(item)) selectedScenes = selectedScenes.filter((v) => v !== item);
+        else if (selectedScenes.length < 3) selectedScenes = selectedScenes.concat(item);
+        renderChips(els.sceneChips, SCENE_OPTIONS, selectedScenes, toggleScene);
+        updateSceneCount();
+        updateSteps();
+      }
+
+      function getSelectedStore() {
+        const id = els.storeSelect.value;
+        return (STORES || []).find((s) => String(s.id) === String(id)) || {};
+      }
+
+      function validMemberCodeField() {
+        const mc = els.memberCode.value.trim();
+        return !mc || /^\d{10}$/.test(mc);
+      }
+
+      function isProfileComplete() {
+        const email = els.email.value.trim();
+        return (
+          els.storeSelect.value &&
+          els.fullName.value.trim() &&
+          els.gender.value &&
+          els.ageRange.value &&
+          els.visitDate.value &&
+          email &&
+          /^\S+@\S+\.\S+$/.test(email) &&
+          validMemberCodeField()
+        );
+      }
+
+      function updateSteps() {
+        els.stepEls.forEach((el) => el.classList.remove("current"));
+        const p = isProfileComplete();
+        const r = rating > 0;
+        const hasDraft = draft.length > 0;
+        const lowText = els.freeCommentLow.value.trim().length > 0;
+        if (!p) {
+          els.stepEls[0].classList.add("current");
+          return;
+        }
+        if (!r) {
+          els.stepEls[1].classList.add("current");
+          return;
+        }
+        if (rating >= 4) {
+          if (!hasDraft) els.stepEls[2].classList.add("current");
+          else els.stepEls[3].classList.add("current");
+          return;
+        }
+        if (rating <= 3) {
+          if (!lowText) els.stepEls[2].classList.add("current");
+          else els.stepEls[3].classList.add("current");
+        }
+      }
+
+      function buildPayload(generatedReview) {
+        const s = getSelectedStore();
+        return {
+          action: "survey",
+          storeId: s.id || "",
+          storeName: s.name || "",
+          rating: rating,
+          fullName: els.fullName.value.trim(),
+          memberCode: els.memberCode.value.trim(),
+          gender: els.gender.value,
+          ageRange: els.ageRange.value,
+          email: els.email.value.trim(),
+          visitDate: els.visitDate.value,
+          positives: selectedPositives,
+          useScenes: selectedScenes,
+          freeComment: els.freeCommentHigh.value.trim(),
+          generatedReview: generatedReview,
+          feedbackEmail: s.feedbackEmail || "",
+          to: s.feedbackEmail || "",
+        };
+      }
+
+      function submitSurvey(payload) {
+        return new Promise((resolve, reject) => {
+          if (typeof google === "undefined" || !google.script || !google.script.run) {
+            reject("google.script.run が利用できません。GAS Webアプリ上で開いてください。");
+            return;
+          }
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res && res.ok) resolve(res);
+              else reject((res && res.error) || "送信エラー");
+            })
+            .withFailureHandler((err) => reject(err && err.message ? err.message : String(err)))
+            .submitSurveyFromWeb(payload);
+        });
+      }
+
+      function setStatus(msg, isError) {
+        els.statusMsg.textContent = msg;
+        els.statusMsg.className = isError ? "status err" : "status ok";
+      }
+    </script>
+  </body>
 </html>

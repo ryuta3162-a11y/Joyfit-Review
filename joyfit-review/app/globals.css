@@ -49,7 +49,11 @@
 }
 
 :root {
-  /* JOYFIT イメージのブランド緑（近似） */
+  /* JOYFIT24 ロゴ準拠のブランドレッド（PNGの地色に合わせる） */
+  --joyfit-red: #a62c3e;
+  --joyfit-red-dark: #7d2231;
+  --joyfit-red-deep: #521720;
+  /* 従来の緑アクセント（必要箇所のみ） */
   --joyfit-green: #006d3b;
   --joyfit-green-bright: #0a8f52;
   --joyfit-green-soft: #e8f5ef;
@@ -134,20 +138,37 @@
   }
 }
 
-/* 会員向け画面の背景グラデーション */
+/* 会員向け：ロゴと同色のレッドを基調にしたページ背景（カードは白で可読性を確保） */
 .joyfit-member-bg {
-  background: linear-gradient(
-    165deg,
-    var(--joyfit-green-soft) 0%,
-    oklch(0.97 0.01 155) 38%,
-    oklch(0.99 0.005 155) 100%
-  );
+  background:
+    radial-gradient(1000px 520px at 50% -18%, rgba(255, 255, 255, 0.14), transparent 58%),
+    radial-gradient(720px 420px at 0% 100%, rgba(0, 0, 0, 0.22), transparent 52%),
+    radial-gradient(600px 360px at 100% 85%, rgba(0, 0, 0, 0.18), transparent 50%),
+    linear-gradient(168deg, #b84a5a 0%, var(--joyfit-red) 42%, var(--joyfit-red-dark) 78%, var(--joyfit-red-deep) 100%);
 }
 
+/* ヒーロー：ブランドレッド上に白文字・ロゴ（公式トーンに寄せる） */
 .joyfit-brand-header {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(
-    120deg,
-    var(--joyfit-green) 0%,
-    var(--joyfit-green-bright) 100%
+    125deg,
+    color-mix(in srgb, var(--joyfit-red) 82%, black) 0%,
+    var(--joyfit-red) 48%,
+    color-mix(in srgb, var(--joyfit-red) 78%, white) 100%
   );
+  border-left: 4px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.joyfit-brand-header::after {
+  content: "";
+  position: absolute;
+  right: -64px;
+  top: -64px;
+  width: 200px;
+  height: 200px;
+  border-radius: 999px;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.22), transparent 68%);
+  pointer-events: none;
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronRight, Search, Store } from "lucide-react";
 
+import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { Input } from "@/components/ui/input";
 import type { StoreMasterRow } from "@/lib/store-master";
 
@@ -37,16 +38,16 @@ export function StorePicker({ stores }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-3xl border border-primary/15 bg-card shadow-xl ring-1 ring-black/5">
-        <div className="joyfit-brand-header px-5 pb-6 pt-8 text-center text-primary-foreground">
+      <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-card shadow-xl ring-1 ring-black/5">
+        <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-primary-foreground">
           <Link
             href="/"
-            className="mb-4 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
+            className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
           >
             ← トップに戻る
           </Link>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80">JOYFIT</p>
-          <h1 className="mt-2 text-lg font-bold leading-snug md:text-xl">
+          <JoyfitHeaderLogo className="mb-1" />
+          <h1 className="mt-3 text-lg font-bold leading-snug md:text-xl">
             口コミを投稿する店舗を
             <br />
             選択してください
@@ -56,14 +57,14 @@ export function StorePicker({ stores }: Props) {
           </p>
         </div>
 
-        <div className="border-t border-primary/10 bg-card px-5 py-5">
+        <div className="border-t border-zinc-100 bg-card px-5 py-5">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/60" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="店舗名を検索"
-              className="h-12 rounded-xl border-primary/20 bg-secondary/40 pl-10 text-base shadow-inner focus-visible:border-primary/40"
+              className="h-12 rounded-xl border-zinc-200 bg-zinc-50 pl-10 text-base shadow-inner focus-visible:border-[color:var(--joyfit-red)]/40"
             />
           </div>
         </div>
@@ -71,7 +72,7 @@ export function StorePicker({ stores }: Props) {
 
       <ul className="space-y-3">
         {filtered.length === 0 ? (
-          <li className="rounded-2xl border border-dashed border-primary/25 bg-card/80 px-5 py-10 text-center text-sm text-muted-foreground">
+          <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-10 text-center text-sm text-muted-foreground">
             該当する店舗がありません。
             <br />
             別のキーワードでお試しください。
@@ -81,16 +82,16 @@ export function StorePicker({ stores }: Props) {
             <li key={store.id}>
               <Link
                 href={`/member/${store.id}`}
-                className="group flex items-center gap-4 rounded-2xl border border-primary/10 bg-card p-4 shadow-md ring-1 ring-black/5 transition hover:border-primary/35 hover:shadow-lg"
+                className="group flex items-center gap-4 rounded-2xl border border-zinc-200 bg-card p-4 shadow-md ring-1 ring-black/5 transition hover:border-[color:var(--joyfit-red)]/35 hover:shadow-lg"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary transition group-hover:bg-primary/18">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)]/16">
                   <Store className="h-6 w-6" />
                 </span>
                 <span className="min-w-0 flex-1 text-left">
                   <span className="block text-base font-bold text-foreground">{store.name}</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">{storeSubtitle(store)}</span>
                 </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-primary/50 transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-[color:var(--joyfit-red)]" />
               </Link>
             </li>
           ))

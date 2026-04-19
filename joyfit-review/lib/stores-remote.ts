@@ -1,6 +1,20 @@
 import type { StoreMasterRow } from "@/lib/store-master";
 import { STORES_FALLBACK } from "@/lib/store-master";
 
+/** GAS doGet の JSON モード用。ベース URL のみ設定されていても店舗一覧が取れるようにする */
+function storesListRequestUrl(base: string): string {
+  const trimmed = base.trim();
+  try {
+    const u = new URL(trimmed);
+    if (u.searchParams.get("format")?.toLowerCase() === "json") return trimmed;
+    u.searchParams.set("format", "json");
+    return u.toString();
+  } catch {
+    const join = trimmed.includes("?") ? "&" : "?";
+    return trimmed + join + "format=json";
+  }
+}
+
 function pickString(obj: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const v = obj[key];
@@ -47,7 +61,7 @@ export async function fetchStoresRemote(): Promise<StoreMasterRow[]> {
   }
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(storesListRequestUrl(url), {
       next: { revalidate: 300 },
       headers: { Accept: "application/json" },
     });
