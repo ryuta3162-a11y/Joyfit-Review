@@ -1,11 +1,13 @@
 "use client";
 
 import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Copy, ExternalLink, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
+import { GoogleReviewMock } from "@/components/member/google-review-mock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
@@ -60,6 +62,21 @@ const sceneOptions = [
   "全国のJOYFITを活用したい方に",
 ] as const;
 
+function localDateIsoForRecord(): string {
+  const n = new Date();
+  const y = n.getFullYear();
+  const m = String(n.getMonth() + 1).padStart(2, "0");
+  const d = String(n.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatJapaneseDate(iso: string): string {
+  const parts = iso.split("-").map((x) => parseInt(x, 10));
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return iso;
+  const [y, mo, da] = parts;
+  return `${y}年${mo}月${da}日`;
+}
+
 export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Props) {
   const [rating, setRating] = useState<number | null>(null);
   const [menuPoints, setMenuPoints] = useState<string[]>([]);
@@ -70,7 +87,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [gender, setGender] = useState<(typeof genderOptions)[number] | "">("");
   const [ageRange, setAgeRange] = useState("");
   const [email, setEmail] = useState("");
-  const [visitDate, setVisitDate] = useState(() => new Date().toISOString().slice(0, 10));
+  /** 回答送信日（ローカル日付・画面表示のみ。お客様は変更不可） */
+  const recordedVisitDate = useMemo(() => localDateIsoForRecord(), []);
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState(false);
@@ -105,10 +123,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
-  const memberCodeOk = useMemo(() => {
-    const mc = memberCode.trim();
-    return !mc || /^\d{10}$/.test(mc);
-  }, [memberCode]);
+  const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const profileComplete =
     fullName.trim() &&
     gender &&
@@ -154,7 +169,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       gender,
       ageRange,
       email,
-      visitDate,
+      visitDate: recordedVisitDate,
       positives: allPositives,
       useScenes: scenes,
       freeComment: feedback,
@@ -251,25 +266,79 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <p className="mb-1.5 text-xs font-semibold text-muted-foreground">名前（フルネーム）*</p>
             <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
           </div>
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">会員番号（任意・10桁）</p>
-            <Input
-              value={memberCode}
-              inputMode="numeric"
-              maxLength={10}
-              placeholder="1234567890"
-              onChange={(event) =>
-                setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
-              }
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              JOYFIT APP 右上「サービス」→「契約情報」から確認できます。
-            </p>
-            {!memberCodeOk && (
-              <p className="mt-1 text-[11px] font-medium text-[color:var(--joyfit-red)]">
-                会員番号は空欄か、10桁の数字で入力してください。
-              </p>
-            )}
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-white via-white to-[color:var(--joyfit-red)]/[0.06] shadow-sm ring-1 ring-zinc-100">
+              <div className="flex items-center gap-2 border-b border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/10 px-3 py-2.5">
+                <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                  JOYFIT APP
+                </span>
+                <p className="text-xs font-bold leading-tight text-zinc-900">会員番号の確認手順（必須）</p>
+              </div>
+              <div className="space-y-2 px-3 py-2.5">
+                <p className="text-[11px] leading-relaxed text-zinc-700">
+                  アプリを開き、右上の<strong>「サービス」</strong>→<strong>「契約情報」</strong>の順で進むと、
+                  <strong className="text-[color:var(--joyfit-red)]">10桁の会員番号</strong>が表示されます。
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50/80 shadow-sm">
+                    <figcaption className="flex items-center gap-1.5 border-b border-zinc-200 bg-white px-2 py-1.5">
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[9px] font-bold text-white">
+                        01
+                      </span>
+                      <span className="text-[10px] font-semibold leading-tight text-zinc-700">「サービス」をタップ</span>
+                    </figcaption>
+                    <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
+                      <Image
+                        src="/joyfit-app-member-1.png"
+                        alt="JOYFITアプリの右上「サービス」をタップする画面"
+                        fill
+                        className="object-contain object-top p-1"
+                        sizes="(max-width: 640px) 45vw, 200px"
+                      />
+                    </div>
+                  </figure>
+                  <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50/80 shadow-sm">
+                    <figcaption className="flex items-center gap-1.5 border-b border-zinc-200 bg-white px-2 py-1.5">
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[9px] font-bold text-white">
+                        02
+                      </span>
+                      <span className="text-[10px] font-semibold leading-tight text-zinc-700">「契約情報」で番号確認</span>
+                    </figcaption>
+                    <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
+                      <Image
+                        src="/joyfit-app-member-2.png"
+                        alt="契約情報画面で会員番号を確認する例"
+                        fill
+                        className="object-contain object-top p-1"
+                        sizes="(max-width: 640px) 45vw, 200px"
+                      />
+                    </div>
+                  </figure>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">会員番号（10桁・必須）*</p>
+              <Input
+                value={memberCode}
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="0123456789"
+                onChange={(event) =>
+                  setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
+                }
+                aria-invalid={memberCode.length > 0 && !memberCodeOk}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">半角数字10桁（ハイフンは入れないでください）</p>
+              {memberCode.trim().length === 0 ? (
+                <p className="mt-1 text-[11px] font-medium text-amber-800">会員番号の入力は必須です。</p>
+              ) : !memberCodeOk ? (
+                <p className="mt-1 text-[11px] font-medium text-[color:var(--joyfit-red)]">
+                  10桁そろうまで入力してください。
+                </p>
+              ) : null}
+            </div>
           </div>
           <div>
             <p className="mb-1.5 text-xs font-semibold text-muted-foreground">性別*</p>
@@ -316,9 +385,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               />
             </div>
           </div>
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">ご利用日*</p>
-            <Input type="date" value={visitDate} onChange={(event) => setVisitDate(event.target.value)} />
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-3">
+            <p className="text-xs font-semibold text-muted-foreground">ご来店・回答日（自動で記録）</p>
+            <p className="mt-1 text-base font-semibold text-zinc-900">{formatJapaneseDate(recordedVisitDate)}</p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              店舗での確認用です。日付の変更はできません。
+            </p>
           </div>
         </div>
 
@@ -334,7 +406,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 aria-label={`${value}つ星`}
               >
                 <Star
-                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[color:var(--joyfit-red)] text-[color:var(--joyfit-red)] drop-shadow-sm" : "text-zinc-300"}`}
+                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[color:var(--joyfit-red)] text-[color:var(--joyfit-red)]" : "text-zinc-300"}`}
                 />
               </button>
             ))}
@@ -408,22 +480,24 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">自由な感想（任意）</p>
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
+                その他、気に入っている点など（任意）
+              </p>
               <Textarea
                 value={feedback}
                 onChange={(event) => setFeedback(event.target.value)}
-                placeholder="マシンやスタッフの対応など、自由にご記入ください"
+                placeholder="あればご記入ください（未入力でも進められます）"
                 rows={4}
-                className="rounded-xl border-primary/15 bg-card"
+                className="rounded-xl border-zinc-200 bg-white"
               />
             </div>
 
             <Button
               onClick={buildDraft}
               disabled={!profileComplete || submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
-              文章を自動作成する
+              口コミ用に文章を作成する
             </Button>
             {!profileComplete && (
               <p className="text-xs text-muted-foreground">※ 先に会員情報の必須項目を入力してください。</p>
@@ -451,39 +525,64 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={() => void handleLowRatingSubmit()}
               disabled={!feedback.trim() || !profileComplete || submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               {submitting ? "送信中…" : "担当者へ送信する"}
             </Button>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              ※入力内容は店舗別シートへ保存され、低評価時は担当者へメール通知されます。
+              ※入力内容は担当者へ共有され、改善の参考にします。
             </p>
           </div>
         )}
 
         {draft && isHigh && (
           <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
-            <p className="text-sm font-semibold text-foreground">生成された口コミ文</p>
-            <p className="whitespace-pre-wrap rounded-xl border border-primary/10 bg-card p-4 text-sm leading-relaxed text-foreground shadow-inner">
-              {draft}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              ボタンで文章をコピーしたうえで、Googleマップの口コミ欄に貼り付けてください。
-            </p>
+            <div className="rounded-xl border border-amber-100 bg-amber-50/90 p-3.5 text-sm leading-relaxed text-zinc-800">
+              <p className="font-semibold text-amber-950">次の操作の流れ</p>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs md:text-[13px]">
+                <li>
+                  下のボタンを押すと、文面が<strong>自動でコピー</strong>され、口コミサイト（Google
+                  マップ）が開きます。
+                </li>
+                <li>
+                  開いた画面で、<strong>星をもう一度タップ</strong>してから、コピーした文面を貼り付けてください。
+                </li>
+                <li>
+                  内容を確認のうえ、<strong>「投稿」</strong>を押して完了です。
+                </li>
+              </ol>
+            </div>
+
+            <GoogleReviewMock storeName={storeName} />
+
+            <div>
+              <p className="text-sm font-semibold text-foreground">作成した口コミ文</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                この文面がコピーされます。口コミサイトの入力欄に貼り付けてください。
+              </p>
+              <p className="mt-2 whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-relaxed text-foreground">
+                {draft}
+              </p>
+            </div>
+
             {submitError && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {submitError}
               </p>
             )}
             <Button
-              onClick={copyDraftAndOpen}
+              onClick={() => void copyDraftAndOpen()}
               disabled={submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Copy className="h-4 w-4" />
-              {submitting ? "保存中…" : "文章をコピーしてGoogleマップを開く"}
+              {submitting ? "保存してコピー中…" : "文面をコピーして口コミサイトを開く"}
             </Button>
-            {copied && <p className="text-center text-xs font-medium text-primary">コピーしました</p>}
+            {copied && (
+              <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">
+                文面をコピーしました。開いた画面に貼り付けてください。
+              </p>
+            )}
           </div>
         )}
 

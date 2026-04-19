@@ -149,6 +149,79 @@
         font-size: 11px;
         color: var(--muted);
       }
+      input[readonly] {
+        background: #f4f4f5;
+        color: #52525b;
+        cursor: not-allowed;
+      }
+      .member-app-guide {
+        margin: 10px 0 12px;
+        padding: 10px 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(165, 53, 75, 0.22);
+        background: linear-gradient(135deg, #fff 0%, rgba(165, 53, 75, 0.05) 100%);
+      }
+      .member-app-guide-title {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 900;
+        color: #1e293b;
+      }
+      .member-app-guide-title span {
+        display: inline-block;
+        margin-right: 6px;
+        padding: 2px 7px;
+        border-radius: 6px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+      }
+      .member-app-guide-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .member-app-guide-grid figure {
+        margin: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e4e4e7;
+        background: #fafafa;
+      }
+      .member-app-guide-grid figcaption {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+        font-size: 10px;
+        font-weight: 800;
+        color: #334155;
+        background: #fff;
+        border-bottom: 1px solid #e4e4e7;
+      }
+      .member-app-guide-grid figcaption b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 20px;
+        padding: 0 4px;
+        border-radius: 4px;
+        background: #18181b;
+        color: #fff;
+        font-size: 9px;
+      }
+      .member-app-guide-grid img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 220px;
+        object-fit: contain;
+        object-position: top center;
+        background: #fff;
+      }
       .section-title {
         margin: 20px 0 10px;
         padding-top: 14px;
@@ -340,16 +413,40 @@
             <input id="fullName" type="text" autocomplete="name" />
           </div>
           <div class="field">
-            <label for="memberCode">会員番号（任意）</label>
+            <label for="memberCode">会員番号（10桁・必須）*</label>
+            <div class="member-app-guide">
+              <p class="member-app-guide-title"><span>JOYFIT APP</span> 会員番号の見方</p>
+              <p class="note" style="margin-top: 6px">
+                右上「サービス」→「契約情報」で10桁の番号を確認してください。
+              </p>
+              <div class="member-app-guide-grid">
+                <figure>
+                  <figcaption><b>01</b> サービスをタップ</figcaption>
+                  <img
+                    src="https://joyfit-review.vercel.app/joyfit-app-member-1.png"
+                    alt="サービスをタップする画面"
+                    loading="lazy"
+                  />
+                </figure>
+                <figure>
+                  <figcaption><b>02</b> 契約情報で番号確認</figcaption>
+                  <img
+                    src="https://joyfit-review.vercel.app/joyfit-app-member-2.png"
+                    alt="契約情報で会員番号を確認する画面"
+                    loading="lazy"
+                  />
+                </figure>
+              </div>
+            </div>
             <input
               id="memberCode"
               type="text"
               inputmode="numeric"
               maxlength="10"
-              placeholder="10桁（例: 1234567890）"
+              placeholder="0123456789"
               autocomplete="off"
             />
-            <p class="note">JOYFIT APP 右上「サービス」→「契約情報」から確認できます。</p>
+            <p class="note">半角数字10桁（ハイフンなし）</p>
           </div>
         </div>
         <div class="field-grid">
@@ -381,8 +478,8 @@
             <input id="email" type="email" placeholder="sample@example.com" autocomplete="email" />
           </div>
           <div class="field">
-            <label for="visitDate">ご利用日 *</label>
-            <input id="visitDate" type="date" />
+            <label for="visitDate">ご来店・回答日（自動）</label>
+            <input id="visitDate" type="date" readonly />
           </div>
         </div>
         <p class="section-title">満足度評価</p>
@@ -467,8 +564,18 @@
 
       init();
 
+      function localDateInputValue() {
+        var n = new Date();
+        var y = n.getFullYear();
+        var m = String(n.getMonth() + 1);
+        if (m.length < 2) m = "0" + m;
+        var d = String(n.getDate());
+        if (d.length < 2) d = "0" + d;
+        return y + "-" + m + "-" + d;
+      }
+
       function init() {
-        els.visitDate.value = new Date().toISOString().slice(0, 10);
+        els.visitDate.value = localDateInputValue();
         renderStoreOptions();
         renderChips(els.positiveChips, POSITIVE_OPTIONS, selectedPositives, togglePositive);
         renderChips(els.sceneChips, SCENE_OPTIONS, selectedScenes, toggleScene);
@@ -495,7 +602,7 @@
           updateSteps();
         });
         els.buildDraftBtn.addEventListener("click", () => {
-          if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は空欄か10桁です。", true);
+          if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は10桁必須です。", true);
           if (!rating || rating < 4) return setStatus("星4以上で口コミ文を生成できます。", true);
           const s = getSelectedStore();
           const c = els.freeCommentHigh.value.trim();
@@ -526,7 +633,7 @@
           }
         });
         els.sendLowBtn.addEventListener("click", async () => {
-          if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は空欄か10桁です。", true);
+          if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は10桁必須です。", true);
           if (!rating || rating >= 4) return setStatus("低評価時のみ送信できます。", true);
           const low = els.freeCommentLow.value.trim();
           if (!low) return setStatus("ご意見を入力してください。", true);
@@ -610,7 +717,7 @@
 
       function validMemberCodeField() {
         const mc = els.memberCode.value.trim();
-        return !mc || /^\d{10}$/.test(mc);
+        return /^\d{10}$/.test(mc);
       }
 
       function isProfileComplete() {
