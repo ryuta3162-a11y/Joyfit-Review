@@ -15,7 +15,7 @@ type Props = {
   storeId: string;
   storeName: string;
   reviewUrl: string;
-  /** スプレッドシートC列。空のときは DEFAULT_LOW_RATING_EMAIL を使用 */
+  /** 店舗マスタの通知先。空のときは DEFAULT_LOW_RATING_EMAIL を使用 */
   feedbackEmail: string;
 };
 

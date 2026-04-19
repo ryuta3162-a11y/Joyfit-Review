@@ -27,13 +27,12 @@ export async function submitLowRatingFeedback(input: {
   if (!to || !to.includes("@")) {
     return {
       ok: false,
-      error:
-        "通知先メールが未設定です。スプレッドシートのC列にメールを入れるか、環境変数 DEFAULT_LOW_RATING_EMAIL を設定してください。",
+      error: "送信を完了できませんでした。お手数ですが店舗までご連絡ください。",
     };
   }
 
   if (!gasUrl) {
-    return { ok: false, error: "STORES_JSON_URL が未設定です。" };
+    return { ok: false, error: "ただいま送信をお受けできません。" };
   }
 
   const body = [
@@ -64,15 +63,15 @@ export async function submitLowRatingFeedback(input: {
     try {
       json = JSON.parse(text) as { ok?: boolean; error?: string };
     } catch {
-      return { ok: false, error: "GASの応答がJSONではありません。doPostをデプロイ済みか確認してください。" };
+      return { ok: false, error: "送信に失敗しました。しばらくしてから再度お試しください。" };
     }
 
     if (!res.ok || !json.ok) {
-      return { ok: false, error: json.error || "メール送信に失敗しました（HTTP " + res.status + "）" };
+      return { ok: false, error: "送信に失敗しました。しばらくしてから再度お試しください。" };
     }
 
     return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "送信エラー" };
+  } catch {
+    return { ok: false, error: "送信に失敗しました。通信状況をご確認のうえ、再度お試しください。" };
   }
 }

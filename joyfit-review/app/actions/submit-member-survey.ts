@@ -31,7 +31,7 @@ export async function submitMemberSurvey(
 ): Promise<SubmitMemberSurveyResult> {
   const gasUrl = process.env.STORES_JSON_URL?.trim();
   if (!gasUrl) {
-    return { ok: false, error: "STORES_JSON_URL が未設定です。" };
+    return { ok: false, error: "ただいま送信をお受けできません。" };
   }
 
   const defaultEmail = process.env.DEFAULT_LOW_RATING_EMAIL?.trim() ?? "";
@@ -66,14 +66,14 @@ export async function submitMemberSurvey(
     try {
       json = JSON.parse(text) as { ok?: boolean; error?: string };
     } catch {
-      return { ok: false, error: "GASの応答がJSONではありません。doPostをデプロイ済みか確認してください。" };
+      return { ok: false, error: "送信に失敗しました。しばらくしてから再度お試しください。" };
     }
 
     if (!res.ok || !json.ok) {
-      return { ok: false, error: json.error || "送信に失敗しました（HTTP " + res.status + "）" };
+      return { ok: false, error: "送信に失敗しました。しばらくしてから再度お試しください。" };
     }
     return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "送信エラー" };
+  } catch {
+    return { ok: false, error: "送信に失敗しました。通信状況をご確認のうえ、再度お試しください。" };
   }
 }
