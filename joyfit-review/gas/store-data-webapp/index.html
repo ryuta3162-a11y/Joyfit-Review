@@ -472,15 +472,9 @@
             </select>
           </div>
         </div>
-        <div class="field-grid">
-          <div class="field">
-            <label for="email">メールアドレス *</label>
-            <input id="email" type="email" placeholder="sample@example.com" autocomplete="email" />
-          </div>
-          <div class="field">
-            <label for="visitDate">ご来店・回答日（自動）</label>
-            <input id="visitDate" type="date" readonly />
-          </div>
+        <div class="field">
+          <label for="email">メールアドレス *</label>
+          <input id="email" type="email" placeholder="sample@example.com" autocomplete="email" />
         </div>
         <p class="section-title">満足度評価</p>
         <div class="stars" id="ratingStars" role="group" aria-label="満足度（5段階）">
@@ -544,7 +538,6 @@
         gender: document.getElementById("gender"),
         ageRange: document.getElementById("ageRange"),
         email: document.getElementById("email"),
-        visitDate: document.getElementById("visitDate"),
         ratingStars: document.getElementById("ratingStars"),
         highRatingSection: document.getElementById("highRatingSection"),
         lowRatingSection: document.getElementById("lowRatingSection"),
@@ -575,7 +568,6 @@
       }
 
       function init() {
-        els.visitDate.value = localDateInputValue();
         renderStoreOptions();
         renderChips(els.positiveChips, POSITIVE_OPTIONS, selectedPositives, togglePositive);
         renderChips(els.sceneChips, SCENE_OPTIONS, selectedScenes, toggleScene);
@@ -652,7 +644,7 @@
           e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
           updateSteps();
         });
-        ["storeSelect", "fullName", "gender", "ageRange", "email", "visitDate", "freeCommentHigh", "freeCommentLow"].forEach((id) => {
+        ["storeSelect", "fullName", "gender", "ageRange", "email", "freeCommentHigh", "freeCommentLow"].forEach((id) => {
           document.getElementById(id).addEventListener("input", updateSteps);
           document.getElementById(id).addEventListener("change", updateSteps);
         });
@@ -727,7 +719,6 @@
           els.fullName.value.trim() &&
           els.gender.value &&
           els.ageRange.value &&
-          els.visitDate.value &&
           email &&
           /^\S+@\S+\.\S+$/.test(email) &&
           validMemberCodeField()
@@ -771,7 +762,7 @@
           gender: els.gender.value,
           ageRange: els.ageRange.value,
           email: els.email.value.trim(),
-          visitDate: els.visitDate.value,
+          visitDate: localDateInputValue(),
           positives: selectedPositives,
           useScenes: selectedScenes,
           freeComment: els.freeCommentHigh.value.trim(),

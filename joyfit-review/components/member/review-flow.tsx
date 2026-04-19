@@ -70,13 +70,6 @@ function localDateIsoForRecord(): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatJapaneseDate(iso: string): string {
-  const parts = iso.split("-").map((x) => parseInt(x, 10));
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return iso;
-  const [y, mo, da] = parts;
-  return `${y}年${mo}月${da}日`;
-}
-
 export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Props) {
   const [rating, setRating] = useState<number | null>(null);
   const [menuPoints, setMenuPoints] = useState<string[]>([]);
@@ -87,7 +80,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [gender, setGender] = useState<(typeof genderOptions)[number] | "">("");
   const [ageRange, setAgeRange] = useState("");
   const [email, setEmail] = useState("");
-  /** 回答送信日（ローカル日付・画面表示のみ。お客様は変更不可） */
+  /** 回答日（ローカル日付・送信データにのみ使用） */
   const recordedVisitDate = useMemo(() => localDateIsoForRecord(), []);
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
@@ -384,13 +377,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 placeholder="sample@example.com"
               />
             </div>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-3">
-            <p className="text-xs font-semibold text-muted-foreground">ご来店・回答日（自動で記録）</p>
-            <p className="mt-1 text-base font-semibold text-zinc-900">{formatJapaneseDate(recordedVisitDate)}</p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-              店舗での確認用です。日付の変更はできません。
-            </p>
           </div>
         </div>
 
