@@ -38,8 +38,8 @@ export function StorePicker({ stores }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-card shadow-xl ring-1 ring-black/5">
-        <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-primary-foreground">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white">
           <Link
             href="/"
             className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
@@ -52,8 +52,8 @@ export function StorePicker({ stores }: Props) {
             <br />
             選択してください
           </h1>
-          <p className="mx-auto mt-2 max-w-[280px] text-xs leading-relaxed text-white/88">
-            店舗名・エリア・読み（例: 経堂 / kyodo）で検索できます
+          <p className="mx-auto mt-2 max-w-[280px] text-xs leading-relaxed text-white/90">
+            店舗名・エリア・読みで検索できます
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export function StorePicker({ stores }: Props) {
             <li key={store.id}>
               <Link
                 href={`/member/${store.id}`}
-                className="group flex items-center gap-4 rounded-2xl border border-zinc-200 bg-card p-4 shadow-md ring-1 ring-black/5 transition hover:border-[color:var(--joyfit-red)]/35 hover:shadow-lg"
+                className="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-[color:var(--joyfit-red)]/40"
               >
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)]/16">
                   <Store className="h-6 w-6" />

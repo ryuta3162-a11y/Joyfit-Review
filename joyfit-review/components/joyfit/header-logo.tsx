@@ -14,7 +14,7 @@ export function JoyfitHeaderLogo({ className }: Props) {
         width={360}
         height={90}
         priority
-        className="h-9 w-auto max-w-[min(100%,300px)] object-contain object-center drop-shadow-sm md:h-10"
+        className="h-9 w-auto max-w-[min(100%,300px)] object-contain object-center md:h-10"
       />
     </div>
   );

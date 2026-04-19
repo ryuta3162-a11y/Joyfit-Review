@@ -9,17 +9,17 @@ export default async function SelectStorePage() {
   return (
     <MemberPageShell>
       <StorePicker stores={stores} />
-      <p className="mt-6 text-center text-[11px] text-white/80">
-        店舗マスタは運用担当が{" "}
+      <p className="mt-6 text-center text-[11px] text-muted-foreground">
+        店舗一覧は{" "}
         <a
           href={STORE_MASTER_SHEET_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-white underline decoration-white/50 underline-offset-2 hover:decoration-white"
+          className="font-medium text-[color:var(--joyfit-red)] underline-offset-2 hover:underline"
         >
-          Googleスプレッドシート
+          スプレッドシート
         </a>
-        で更新し、公開サイトには反映されます。
+        で管理しています。
       </p>
     </MemberPageShell>
   );

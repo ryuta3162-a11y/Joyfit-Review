@@ -198,12 +198,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
   if (sent) {
     return (
-      <div className="overflow-hidden rounded-3xl border border-primary/15 bg-card shadow-xl ring-1 ring-black/5">
-        <div className="joyfit-brand-header px-6 py-10 text-center text-primary-foreground">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="joyfit-brand-header px-6 py-10 text-center text-white">
           <p className="text-4xl">🙏</p>
           <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
-          <p className="mx-auto mt-3 max-w-xs text-sm text-white/90">
-            いただいたご意見を担当者へ送信しました。店舗改善の参考にさせていただきます。
+          <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
+            ご意見を担当者へお送りしました。
           </p>
         </div>
       </div>
@@ -211,7 +211,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-white/10 bg-card text-foreground shadow-2xl ring-1 ring-black/20">
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white text-foreground shadow-sm">
       <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
           href="/select-store"
@@ -421,7 +421,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={buildDraft}
               disabled={!profileComplete || submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white shadow-md hover:bg-[color:var(--joyfit-red-dark)]"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
             >
               文章を自動作成する
             </Button>
@@ -451,7 +451,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={() => void handleLowRatingSubmit()}
               disabled={!feedback.trim() || !profileComplete || submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white shadow-md hover:bg-[color:var(--joyfit-red-dark)]"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
             >
               {submitting ? "送信中…" : "担当者へ送信する"}
             </Button>
@@ -478,7 +478,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={copyDraftAndOpen}
               disabled={submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white shadow-md hover:bg-[color:var(--joyfit-red-dark)]"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
             >
               <Copy className="h-4 w-4" />
               {submitting ? "保存中…" : "文章をコピーしてGoogleマップを開く"}
