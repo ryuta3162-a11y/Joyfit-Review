@@ -323,6 +323,31 @@
       .btn.primary:hover {
         background: var(--brand-strong);
       }
+      .btn.gmail {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 320px;
+        background: #1a73e8;
+        box-shadow: 0 6px 14px rgba(26, 115, 232, 0.3);
+      }
+      .btn.gmail:hover {
+        background: #1765cc;
+      }
+      .btn.gmail .gmail-icon {
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn.gmail .gmail-icon svg {
+        width: 14px;
+        height: 14px;
+      }
       .btn.secondary {
         border: 1px solid #cfd6e2;
         background: #f6f8fb;
@@ -504,11 +529,22 @@
         <section id="lowRatingSection" class="hidden">
           <p class="section-title">改善要望（星1-3）</p>
           <div class="sub-card low">
-            <p class="note" style="margin-top: 0">改善のため、気になった点をご記入ください。</p>
-            <label for="freeCommentLow">ご意見 *</label>
-            <textarea id="freeCommentLow" placeholder="ご意見をご記入ください"></textarea>
+            <p class="note" style="margin-top: 0">
+              ご不便をおかけしております。低評価時は店舗スタッフへ直接お問い合わせいただけます。
+            </p>
+            <p class="note">
+              下のバナーからGmail作成画面を開きます。宛先・件名・本文（会員情報）は自動入力されます。
+            </p>
             <div class="actions">
-              <button id="sendLowBtn" class="btn primary" type="button">担当者へ送信する</button>
+              <button id="sendLowBtn" class="btn primary gmail" type="button" aria-label="Gmailで店舗へ問い合わせる">
+                <span class="gmail-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6.75L12 13.25L21 6.75" stroke="#1A73E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <rect x="3" y="6" width="18" height="12" rx="2" stroke="#1A73E8" stroke-width="2"></rect>
+                  </svg>
+                </span>
+                Gmailで店舗へ問い合わせる
+              </button>
             </div>
           </div>
         </section>
@@ -545,7 +581,6 @@
         sceneChips: document.getElementById("sceneChips"),
         sceneCount: document.getElementById("sceneCount"),
         freeCommentHigh: document.getElementById("freeCommentHigh"),
-        freeCommentLow: document.getElementById("freeCommentLow"),
         buildDraftBtn: document.getElementById("buildDraftBtn"),
         draftWrap: document.getElementById("draftWrap"),
         draftText: document.getElementById("draftText"),
@@ -627,10 +662,8 @@
         els.sendLowBtn.addEventListener("click", async () => {
           if (!isProfileComplete()) return setStatus("必須項目を入力してください。会員番号は10桁必須です。", true);
           if (!rating || rating >= 4) return setStatus("低評価時のみ送信できます。", true);
-          const low = els.freeCommentLow.value.trim();
-          if (!low) return setStatus("ご意見を入力してください。", true);
           const p = buildPayload("");
-          p.freeComment = low;
+          p.freeComment = "";
           p.skipAutoMail = true;
           try {
             setStatus("送信中です...", false);
@@ -646,7 +679,7 @@
           e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
           updateSteps();
         });
-        ["storeSelect", "fullName", "gender", "ageRange", "email", "freeCommentHigh", "freeCommentLow"].forEach((id) => {
+        ["storeSelect", "fullName", "gender", "ageRange", "email", "freeCommentHigh"].forEach((id) => {
           document.getElementById(id).addEventListener("input", updateSteps);
           document.getElementById(id).addEventListener("change", updateSteps);
         });
@@ -732,7 +765,6 @@
         const p = isProfileComplete();
         const r = rating > 0;
         const hasDraft = draft.length > 0;
-        const lowText = els.freeCommentLow.value.trim().length > 0;
         if (!p) {
           els.stepEls[0].classList.add("current");
           return;
@@ -747,8 +779,7 @@
           return;
         }
         if (rating <= 3) {
-          if (!lowText) els.stepEls[2].classList.add("current");
-          else els.stepEls[3].classList.add("current");
+          els.stepEls[3].classList.add("current");
         }
       }
 
@@ -784,6 +815,7 @@
           "下記、ご要望やお声を記載下さい。",
           "",
           "------------------------------",
+          "送信者メール(入力値): " + (payload.email || ""),
           "店舗名: " + (payload.storeName || ""),
           "店舗ID: " + (payload.storeId || ""),
           "評価: 星" + String(payload.rating || ""),
