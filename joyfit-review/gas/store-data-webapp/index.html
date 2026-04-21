@@ -631,10 +631,12 @@
           if (!low) return setStatus("ご意見を入力してください。", true);
           const p = buildPayload("");
           p.freeComment = low;
+          p.skipAutoMail = true;
           try {
             setStatus("送信中です...", false);
             await submitSurvey(p);
-            setStatus("担当者へ送信しました。ご協力ありがとうございます。", false);
+            openGmailFeedback(p);
+            setStatus("スプレッドシートへ保存し、Gmail作成画面を開きました。", false);
             updateSteps();
           } catch (err) {
             setStatus("送信に失敗しました: " + String(err), true);
@@ -770,6 +772,42 @@
           feedbackEmail: s.feedbackEmail || "",
           to: s.feedbackEmail || "",
         };
+      }
+
+      function openGmailFeedback(payload) {
+        if (!payload.to || payload.to.indexOf("@") < 0) {
+          setStatus("店舗データC列の通知メールが未設定です。", true);
+          return;
+        }
+        const subject = "【自動 " + (payload.storeName || "店舗") + "】口コミアンケートフィードバック";
+        const body = [
+          "下記、ご要望やお声を記載下さい。",
+          "",
+          "------------------------------",
+          "店舗名: " + (payload.storeName || ""),
+          "店舗ID: " + (payload.storeId || ""),
+          "評価: 星" + String(payload.rating || ""),
+          "氏名: " + (payload.fullName || ""),
+          "会員番号: " + (payload.memberCode || ""),
+          "性別: " + (payload.gender || ""),
+          "年齢: " + (payload.ageRange || ""),
+          "メール: " + (payload.email || ""),
+          "利用日: " + (payload.visitDate || ""),
+          "",
+          "--- ご要望 / お声 ---",
+          payload.freeComment || "",
+          "",
+          "------------------------------",
+          "（このメールは口コミアンケート画面から生成されています）",
+        ].join("\n");
+        const gmailUrl =
+          "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+          encodeURIComponent(payload.to) +
+          "&su=" +
+          encodeURIComponent(subject) +
+          "&body=" +
+          encodeURIComponent(body);
+        window.open(gmailUrl, "_blank", "noopener,noreferrer");
       }
 
       function submitSurvey(payload) {

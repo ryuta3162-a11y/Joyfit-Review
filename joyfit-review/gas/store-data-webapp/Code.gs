@@ -206,10 +206,12 @@ function saveSurveyResponse(data) {
     String(data.generatedReview || "").trim(),
   ]);
 
+  var skipAutoMail = String(data.skipAutoMail || "").toLowerCase() === "true" || data.skipAutoMail === true;
+
   return {
     ok: true,
     to: to,
-    shouldNotify: rating <= 3 && to.indexOf("@") >= 0,
+    shouldNotify: rating <= 3 && to.indexOf("@") >= 0 && !skipAutoMail,
     sheetName: sheet.getName(),
   };
 }
@@ -256,7 +258,7 @@ function toArray(value) {
 
 function sendLowRatingMail(data, to) {
   var storeName = String(data.storeName || "");
-  var subject = "【JOYFIT】低評価フィードバック（" + storeName + "）";
+  var subject = "【自動 " + storeName + "】口コミアンケートフィードバック";
   var body = [
     "【JOYFIT 口コミアプリ】低評価フィードバック",
     "",
