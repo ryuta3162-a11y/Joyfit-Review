@@ -25,6 +25,16 @@ function pickString(obj: Record<string, unknown>, keys: string[]): string {
   return "";
 }
 
+function pickNumber(obj: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const v = obj[key];
+    if (v === undefined || v === null || String(v).trim() === "") continue;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return undefined;
+}
+
 function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -38,15 +48,21 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
     "低評価通知メール",
     "通知メール",
   ]);
+  const address = pickString(r, ["address", "住所", "storeAddress"]);
+  const latitude = pickNumber(r, ["latitude", "lat", "緯度"]);
+  const longitude = pickNumber(r, ["longitude", "lng", "lon", "経度"]);
 
   if (!name || !googleReviewUrl || !id) return null;
 
   return {
     id,
     name,
-    searchText: searchText || name,
+    searchText: searchText || [name, address].filter(Boolean).join(" "),
     googleReviewUrl,
     feedbackEmail,
+    address,
+    latitude,
+    longitude,
   };
 }
 

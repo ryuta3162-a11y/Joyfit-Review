@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ChevronRight, Search, Store } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronRight, MapPin, Search, Store } from "lucide-react";
 
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,29 @@ function normalize(text: string) {
   return text.normalize("NFKC").toLowerCase().trim();
 }
 
+function calcDistanceMeters(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+) {
+  const R = 6371e3;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const phi1 = toRad(aLat);
+  const phi2 = toRad(bLat);
+  const dPhi = toRad(bLat - aLat);
+  const dLambda = toRad(bLng - aLng);
+  const h =
+    Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+  return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  return `${(meters / 1000).toFixed(1)}km`;
+}
+
 function storeSubtitle(store: StoreMasterRow) {
   if (/^row\d+$/i.test(store.id)) {
     return "タップして口コミ文の作成へ";
@@ -25,16 +48,55 @@ function storeSubtitle(store: StoreMasterRow) {
 
 export function StorePicker({ stores }: Props) {
   const [query, setQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "ok" | "blocked" | "unsupported">("idle");
 
-  const filtered = useMemo(() => {
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("unsupported");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoStatus("ok");
+      },
+      () => setGeoStatus("blocked"),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+    );
+  }, []);
+
+  const filteredAndSorted = useMemo(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
-    if (!tokens.length) return stores;
-
-    return stores.filter((store) => {
+    const base = !tokens.length
+      ? stores
+      : stores.filter((store) => {
       const haystack = normalize(`${store.name} ${store.searchText}`);
       return tokens.every((token) => haystack.includes(token));
     });
-  }, [query, stores]);
+
+    if (!userLocation) return base.map((store) => ({ store }));
+
+    return base
+      .map((store) => {
+        if (typeof store.latitude !== "number" || typeof store.longitude !== "number") {
+          return { store, distanceMeters: undefined as number | undefined };
+        }
+        const distanceMeters = calcDistanceMeters(
+          userLocation.lat,
+          userLocation.lng,
+          store.latitude,
+          store.longitude,
+        );
+        return { store, distanceMeters };
+      })
+      .sort((a, b) => {
+        if (a.distanceMeters === undefined && b.distanceMeters === undefined) return 0;
+        if (a.distanceMeters === undefined) return 1;
+        if (b.distanceMeters === undefined) return -1;
+        return a.distanceMeters - b.distanceMeters;
+      });
+  }, [query, stores, userLocation]);
 
   return (
     <div className="space-y-4">
@@ -55,6 +117,12 @@ export function StorePicker({ stores }: Props) {
           <p className="mx-auto mt-2 max-w-[280px] text-xs leading-relaxed text-white/90">
             店舗名・エリア・読みで検索できます
           </p>
+          {geoStatus === "ok" && (
+            <p className="mx-auto mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/95">
+              <MapPin className="h-3 w-3" />
+              現在地から近い順で表示中
+            </p>
+          )}
         </div>
 
         <div className="border-t border-zinc-100 bg-card px-5 py-5">
@@ -71,14 +139,14 @@ export function StorePicker({ stores }: Props) {
       </div>
 
       <ul className="space-y-3">
-        {filtered.length === 0 ? (
+        {filteredAndSorted.length === 0 ? (
           <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-10 text-center text-sm text-muted-foreground">
             該当する店舗がありません。
             <br />
             別のキーワードでお試しください。
           </li>
         ) : (
-          filtered.map((store) => (
+          filteredAndSorted.map(({ store, distanceMeters }) => (
             <li key={store.id}>
               <Link
                 href={`/member/${store.id}`}
@@ -89,7 +157,11 @@ export function StorePicker({ stores }: Props) {
                 </span>
                 <span className="min-w-0 flex-1 text-left">
                   <span className="block text-base font-bold text-foreground">{store.name}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{storeSubtitle(store)}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {distanceMeters !== undefined
+                      ? `現在地から約 ${formatDistance(distanceMeters)}`
+                      : storeSubtitle(store)}
+                  </span>
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-[color:var(--joyfit-red)]" />
               </Link>

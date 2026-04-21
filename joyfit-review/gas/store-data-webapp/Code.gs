@@ -9,7 +9,7 @@
  * シート名: 店舗データ
  *
  * 【推奨レイアウト】1行目ヘッダー例:
- *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 検索用
+ *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用
  *
  * 【互換】C列にメールが無い旧データ:
  *   A 店舗名 | B URL | C 店舗ID | D 検索用
@@ -137,18 +137,27 @@ function readStoreRows() {
     var c = String(row[2] || "").trim();
     var d = String(row[3] || "").trim();
     var e = String(row[4] || "").trim();
+    var f = String(row[5] || "").trim();
+    var g = String(row[6] || "").trim();
+    var h = String(row[7] || "").trim();
 
     var feedbackEmail = "";
     var id = "";
     var searchText = "";
+    var address = "";
+    var latitude = null;
+    var longitude = null;
 
     if (c.indexOf("@") >= 0) {
       feedbackEmail = c;
       id = d || "row" + (i + 1);
-      searchText = e || defaultSearchText(name, id);
+      address = e;
+      latitude = parseCoordinate(f);
+      longitude = parseCoordinate(g);
+      searchText = h || defaultSearchText(name, id, address);
     } else {
       id = c || "row" + (i + 1);
-      searchText = d || defaultSearchText(name, id);
+      searchText = d || defaultSearchText(name, id, "");
     }
 
     out.push({
@@ -157,6 +166,9 @@ function readStoreRows() {
       searchText: searchText,
       googleReviewUrl: googleReviewUrl,
       feedbackEmail: feedbackEmail,
+      address: address,
+      latitude: latitude,
+      longitude: longitude,
     });
   }
 
@@ -174,8 +186,14 @@ function isHeaderRow(cellA) {
   );
 }
 
-function defaultSearchText(name, id) {
-  return [name, id].filter(Boolean).join(" ");
+function defaultSearchText(name, id, address) {
+  return [name, id, address].filter(Boolean).join(" ");
+}
+
+function parseCoordinate(raw) {
+  var n = Number(raw);
+  if (!isFinite(n)) return null;
+  return n;
 }
 
 function saveSurveyResponse(data) {

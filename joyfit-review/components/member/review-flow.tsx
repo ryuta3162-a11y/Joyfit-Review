@@ -2,6 +2,7 @@
 
 import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import Image from "next/image";
+import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import { Copy, ExternalLink, Mail, Star } from "lucide-react";
 
@@ -61,6 +62,10 @@ const sceneOptions = [
   "健康維持にジムを使いたい",
   "全国のJOYFITを活用したい方に",
 ] as const;
+const notoSansJp = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+});
 
 function localDateIsoForRecord(): string {
   const n = new Date();
@@ -249,7 +254,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white text-foreground shadow-sm">
+    <div className={`${notoSansJp.className} overflow-hidden rounded-2xl border border-zinc-200 bg-white text-foreground shadow-sm`}>
       <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
           href="/select-store"
@@ -421,13 +426,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 1. メニュー・サービスで良かった点
               </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {menuServiceOptions.map((point) => (
                   <button
                     key={point}
                     type="button"
                     onClick={() => toggleList(point, setMenuPoints)}
-                    className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
+                    className={`rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition ${
                       menuPoints.includes(point)
                         ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
                         : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
@@ -440,13 +445,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             </div>
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">2. 環境・設備で良かった点</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {environmentOptions.map((point) => (
                   <button
                     key={point}
                     type="button"
                     onClick={() => toggleList(point, setEnvPoints)}
-                    className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
+                    className={`rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition ${
                       envPoints.includes(point)
                         ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
                         : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
@@ -461,13 +466,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 3. おすすめの利用シーン（最大3つ）
               </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {sceneOptions.map((scene) => (
                   <button
                     key={scene}
                     type="button"
                     onClick={() => toggleScene(scene)}
-                    className={`rounded-xl border-2 px-3 py-3 text-xs font-semibold transition ${
+                    className={`rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition ${
                       scenes.includes(scene)
                         ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
                         : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
@@ -522,7 +527,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={() => void handleLowRatingSubmit()}
               disabled={!profileComplete || submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[#1a73e8] text-base font-semibold text-white hover:bg-[#1765cc] focus-visible:ring-2 focus-visible:ring-blue-300/60"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Mail className="h-4 w-4" />
               {submitting ? "保存中…" : "Gmailで店舗へ問い合わせる"}

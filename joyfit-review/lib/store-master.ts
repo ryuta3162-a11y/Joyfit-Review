@@ -5,6 +5,12 @@ export type StoreMasterRow = {
   googleReviewUrl: string;
   /** 星3以下のフィードバック送信先（カンマ区切りで複数可） */
   feedbackEmail: string;
+  /** 店舗住所（任意） */
+  address?: string;
+  /** 店舗緯度（任意） */
+  latitude?: number;
+  /** 店舗経度（任意） */
+  longitude?: number;
 };
 
 /** GAS未設定・取得失敗時に使うバックアップ */
