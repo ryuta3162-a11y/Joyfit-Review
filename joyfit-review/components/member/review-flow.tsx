@@ -211,26 +211,19 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       setSubmitError("店舗の問い合わせ先メールが未設定です。");
       return;
     }
-    const subject = `【自動 ${storeName}】口コミアンケートフィードバック`;
+    const subject = `【${storeName}】口コミアンケートフィードバック`;
     const body = [
-      "下記、ご要望やお声を記載下さい。",
-      "",
-      "------------------------------",
-      `送信者メール(入力値): ${email.trim()}`,
       `店舗名: ${storeName}`,
-      `店舗ID: ${storeId}`,
       `評価: 星${rating ?? ""}`,
       `氏名: ${fullName.trim()}`,
       `会員番号: ${memberCode.trim()}`,
-      `性別: ${gender}`,
-      `年齢: ${ageRange}`,
-      `メール: ${email.trim()}`,
-      `利用日: ${recordedVisitDate}`,
+      `送信者メール(入力値): ${email.trim()}`,
       "",
       "--- ご要望 / お声 ---",
+      "⇩下記に内容をご記入下さい⇩",
       "",
       "------------------------------",
-      "（このメールは口コミアンケート画面から生成されています）",
+      "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
     ].join("\n");
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(gmailUrl, "_blank", "noopener,noreferrer");
@@ -526,10 +519,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         {isLowSelected && (
           <div className="space-y-4 rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4 md:p-5">
             <p className="text-sm font-medium text-foreground">
-              ご不便をおかけしております。低評価時は店舗スタッフへ直接お問い合わせいただけます。
+              サービス向上のため、店舗スタッフへ直接お問い合わせください。
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              下のGmailボタンから、宛先・件名・会員情報を自動入力した問い合わせメール作成画面を開きます。
+              下記ボタンから、店舗宛のGmailへお問い合わせが可能です。
             </p>
             {submitError && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">

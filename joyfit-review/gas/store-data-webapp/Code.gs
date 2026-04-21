@@ -258,25 +258,19 @@ function toArray(value) {
 
 function sendLowRatingMail(data, to) {
   var storeName = String(data.storeName || "");
-  var subject = "【自動 " + storeName + "】口コミアンケートフィードバック";
+  var subject = "【" + storeName + "】口コミアンケートフィードバック";
   var body = [
-    "【JOYFIT 口コミアプリ】低評価フィードバック",
-    "",
     "店舗名: " + storeName,
-    "店舗ID: " + String(data.storeId || ""),
     "評価: 星" + String(data.rating || ""),
-    "",
     "氏名: " + String(data.fullName || ""),
     "会員番号: " + String(data.memberCode || ""),
-    "性別: " + String(data.gender || ""),
-    "年齢: " + String(data.ageRange || ""),
-    "メール: " + String(data.email || ""),
-    "利用日: " + String(data.visitDate || ""),
+    "送信者メール(入力値): " + String(data.email || ""),
     "",
-    "--- ご意見 ---",
-    String(data.freeComment || "").trim(),
+    "--- ご要望 / お声 ---",
+    "⇩下記に内容をご記入下さい⇩",
     "",
-    "（このメールはアプリから自動送信されています）",
+    "------------------------------",
+    "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
   ].join("\n");
 
   MailApp.sendEmail(to, subject, body);

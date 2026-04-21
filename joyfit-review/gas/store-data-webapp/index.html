@@ -530,10 +530,10 @@
           <p class="section-title">改善要望（星1-3）</p>
           <div class="sub-card low">
             <p class="note" style="margin-top: 0">
-              ご不便をおかけしております。低評価時は店舗スタッフへ直接お問い合わせいただけます。
+              サービス向上のため、店舗スタッフへ直接お問い合わせください。
             </p>
             <p class="note">
-              下のバナーからGmail作成画面を開きます。宛先・件名・本文（会員情報）は自動入力されます。
+              下記ボタンから、店舗宛のGmailへお問い合わせが可能です。
             </p>
             <div class="actions">
               <button id="sendLowBtn" class="btn primary gmail" type="button" aria-label="Gmailで店舗へ問い合わせる">
@@ -810,27 +810,19 @@
           setStatus("店舗データC列の通知メールが未設定です。", true);
           return;
         }
-        const subject = "【自動 " + (payload.storeName || "店舗") + "】口コミアンケートフィードバック";
+        const subject = "【" + (payload.storeName || "店舗") + "】口コミアンケートフィードバック";
         const body = [
-          "下記、ご要望やお声を記載下さい。",
-          "",
-          "------------------------------",
-          "送信者メール(入力値): " + (payload.email || ""),
           "店舗名: " + (payload.storeName || ""),
-          "店舗ID: " + (payload.storeId || ""),
           "評価: 星" + String(payload.rating || ""),
           "氏名: " + (payload.fullName || ""),
           "会員番号: " + (payload.memberCode || ""),
-          "性別: " + (payload.gender || ""),
-          "年齢: " + (payload.ageRange || ""),
-          "メール: " + (payload.email || ""),
-          "利用日: " + (payload.visitDate || ""),
+          "送信者メール(入力値): " + (payload.email || ""),
           "",
           "--- ご要望 / お声 ---",
-          payload.freeComment || "",
+          "⇩下記に内容をご記入下さい⇩",
           "",
           "------------------------------",
-          "（このメールは口コミアンケート画面から生成されています）",
+          "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
         ].join("\n");
         const gmailUrl =
           "https://mail.google.com/mail/?view=cm&fs=1&to=" +
