@@ -3,7 +3,7 @@
 import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Copy, ExternalLink, Star } from "lucide-react";
+import { Copy, ExternalLink, Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
@@ -168,6 +168,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       freeComment: feedback,
       generatedReview: payloadReview,
       storeFeedbackEmail: feedbackEmail,
+      skipAutoMail: payloadReview === "" && rating <= 3,
     });
   }
 
@@ -192,16 +193,47 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   async function handleLowRatingSubmit() {
-    if (!rating || rating >= 4 || !feedback.trim()) return;
+    if (!rating || rating >= 4) return;
     setSubmitting(true);
     setSubmitError(null);
     const result = await submitSurvey("");
     setSubmitting(false);
     if (result.ok) {
-      setSent(true);
+      openLowRatingGmail();
     } else {
       setSubmitError(result.error);
     }
+  }
+
+  function openLowRatingGmail() {
+    const to = feedbackEmail.trim();
+    if (!to) {
+      setSubmitError("店舗の問い合わせ先メールが未設定です。");
+      return;
+    }
+    const subject = `【自動 ${storeName}】口コミアンケートフィードバック`;
+    const body = [
+      "下記、ご要望やお声を記載下さい。",
+      "",
+      "------------------------------",
+      `送信者メール(入力値): ${email.trim()}`,
+      `店舗名: ${storeName}`,
+      `店舗ID: ${storeId}`,
+      `評価: 星${rating ?? ""}`,
+      `氏名: ${fullName.trim()}`,
+      `会員番号: ${memberCode.trim()}`,
+      `性別: ${gender}`,
+      `年齢: ${ageRange}`,
+      `メール: ${email.trim()}`,
+      `利用日: ${recordedVisitDate}`,
+      "",
+      "--- ご要望 / お声 ---",
+      "",
+      "------------------------------",
+      "（このメールは口コミアンケート画面から生成されています）",
+    ].join("\n");
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, "_blank", "noopener,noreferrer");
   }
 
   if (sent) {
@@ -494,15 +526,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         {isLowSelected && (
           <div className="space-y-4 rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4 md:p-5">
             <p className="text-sm font-medium text-foreground">
-              ご不便をおかけしております。改善のため、お気づきの点をお聞かせください。
+              ご不便をおかけしております。低評価時は店舗スタッフへ直接お問い合わせいただけます。
             </p>
-            <Textarea
-              value={feedback}
-              onChange={(event) => setFeedback(event.target.value)}
-              placeholder="気になった点やご要望をご記入ください（店内対応の参考にします）"
-              rows={5}
-              className="rounded-xl border-amber-200/80 bg-card"
-            />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              下のGmailボタンから、宛先・件名・会員情報を自動入力した問い合わせメール作成画面を開きます。
+            </p>
             {submitError && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {submitError}
@@ -510,13 +538,14 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             )}
             <Button
               onClick={() => void handleLowRatingSubmit()}
-              disabled={!feedback.trim() || !profileComplete || submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
+              disabled={!profileComplete || submitting}
+              className="h-12 w-full rounded-xl border-0 bg-[#1a73e8] text-base font-semibold text-white hover:bg-[#1765cc] focus-visible:ring-2 focus-visible:ring-blue-300/60"
             >
-              {submitting ? "送信中…" : "担当者へ送信する"}
+              <Mail className="h-4 w-4" />
+              {submitting ? "保存中…" : "Gmailで店舗へ問い合わせる"}
             </Button>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              ※入力内容は担当者へ共有され、改善の参考にします。
+              ※先に回答を保存したうえで、Gmail作成画面を開きます。
             </p>
           </div>
         )}

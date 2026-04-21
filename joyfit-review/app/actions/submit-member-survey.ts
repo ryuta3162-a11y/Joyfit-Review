@@ -15,6 +15,7 @@ export type SubmitMemberSurveyInput = {
   freeComment: string;
   generatedReview: string;
   storeFeedbackEmail: string;
+  skipAutoMail?: boolean;
 };
 
 export type SubmitMemberSurveyResult = { ok: true } | { ok: false; error: string };
@@ -58,6 +59,7 @@ export async function submitMemberSurvey(
         useScenes: input.useScenes,
         freeComment: input.freeComment.trim(),
         generatedReview: input.generatedReview.trim(),
+        skipAutoMail: Boolean(input.skipAutoMail),
       }),
     });
 
