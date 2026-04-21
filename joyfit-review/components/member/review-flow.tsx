@@ -92,6 +92,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
+  const fieldClass =
+    "h-11 rounded-xl border-zinc-300 bg-white shadow-sm focus-visible:border-[color:var(--joyfit-red)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20";
+  const areaClass =
+    "rounded-xl border-zinc-300 bg-white shadow-sm focus-visible:border-[color:var(--joyfit-red)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20";
+  const labelClass = "mb-1.5 text-[13px] font-semibold tracking-tight text-zinc-700";
 
   function selectRating(value: number) {
     setRating(value);
@@ -260,29 +265,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         </p>
       </div>
 
-      <div className="space-y-6 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-6">
-        <div
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-          aria-label="入力の流れ"
-        >
-          {["会員情報", "満足度", "コメント", "送信"].map((label, i) => (
-            <div
-              key={label}
-              className="rounded-xl border border-zinc-200 bg-white px-2 py-2 text-center text-[10px] font-bold text-zinc-600 shadow-sm"
-            >
-              <span className="block text-[9px] font-extrabold tracking-wide text-[color:var(--joyfit-red)]">
-                STEP {i + 1}
-              </span>
-              {label}
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="space-y-7 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-6">
+        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-zinc-900">会員情報の入力</p>
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">名前（フルネーム）*</p>
-            <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
+            <p className={labelClass}>名前（フルネーム）*</p>
+            <Input className={fieldClass} value={fullName} onChange={(event) => setFullName(event.target.value)} />
           </div>
           <div className="space-y-3">
             <div className="overflow-hidden rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-white via-white to-[color:var(--joyfit-red)]/[0.06] shadow-sm ring-1 ring-zinc-100">
@@ -337,8 +325,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">会員番号（10桁・必須）*</p>
+              <p className={labelClass}>会員番号（10桁・必須）*</p>
               <Input
+                className={fieldClass}
                 value={memberCode}
                 inputMode="numeric"
                 maxLength={10}
@@ -359,7 +348,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             </div>
           </div>
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-muted-foreground">性別*</p>
+            <p className={labelClass}>性別*</p>
             <div className="grid grid-cols-3 gap-2">
               {genderOptions.map((item) => (
                 <button
@@ -379,11 +368,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">年齢*</p>
+              <p className={labelClass}>年齢*</p>
               <select
                 value={ageRange}
                 onChange={(event) => setAgeRange(event.target.value)}
-                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm"
+                className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm outline-none focus:border-[color:var(--joyfit-red)] focus:ring-2 focus:ring-[color:var(--joyfit-red)]/20"
               >
                 <option value="">- 年齢を選択してください -</option>
                 {ageOptions.map((item) => (
@@ -394,9 +383,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </select>
             </div>
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">メールアドレス*</p>
+              <p className={labelClass}>メールアドレス*</p>
               <Input
                 type="email"
+                className={fieldClass}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="sample@example.com"
@@ -405,8 +395,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         </div>
 
-        <div>
-          <p className="mb-3 text-sm font-semibold text-foreground">満足度（星をタップ）</p>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-zinc-900">満足度（星をタップ）</p>
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
               <button
@@ -425,7 +415,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         </div>
 
         {canBuildGoogleDraft && (
-          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/90 p-4 shadow-sm md:p-5">
+          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/90 p-5 shadow-sm">
             <p className="text-sm font-semibold text-foreground">よかった点を教えてください（複数選択可）</p>
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
@@ -499,7 +489,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 onChange={(event) => setFeedback(event.target.value)}
                 placeholder="あればご記入ください（未入力でも進められます）"
                 rows={4}
-                className="rounded-xl border-zinc-200 bg-white"
+                className={areaClass}
               />
             </div>
 
