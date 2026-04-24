@@ -152,9 +152,13 @@ export function StorePicker({ stores }: Props) {
       </div>
 
       {nearestStore && (
-        <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-[color:var(--joyfit-red)]/5 p-4 shadow-sm">
-          <p className="text-sm font-bold text-zinc-900">今いちばん近い店舗はこちらです。レビュー店舗はこの店舗で合っていますか？</p>
-          <p className="mt-1 text-sm text-zinc-700">
+        <div className="rounded-2xl border border-[color:var(--joyfit-red)]/30 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white p-5 shadow-md">
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--joyfit-red)]/15 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)]">
+            <MapPin className="h-3.5 w-3.5" />
+            最寄り店舗
+          </p>
+          <p className="mt-2 text-base font-bold leading-snug text-zinc-900">今いちばん近いJOYFIT24店舗はこちらで合っていますか？</p>
+          <p className="mt-1 text-[15px] font-medium text-zinc-700">
             {nearestStore.store.name}
             {nearestStore.distanceMeters !== undefined ? `（現在地から約 ${formatDistance(nearestStore.distanceMeters)}）` : ""}
           </p>
@@ -163,20 +167,20 @@ export function StorePicker({ stores }: Props) {
               href={`/member/${nearestStore.store.id}`}
               className="inline-flex items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
             >
-              この店舗でレビューする
+              口コミ投稿する
             </Link>
             <button
               type="button"
               onClick={() => setNearestPromptDismissed(true)}
               className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
             >
-              店舗一覧から選ぶ
+              他の店舗を選ぶ
             </button>
           </div>
         </div>
       )}
 
-      <ul className="space-y-3">
+      {(!nearestStore || nearestPromptDismissed) && <ul className="space-y-3">
         {filteredAndSorted.length === 0 ? (
           <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-10 text-center text-sm text-muted-foreground">
             該当する店舗がありません。
@@ -206,7 +210,7 @@ export function StorePicker({ stores }: Props) {
             </li>
           ))
         )}
-      </ul>
+      </ul>}
     </div>
   );
 }
