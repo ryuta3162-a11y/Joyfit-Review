@@ -538,11 +538,16 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         )}
 
         {draft && isHigh && (
-          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-              <p className="text-sm font-semibold text-zinc-900">Google 口コミの投稿イメージ</p>
-              <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-inner">
-                <p className="text-xs font-semibold text-zinc-500">レビューを作成</p>
+          <div className="space-y-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm md:p-5">
+            <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+              <p className="text-sm font-semibold text-zinc-900">Google 口コミ投稿のイメージ</p>
+              <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-zinc-500">レビューを作成</p>
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                    Google 形式
+                  </span>
+                </div>
                 <div className="mt-2 flex items-center gap-1">
                   {stars.map((value) => (
                     <Star
@@ -580,13 +585,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={() => void copyDraftAndOpen()}
               disabled={submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
+              className="h-12 w-full rounded-xl border-0 bg-[#1a73e8] text-base font-semibold text-white hover:bg-[#1765cc] focus-visible:ring-2 focus-visible:ring-blue-300/60"
             >
               <Copy className="h-4 w-4" />
-              {submitting ? "保存してコピー中…" : "コピーして口コミサイトを開く"}
+              {submitting ? "保存してコピー中…" : "コピーしてGoogle口コミを開く"}
             </Button>
             {copied && (
-              <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">
+              <p className="text-center text-xs font-medium text-blue-700">
                 文面をコピーしました。同じ評価と文面を貼り付けて投稿すると特典付与対象になります。
               </p>
             )}
