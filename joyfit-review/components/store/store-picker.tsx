@@ -12,6 +12,11 @@ type Props = {
   stores: StoreMasterRow[];
 };
 
+type StoreWithDistance = {
+  store: StoreMasterRow;
+  distanceMeters?: number;
+};
+
 function normalize(text: string) {
   return text.normalize("NFKC").toLowerCase().trim();
 }
@@ -67,7 +72,7 @@ export function StorePicker({ stores }: Props) {
     );
   }, []);
 
-  const filteredAndSorted = useMemo(() => {
+  const filteredAndSorted = useMemo<StoreWithDistance[]>(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
     const base = !tokens.length
       ? stores
@@ -76,7 +81,7 @@ export function StorePicker({ stores }: Props) {
       return tokens.every((token) => haystack.includes(token));
     });
 
-    if (!userLocation) return base.map((store) => ({ store }));
+    if (!userLocation) return base.map((store) => ({ store, distanceMeters: undefined }));
 
     return base
       .map((store) => {
