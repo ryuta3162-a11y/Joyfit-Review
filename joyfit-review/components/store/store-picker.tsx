@@ -157,10 +157,11 @@ export function StorePicker({ stores }: Props) {
             <MapPin className="h-3.5 w-3.5" />
             最寄り店舗
           </p>
-          <p className="mt-2 text-base font-bold leading-snug text-zinc-900">今いちばん近いJOYFIT24店舗はこちらで合っていますか？</p>
+          <p className="mt-2 text-base font-bold leading-snug text-zinc-900">
+            口コミを投稿する店舗は「{nearestStore.store.name}」で合っていますか？
+          </p>
           <p className="mt-1 text-[15px] font-medium text-zinc-700">
-            {nearestStore.store.name}
-            {nearestStore.distanceMeters !== undefined ? `（現在地から約 ${formatDistance(nearestStore.distanceMeters)}）` : ""}
+            {nearestStore.distanceMeters !== undefined ? `現在地から約 ${formatDistance(nearestStore.distanceMeters)}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
