@@ -8,7 +8,6 @@ import { Copy, ExternalLink, Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
-import { GoogleReviewMock } from "@/components/member/google-review-mock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
@@ -540,33 +539,38 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {draft && isHigh && (
           <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
-            <div className="rounded-xl border border-amber-100 bg-amber-50/90 p-3.5 text-sm leading-relaxed text-zinc-800">
-              <p className="font-semibold text-amber-950">次の操作の流れ</p>
-              <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs md:text-[13px]">
-                <li>
-                  下のボタンを押すと、文面が<strong>自動でコピー</strong>され、口コミサイト（Google
-                  マップ）が開きます。
-                </li>
-                <li>
-                  開いた画面で、<strong>星をもう一度タップ</strong>してから、コピーした文面を貼り付けてください。
-                </li>
-                <li>
-                  内容を確認のうえ、<strong>「投稿」</strong>を押して完了です。
-                </li>
-              </ol>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-sm font-semibold text-zinc-900">Google 口コミの投稿イメージ</p>
+              <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-inner">
+                <p className="text-xs font-semibold text-zinc-500">レビューを作成</p>
+                <div className="mt-2 flex items-center gap-1">
+                  {stars.map((value) => (
+                    <Star
+                      key={`preview-${value}`}
+                      className={`h-5 w-5 ${value <= (rating ?? 0) ? "fill-[color:var(--joyfit-red)] text-[color:var(--joyfit-red)]" : "text-zinc-300"}`}
+                    />
+                  ))}
+                </div>
+                <p className="mt-2 text-xs font-semibold text-zinc-700">
+                  {rating === 5
+                    ? "星5の高評価ありがとうございます。"
+                    : rating === 4
+                      ? "星4の高評価ありがとうございます。"
+                      : `星${rating}の高評価ありがとうございます。`}
+                </p>
+                <p className="mt-3 text-xs text-zinc-500">口コミ本文（ここで編集できます）</p>
+                <Textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  rows={6}
+                  className={`${areaClass} mt-1`}
+                />
+              </div>
             </div>
 
-            <GoogleReviewMock storeName={storeName} />
-
-            <div>
-              <p className="text-sm font-semibold text-foreground">作成した口コミ文</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                この文面がコピーされます。口コミサイトの入力欄に貼り付けてください。
-              </p>
-              <p className="mt-2 whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-relaxed text-foreground">
-                {draft}
-              </p>
-            </div>
+            <p className="text-[12px] leading-relaxed text-muted-foreground">
+              こちらと同じ評価・文面を貼り付けて投稿いただくことで、エンジョイポイント付与対象になります。
+            </p>
 
             {submitError && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -579,11 +583,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Copy className="h-4 w-4" />
-              {submitting ? "保存してコピー中…" : "文面をコピーして口コミサイトを開く"}
+              {submitting ? "保存してコピー中…" : "コピーして口コミサイトを開く"}
             </Button>
             {copied && (
               <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">
-                文面をコピーしました。開いた画面に貼り付けてください。
+                文面をコピーしました。同じ評価と文面を貼り付けて投稿すると特典付与対象になります。
               </p>
             )}
           </div>

@@ -50,6 +50,7 @@ export function StorePicker({ stores }: Props) {
   const [query, setQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [geoStatus, setGeoStatus] = useState<"idle" | "ok" | "blocked" | "unsupported">("idle");
+  const [nearestPromptDismissed, setNearestPromptDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -98,6 +99,13 @@ export function StorePicker({ stores }: Props) {
       });
   }, [query, stores, userLocation]);
 
+  const nearestStore = useMemo(() => {
+    if (geoStatus !== "ok" || query.trim() || nearestPromptDismissed) return null;
+    const first = filteredAndSorted[0];
+    if (!first?.store) return null;
+    return first;
+  }, [filteredAndSorted, geoStatus, nearestPromptDismissed, query]);
+
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -137,6 +145,31 @@ export function StorePicker({ stores }: Props) {
           </div>
         </div>
       </div>
+
+      {nearestStore && (
+        <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-[color:var(--joyfit-red)]/5 p-4 shadow-sm">
+          <p className="text-sm font-bold text-zinc-900">今いちばん近い店舗はこちらです。レビュー店舗はこの店舗で合っていますか？</p>
+          <p className="mt-1 text-sm text-zinc-700">
+            {nearestStore.store.name}
+            {nearestStore.distanceMeters !== undefined ? `（現在地から約 ${formatDistance(nearestStore.distanceMeters)}）` : ""}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href={`/member/${nearestStore.store.id}`}
+              className="inline-flex items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+            >
+              この店舗でレビューする
+            </Link>
+            <button
+              type="button"
+              onClick={() => setNearestPromptDismissed(true)}
+              className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            >
+              店舗一覧から選ぶ
+            </button>
+          </div>
+        </div>
+      )}
 
       <ul className="space-y-3">
         {filteredAndSorted.length === 0 ? (
