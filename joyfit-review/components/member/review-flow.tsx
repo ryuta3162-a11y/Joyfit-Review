@@ -416,6 +416,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </button>
             ))}
           </div>
+          {rating && (
+            <p className="mt-2 text-xs font-semibold text-[color:var(--joyfit-red)]">
+              選択中の評価: 星{rating}
+            </p>
+          )}
         </div>
 
         {canBuildGoogleDraft && (
@@ -515,6 +520,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <p className="text-sm font-medium text-foreground">
               サービス向上のため、店舗スタッフへ直接お問い合わせください。
             </p>
+            <div className="rounded-xl border border-amber-300/80 bg-white px-3 py-2 text-sm text-zinc-800">
+              現在の選択評価: <span className="font-bold text-[color:var(--joyfit-red)]">星{rating}</span>
+            </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
               下記ボタンから、店舗宛のGmailへお問い合わせが可能です。
             </p>
@@ -562,6 +570,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     : rating === 4
                       ? "星4の高評価ありがとうございます。"
                       : `星${rating}の高評価ありがとうございます。`}
+                </p>
+                <p className="mt-1 text-[11px] text-zinc-600">
+                  投稿時は同じ評価（星{rating}）を選択してください。
                 </p>
                 <p className="mt-3 text-xs text-zinc-500">口コミ本文（ここで編集できます）</p>
                 <Textarea
