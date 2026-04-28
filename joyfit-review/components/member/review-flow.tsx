@@ -234,8 +234,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       "------------------------------",
       "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
     ].join("\n");
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(gmailUrl, "_blank", "noopener,noreferrer");
+    const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
   }
 
   if (sent) {
