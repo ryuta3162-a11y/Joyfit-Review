@@ -203,6 +203,10 @@ function saveSurveyResponse(data) {
   if (!rating) {
     return { ok: false, error: "rating is required" };
   }
+  var memberCode = String(data.memberCode || "").trim();
+  if (!/^\d{10}$/.test(memberCode)) {
+    return { ok: false, error: "memberCode must be 10-digit number" };
+  }
 
   var to = String(data.to || "").trim();
   var sheet = getOrCreateSurveySheet(storeId, storeName);
@@ -212,7 +216,7 @@ function saveSurveyResponse(data) {
     storeName,
     rating,
     String(data.fullName || "").trim(),
-    String(data.memberCode || "").trim(),
+    memberCode,
     String(data.gender || "").trim(),
     String(data.ageRange || "").trim(),
     String(data.email || "").trim(),

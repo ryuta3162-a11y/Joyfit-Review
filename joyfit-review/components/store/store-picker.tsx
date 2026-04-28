@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MapPin, Search, Store } from "lucide-react";
+import { ChevronRight, Search, Store } from "lucide-react";
 
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { Input } from "@/components/ui/input";
@@ -37,11 +37,6 @@ function calcDistanceMeters(
     Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
     Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-function formatDistance(meters: number): string {
-  if (meters < 1000) return `${Math.round(meters)}m`;
-  return `${(meters / 1000).toFixed(1)}km`;
 }
 
 function storeSubtitle(store: StoreMasterRow) {
@@ -130,12 +125,6 @@ export function StorePicker({ stores }: Props) {
           <p className="mx-auto mt-2 max-w-[280px] text-xs leading-relaxed text-white/90">
             店舗名・エリア・読みで検索できます
           </p>
-          {geoStatus === "ok" && (
-            <p className="mx-auto mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/95">
-              <MapPin className="h-3 w-3" />
-              現在地から近い順で表示中
-            </p>
-          )}
         </div>
 
         <div className="border-t border-zinc-100 bg-card px-5 py-5">
@@ -153,15 +142,8 @@ export function StorePicker({ stores }: Props) {
 
       {nearestStore && (
         <div className="rounded-2xl border border-[color:var(--joyfit-red)]/30 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white p-5 shadow-md">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--joyfit-red)]/15 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)]">
-            <MapPin className="h-3.5 w-3.5" />
-            最寄り店舗
-          </p>
           <p className="mt-2 text-base font-bold leading-snug text-zinc-900">
             口コミを投稿する店舗は「{nearestStore.store.name}」で合っていますか？
-          </p>
-          <p className="mt-1 text-[15px] font-medium text-zinc-700">
-            {nearestStore.distanceMeters !== undefined ? `現在地から約 ${formatDistance(nearestStore.distanceMeters)}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
@@ -189,7 +171,7 @@ export function StorePicker({ stores }: Props) {
             別のキーワードでお試しください。
           </li>
         ) : (
-          filteredAndSorted.map(({ store, distanceMeters }) => (
+          filteredAndSorted.map(({ store }) => (
             <li key={store.id}>
               <Link
                 href={`/member/${store.id}`}
@@ -201,9 +183,7 @@ export function StorePicker({ stores }: Props) {
                 <span className="min-w-0 flex-1 text-left">
                   <span className="block text-base font-bold text-foreground">{store.name}</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {distanceMeters !== undefined
-                      ? `現在地から約 ${formatDistance(distanceMeters)}`
-                      : storeSubtitle(store)}
+                    {storeSubtitle(store)}
                   </span>
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-[color:var(--joyfit-red)]" />

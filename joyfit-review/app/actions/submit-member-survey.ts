@@ -27,12 +27,20 @@ function resolveRecipients(storeEmail: string, fallback: string): string {
   return a || b;
 }
 
+function isValidMemberCode(value: string): boolean {
+  return /^\d{10}$/.test(value.trim());
+}
+
 export async function submitMemberSurvey(
   input: SubmitMemberSurveyInput,
 ): Promise<SubmitMemberSurveyResult> {
   const gasUrl = process.env.STORES_JSON_URL?.trim();
   if (!gasUrl) {
     return { ok: false, error: "ただいま送信をお受けできません。" };
+  }
+
+  if (!isValidMemberCode(input.memberCode)) {
+    return { ok: false, error: "会員番号は半角数字10桁で入力してください。" };
   }
 
   const defaultEmail = process.env.DEFAULT_LOW_RATING_EMAIL?.trim() ?? "";
