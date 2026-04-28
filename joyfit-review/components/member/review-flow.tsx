@@ -4,7 +4,7 @@ import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import Image from "next/image";
 import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
-import { Copy, Mail, Star } from "lucide-react";
+import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
@@ -90,6 +90,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showPostGuide, setShowPostGuide] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -147,11 +148,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
     const body = [
       `${storeName}を利用しました。`,
-      `星${rating}の評価です。`,
       goodPoints,
       sceneLine,
       extra,
-      "今後も継続して利用したいです。",
+      "今後も継続して利用したいと思います。",
     ]
       .filter(Boolean)
       .join("\n");
@@ -198,7 +198,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     } catch {
       setCopied(false);
     }
-    window.open(reviewUrl, "_blank", "noopener,noreferrer");
+    setShowPostGuide(true);
   }
 
   function getLowRatingContactDraft() {
@@ -477,25 +477,25 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm font-semibold text-zinc-900">満足度（星をタップ）</p>
+        <div className="rounded-2xl border border-zinc-700 bg-[#202124] p-4 text-white shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-zinc-100">口コミ評価（星をタップ）</p>
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => selectRating(value)}
-                className="rounded-lg p-1.5 transition hover:bg-primary/10"
+                className="rounded-lg p-1.5 transition hover:bg-white/10"
                 aria-label={`${value}つ星`}
               >
                 <Star
-                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[color:var(--joyfit-red)] text-[color:var(--joyfit-red)]" : "text-zinc-300"}`}
+                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
                 />
               </button>
             ))}
           </div>
           {rating && (
-            <p className="mt-2 text-xs font-semibold text-[color:var(--joyfit-red)]">
+            <p className="mt-2 text-xs font-semibold text-zinc-200">
               選択中の評価: 星{rating}
             </p>
           )}
@@ -641,10 +641,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                       ? "星4の高評価ありがとうございます。"
                       : `星${rating}の高評価ありがとうございます。`}
                 </p>
-                <p className="mt-1 text-[11px] text-zinc-300">
-                  投稿時は同じ評価（星{rating}）を選択してください。
-                </p>
-                <p className="mt-3 text-xs text-zinc-300">口コミ本文（ここで編集できます）</p>
+                <p className="mt-1 text-[11px] text-zinc-300">投稿時は同じ評価（星{rating}）を選択してください。</p>
+                <p className="mt-3 text-xs font-semibold text-zinc-100">コピー用文面〔こちらで添削可能です〕</p>
                 <Textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -668,13 +666,25 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               disabled={submitting}
               className="h-12 w-full rounded-xl border-0 bg-[#1a73e8] text-base font-semibold text-white hover:bg-[#1765cc] focus-visible:ring-2 focus-visible:ring-blue-300/60"
             >
-              <Copy className="h-4 w-4" />
-              {submitting ? "保存してコピー中…" : "コピーしてGoogle口コミを開く"}
+              {submitting ? "保存中…" : "作成した口コミ文で投稿"}
             </Button>
-            {copied && (
-              <p className="text-center text-xs font-medium text-blue-700">
-                文面をコピーしました。同じ評価と文面を貼り付けて投稿すると特典付与対象になります。
-              </p>
+            {copied && !showPostGuide && <p className="text-center text-xs font-medium text-blue-700">文章がコピーされました。</p>}
+            {showPostGuide && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                <p className="font-semibold">文章がコピーされました。</p>
+                <p>①同じ星評価をタップ</p>
+                <p>②文章を貼り付けて投稿</p>
+                <p>以上で投稿完了です。</p>
+                <Button
+                  onClick={() => {
+                    setShowPostGuide(false);
+                    window.open(reviewUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  className="mt-3 h-9 w-full rounded-lg bg-[#1a73e8] text-sm font-semibold text-white hover:bg-[#1765cc]"
+                >
+                  OK
+                </Button>
+              </div>
             )}
           </div>
         )}
