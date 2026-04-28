@@ -92,7 +92,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [contactCopied, setContactCopied] = useState(false);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
@@ -224,11 +223,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       "━━━━━━━━━━━━━━━━━━━━━━━━━━",
       "▼ この枠内にお問い合わせ内容をご記入ください ▼",
       "（気になった点 / ご要望 / 改善してほしい点 など）",
-      "1)",
-      "2)",
-      "3)",
-      "4)",
-      "5)",
+      "",
+      "",
+      "",
+      "",
+      "",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━",
       "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
     ].join("\n");
@@ -236,16 +235,14 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       to,
       subject,
       body,
-      mailtoUrl: `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
       gmailWebUrl: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
     };
   }
 
-  async function handleLowRatingSubmit(mode: "mailto" | "gmailWeb") {
+  async function handleLowRatingSubmit() {
     if (!rating || rating >= 4) return;
     setSubmitting(true);
     setSubmitError(null);
-    setContactCopied(false);
     const result = await submitSurvey("");
     setSubmitting(false);
     if (!result.ok) {
@@ -254,30 +251,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     }
     const draft = getLowRatingContactDraft();
     if (!draft) return;
-    if (mode === "mailto") {
-      window.location.href = draft.mailtoUrl;
-      return;
-    }
     window.open(draft.gmailWebUrl, "_blank", "noopener,noreferrer");
-  }
-
-  async function copyLowRatingContactDraft() {
-    if (!rating || rating >= 4 || !profileComplete) return;
-    const draft = getLowRatingContactDraft();
-    if (!draft) return;
-    const text = [
-      `宛先: ${draft.to}`,
-      `件名: ${draft.subject}`,
-      "",
-      draft.body,
-    ].join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
-      setContactCopied(true);
-      setSubmitError(null);
-    } catch {
-      setSubmitError("コピーに失敗しました。");
-    }
   }
 
   if (sent) {
@@ -636,34 +610,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </p>
             )}
             <Button
-              onClick={() => void handleLowRatingSubmit("mailto")}
+              onClick={() => void handleLowRatingSubmit()}
               disabled={!profileComplete || submitting}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Mail className="h-4 w-4" />
-              {submitting ? "保存中…" : "メールアプリで問い合わせる"}
+              {submitting ? "保存中…" : "Gmailで問い合わせる"}
             </Button>
-            <Button
-              onClick={() => void handleLowRatingSubmit("gmailWeb")}
-              disabled={!profileComplete || submitting}
-              variant="outline"
-              className="h-11 w-full rounded-xl border-zinc-300 text-sm font-semibold"
-            >
-              Gmailで問い合わせる
-            </Button>
-            <Button
-              onClick={() => void copyLowRatingContactDraft()}
-              disabled={!profileComplete || submitting}
-              variant="ghost"
-              className="h-10 w-full rounded-xl text-xs font-semibold text-zinc-700"
-            >
-              宛先・件名・本文をコピー
-            </Button>
-            {contactCopied && (
-              <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">
-                宛先・件名・本文をコピーしました。
-              </p>
-            )}
           </div>
         )}
 
