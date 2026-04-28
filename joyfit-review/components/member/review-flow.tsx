@@ -645,7 +645,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               variant="outline"
               className="h-11 w-full rounded-xl border-zinc-300 text-sm font-semibold"
             >
-              Gmail Webで問い合わせる（PC向け）
+              Gmailで問い合わせる
             </Button>
             <Button
               onClick={() => void copyLowRatingContactDraft()}
@@ -660,9 +660,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 宛先・件名・本文をコピーしました。
               </p>
             )}
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              ※先に回答を保存したうえで、メール作成画面を開きます。
-            </p>
           </div>
         )}
 
