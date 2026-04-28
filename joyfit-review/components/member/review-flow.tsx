@@ -215,11 +215,15 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   function openLowRatingGmail() {
-    const to = feedbackEmail.trim();
-    if (!to) {
+    const recipients = feedbackEmail
+      .split(/[,\s;]+/)
+      .map((v) => v.trim())
+      .filter((v) => v.includes("@"));
+    if (!recipients.length) {
       setSubmitError("店舗の問い合わせ先メールが未設定です。");
       return;
     }
+    const to = recipients.join(",");
     const subject = `【${storeName}】口コミアンケートフィードバック`;
     const body = [
       `店舗名: ${storeName}`,
@@ -234,7 +238,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       "------------------------------",
       "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
     ].join("\n");
-    const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;
   }
 
