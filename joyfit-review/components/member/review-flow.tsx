@@ -642,7 +642,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                       : `星${rating}の高評価ありがとうございます。`}
                 </p>
                 <p className="mt-1 text-[11px] text-zinc-300">投稿時は同じ評価（星{rating}）を選択してください。</p>
-                <p className="mt-3 text-xs font-semibold text-zinc-100">コピー用文面〔こちらで添削可能です〕</p>
+                <p className="mt-3 inline-flex items-center rounded-md border border-[#fbbc04]/40 bg-[#fbbc04]/10 px-2.5 py-1 text-xs font-semibold text-[#fde293]">
+                  コピー用文面〔こちらで添削可能です〕
+                </p>
                 <Textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -652,13 +654,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </div>
             </div>
 
-            <p className="text-[14px] leading-relaxed text-foreground">
-              <span className="inline-flex items-center rounded-full border border-[color:var(--joyfit-red)]/30 bg-[color:var(--joyfit-red)]/5 px-3 py-1 text-xs font-bold tracking-wide text-[color:var(--joyfit-red)]">
-                ENJOY POINT
+            <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-[15px] leading-relaxed text-zinc-800">
+              <span className="inline-flex rounded-md bg-[color:var(--joyfit-red)]/12 px-2 py-0.5 font-bold tracking-tight text-[color:var(--joyfit-red)] shadow-[inset_0_-1px_0_rgba(214,17,43,0.25)]">
+                〔同じ評価☆〕〔文章付き〕
               </span>
-              <span className="mt-2 block rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-[14px] font-semibold leading-relaxed text-zinc-800">
-                〔同じ評価☆〕〔文章付き〕で投稿いただくとエンジョイポイントが付与されます。
-              </span>
+              <br />
+              <span className="mt-1 inline-block font-semibold">で投稿で 500ポイントが付与されます。</span>
             </p>
 
             {submitError && (
