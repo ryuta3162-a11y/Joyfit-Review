@@ -280,16 +280,17 @@ function toArray(value) {
 
 function sendLowRatingMail(data, to) {
   var storeName = String(data.storeName || "");
-  var subject = "【" + storeName + "】口コミアンケートフィードバック";
+  var subject = "【" + storeName + "】お客様のお声";
   var body = [
     "店舗名: " + storeName,
     "評価: 星" + String(data.rating || ""),
     "氏名: " + String(data.fullName || ""),
     "会員番号: " + String(data.memberCode || ""),
-    "送信者メール(入力値): " + String(data.email || ""),
+    "メールアドレス: " + String(data.email || ""),
     "",
     "--- ご要望 / お声 ---",
-    "⇩下記に内容をご記入下さい⇩",
+    "▼下記に内容をご記入ください▼",
+    "（気になった点 / ご要望 / 改善してほしい点 など）",
     "",
     "------------------------------",
     "今後のサービス向上の為、素直なご意見をいただければ幸いです。",

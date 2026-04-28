@@ -224,16 +224,17 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       return;
     }
     const to = recipients.join(",");
-    const subject = `【${storeName}】口コミアンケートフィードバック`;
+    const subject = `【${storeName}】お客様のお声`;
     const body = [
       `店舗名: ${storeName}`,
       `評価: 星${rating ?? ""}`,
       `氏名: ${fullName.trim()}`,
       `会員番号: ${memberCode.trim()}`,
-      `送信者メール(入力値): ${email.trim()}`,
+      `メールアドレス: ${email.trim()}`,
       "",
       "--- ご要望 / お声 ---",
-      "⇩下記に内容をご記入下さい⇩",
+      "▼下記に内容をご記入ください▼",
+      "（気になった点 / ご要望 / 改善してほしい点 など）",
       "",
       "------------------------------",
       "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
