@@ -331,50 +331,56 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   </figure>
                 </div>
 
-                <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-3">
-                  <p className="text-[11px] font-semibold text-sky-900">
-                    アプリ未登録の方は、こちらから先に登録してください。
+                <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+                  <p className="text-[11px] font-semibold text-orange-900">
+                    アプリ登録の方はこちらから登録
                   </p>
                   <a
                     href="https://procedure.joyfit.jp/qrcode2/index.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-[11px] font-semibold text-white hover:bg-sky-700"
+                    className="mt-2 inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-[11px] font-semibold text-white hover:bg-orange-600"
                   >
                     アプリ登録していない方はこちらをタップ
                   </a>
                   <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
-                    氏名などを入力するとQRコードが表示されます。表示された「アプリアクティベート」をタップして登録を完了してください。
+                    ① お名前・生年月日・電話番号を入力
+                    <br />
+                    ② 水色の「アプリアクティベート」をタップして開く
+                    <br />
+                    ③ OKになれば登録完了
                   </p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-                      <figcaption className="border-b border-zinc-200 px-2 py-1 text-[10px] font-semibold text-zinc-700">
+                  <div className="mt-2 rounded-xl border border-orange-200 bg-orange-100/70 p-2">
+                    <div className="grid grid-cols-2 gap-2">
+                    <figure className="overflow-hidden rounded-xl border border-orange-200 bg-orange-50">
+                      <figcaption className="border-b border-orange-200 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
                         01 入力画面
                       </figcaption>
-                      <div className="relative aspect-[9/16] w-full bg-white">
+                      <div className="relative aspect-[9/16] w-full bg-orange-50">
                         <Image
                           src="/joyfit-app-register-form.png"
                           alt="アプリ登録の会員検索入力画面"
                           fill
-                          className="object-contain object-top p-1"
+                          className="object-contain object-top"
                           sizes="(max-width: 640px) 45vw, 200px"
                         />
                       </div>
                     </figure>
-                    <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-                      <figcaption className="border-b border-zinc-200 px-2 py-1 text-[10px] font-semibold text-zinc-700">
+                    <figure className="overflow-hidden rounded-xl border border-orange-200 bg-orange-50">
+                      <figcaption className="border-b border-orange-200 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
                         02 QR/アクティベート
                       </figcaption>
-                      <div className="relative aspect-[9/16] w-full bg-white">
+                      <div className="relative aspect-[9/16] w-full bg-orange-50">
                         <Image
                           src="/joyfit-app-register-qr.png"
                           alt="アプリ登録のQRコード表示画面"
                           fill
-                          className="object-contain object-top p-1"
+                          className="object-contain object-top"
                           sizes="(max-width: 640px) 45vw, 200px"
                         />
                       </div>
                     </figure>
+                    </div>
                   </div>
                 </div>
               </div>
