@@ -92,6 +92,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [contactCopied, setContactCopied] = useState(false);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
@@ -201,27 +202,15 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     window.open(reviewUrl, "_blank", "noopener,noreferrer");
   }
 
-  async function handleLowRatingSubmit() {
+  function getLowRatingContactDraft() {
     if (!rating || rating >= 4) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    const result = await submitSurvey("");
-    setSubmitting(false);
-    if (result.ok) {
-      openLowRatingGmail();
-    } else {
-      setSubmitError(result.error);
-    }
-  }
-
-  function openLowRatingGmail() {
     const recipients = feedbackEmail
       .split(/[,\s;]+/)
       .map((v) => v.trim())
       .filter((v) => v.includes("@"));
     if (!recipients.length) {
       setSubmitError("店舗の問い合わせ先メールが未設定です。");
-      return;
+      return null;
     }
     const to = recipients.join(",");
     const subject = `【${storeName}】お客様のお声`;
@@ -239,8 +228,52 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       "------------------------------",
       "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
     ].join("\n");
-    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoUrl;
+    return {
+      to,
+      subject,
+      body,
+      mailtoUrl: `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      gmailWebUrl: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+    };
+  }
+
+  async function handleLowRatingSubmit(mode: "mailto" | "gmailWeb") {
+    if (!rating || rating >= 4) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    setContactCopied(false);
+    const result = await submitSurvey("");
+    setSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
+    const draft = getLowRatingContactDraft();
+    if (!draft) return;
+    if (mode === "mailto") {
+      window.location.href = draft.mailtoUrl;
+      return;
+    }
+    window.open(draft.gmailWebUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function copyLowRatingContactDraft() {
+    if (!rating || rating >= 4 || !profileComplete) return;
+    const draft = getLowRatingContactDraft();
+    if (!draft) return;
+    const text = [
+      `宛先: ${draft.to}`,
+      `件名: ${draft.subject}`,
+      "",
+      draft.body,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setContactCopied(true);
+      setSubmitError(null);
+    } catch {
+      setSubmitError("コピーに失敗しました。");
+    }
   }
 
   if (sent) {
@@ -331,15 +364,19 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   </figure>
                 </div>
 
-                <div className="rounded-xl bg-orange-50 p-3">
-                  <p className="text-[11px] font-semibold text-orange-900">
-                    アプリ登録の方はこちらから登録
-                  </p>
+                <div className="overflow-hidden rounded-2xl border border-orange-300/70 bg-gradient-to-br from-orange-50 via-white to-orange-50/70 shadow-sm ring-1 ring-orange-100">
+                  <div className="flex items-center gap-2 border-b border-orange-200 bg-orange-100/80 px-3 py-2.5">
+                    <span className="shrink-0 rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                      JOYFIT APP
+                    </span>
+                    <p className="text-xs font-bold leading-tight text-zinc-900">アプリ登録手順（未登録の方向け）</p>
+                  </div>
+                  <div className="space-y-2 px-3 py-2.5">
                   <a
                     href="https://procedure.joyfit.jp/qrcode2/index.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-[11px] font-semibold text-white hover:bg-orange-600"
+                    className="inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-[11px] font-semibold text-white hover:bg-orange-600"
                   >
                     アプリ登録していない方はこちらをタップ
                   </a>
@@ -385,6 +422,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                       </div>
                     </figure>
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -594,15 +632,36 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </p>
             )}
             <Button
-              onClick={() => void handleLowRatingSubmit()}
+              onClick={() => void handleLowRatingSubmit("mailto")}
               disabled={!profileComplete || submitting}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Mail className="h-4 w-4" />
-              {submitting ? "保存中…" : "Gmailで店舗へ問い合わせる"}
+              {submitting ? "保存中…" : "メールアプリで問い合わせる"}
             </Button>
+            <Button
+              onClick={() => void handleLowRatingSubmit("gmailWeb")}
+              disabled={!profileComplete || submitting}
+              variant="outline"
+              className="h-11 w-full rounded-xl border-zinc-300 text-sm font-semibold"
+            >
+              Gmail Webで問い合わせる（PC向け）
+            </Button>
+            <Button
+              onClick={() => void copyLowRatingContactDraft()}
+              disabled={!profileComplete || submitting}
+              variant="ghost"
+              className="h-10 w-full rounded-xl text-xs font-semibold text-zinc-700"
+            >
+              宛先・件名・本文をコピー
+            </Button>
+            {contactCopied && (
+              <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">
+                宛先・件名・本文をコピーしました。
+              </p>
+            )}
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              ※先に回答を保存したうえで、Gmail作成画面を開きます。
+              ※先に回答を保存したうえで、メール作成画面を開きます。
             </p>
           </div>
         )}
