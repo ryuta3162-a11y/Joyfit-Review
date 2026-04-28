@@ -147,7 +147,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     const extra = feedback.trim();
 
     const body = [
-      `${storeName}を利用しました。`,
       goodPoints,
       sceneLine,
       extra,
@@ -656,10 +655,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
             <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-[15px] leading-relaxed text-zinc-800">
               <span className="inline-flex rounded-md bg-[color:var(--joyfit-red)]/12 px-2 py-0.5 font-bold tracking-tight text-[color:var(--joyfit-red)] shadow-[inset_0_-1px_0_rgba(214,17,43,0.25)]">
-                〔同じ評価☆〕〔文章付き〕
+                同じ評価文章付きの投稿で
               </span>
               <br />
-              <span className="mt-1 inline-block font-semibold">で投稿で 500ポイントが付与されます。</span>
+              <span className="mt-1 inline-block font-semibold">500ポイントが付与されます。</span>
             </p>
 
             {submitError && (
