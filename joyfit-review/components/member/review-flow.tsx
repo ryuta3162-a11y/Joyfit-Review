@@ -331,7 +331,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   </figure>
                 </div>
 
-                <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+                <div className="rounded-xl bg-orange-50 p-3">
                   <p className="text-[11px] font-semibold text-orange-900">
                     アプリ登録の方はこちらから登録
                   </p>
@@ -346,14 +346,18 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
                     ① お名前・生年月日・電話番号を入力
                     <br />
-                    ② 水色の「アプリアクティベート」をタップして開く
+                    ②{" "}
+                    <span className="font-bold text-sky-600 underline decoration-2 underline-offset-2">
+                      水色の「アプリアクティベート」
+                    </span>
+                    をタップして開く
                     <br />
                     ③ OKになれば登録完了
                   </p>
-                  <div className="mt-2 rounded-xl border border-orange-200 bg-orange-100/70 p-2">
+                  <div className="mt-2 rounded-xl bg-orange-50 p-2">
                     <div className="grid grid-cols-2 gap-2">
-                    <figure className="overflow-hidden rounded-xl border border-orange-200 bg-orange-50">
-                      <figcaption className="border-b border-orange-200 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
+                    <figure className="overflow-hidden rounded-xl bg-orange-50 shadow-sm ring-1 ring-orange-200/70">
+                      <figcaption className="border-b border-orange-200/70 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
                         01 入力画面
                       </figcaption>
                       <div className="relative aspect-[9/16] w-full bg-orange-50">
@@ -366,8 +370,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                         />
                       </div>
                     </figure>
-                    <figure className="overflow-hidden rounded-xl border border-orange-200 bg-orange-50">
-                      <figcaption className="border-b border-orange-200 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
+                    <figure className="overflow-hidden rounded-xl bg-orange-50 shadow-sm ring-1 ring-orange-200/70">
+                      <figcaption className="border-b border-orange-200/70 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
                         02 QR/アクティベート
                       </figcaption>
                       <div className="relative aspect-[9/16] w-full bg-orange-50">
