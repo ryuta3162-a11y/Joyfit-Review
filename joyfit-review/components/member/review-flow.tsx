@@ -4,7 +4,7 @@ import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import Image from "next/image";
 import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
-import { Copy, ExternalLink, Mail, Star } from "lucide-react";
+import { Copy, Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
@@ -622,45 +622,40 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {draft && isHigh && (
           <div className="space-y-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm md:p-5">
-            <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-              <p className="text-sm font-semibold text-zinc-900">Google 口コミ投稿のイメージ</p>
-              <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-zinc-500">レビューを作成</p>
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                    Google 形式
-                  </span>
-                </div>
+            <div className="rounded-xl border border-zinc-700 bg-[#202124] p-4 text-white shadow-sm">
+              <p className="text-sm font-semibold text-white/95">Google 口コミ投稿のイメージ</p>
+              <div className="mt-3 rounded-xl border border-zinc-600 bg-[#1f1f1f] p-3">
+                <p className="text-xs font-semibold text-zinc-300">レビューを作成</p>
                 <div className="mt-2 flex items-center gap-1">
                   {stars.map((value) => (
                     <Star
                       key={`preview-${value}`}
-                      className={`h-5 w-5 ${value <= (rating ?? 0) ? "fill-[color:var(--joyfit-red)] text-[color:var(--joyfit-red)]" : "text-zinc-300"}`}
+                      className={`h-5 w-5 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
                     />
                   ))}
                 </div>
-                <p className="mt-2 text-xs font-semibold text-zinc-700">
+                <p className="mt-3 text-xs font-semibold text-zinc-100">
                   {rating === 5
                     ? "星5の高評価ありがとうございます。"
                     : rating === 4
                       ? "星4の高評価ありがとうございます。"
                       : `星${rating}の高評価ありがとうございます。`}
                 </p>
-                <p className="mt-1 text-[11px] text-zinc-600">
+                <p className="mt-1 text-[11px] text-zinc-300">
                   投稿時は同じ評価（星{rating}）を選択してください。
                 </p>
-                <p className="mt-3 text-xs text-zinc-500">口コミ本文（ここで編集できます）</p>
+                <p className="mt-3 text-xs text-zinc-300">口コミ本文（ここで編集できます）</p>
                 <Textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   rows={6}
-                  className={`${areaClass} mt-1`}
+                  className="mt-1 rounded-xl border-zinc-500/70 bg-[#202124] text-zinc-100 placeholder:text-zinc-400 focus-visible:ring-[#8ab4f8]"
                 />
               </div>
             </div>
 
-            <p className="text-[12px] leading-relaxed text-muted-foreground">
-              こちらと同じ評価・文面を貼り付けて投稿いただくことで、エンジョイポイント付与対象になります。
+            <p className="text-[14px] leading-relaxed text-foreground">
+              〔同じ評価☆〕〔文章付き〕で投稿いただくとエンジョイポイントが付与されます。
             </p>
 
             {submitError && (
@@ -684,18 +679,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         )}
 
-        {isHigh && (
-          <Button
-            asChild
-            variant="ghost"
-            className="h-10 w-full rounded-xl text-muted-foreground hover:text-primary"
-          >
-            <a href={reviewUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" />
-              Googleレビュー画面を別タブで開く
-            </a>
-          </Button>
-        )}
       </div>
     </div>
   );
