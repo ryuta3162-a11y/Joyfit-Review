@@ -653,7 +653,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             </div>
 
             <p className="text-[14px] leading-relaxed text-foreground">
-              〔同じ評価☆〕〔文章付き〕で投稿いただくとエンジョイポイントが付与されます。
+              <span className="inline-flex items-center rounded-full border border-[color:var(--joyfit-red)]/30 bg-[color:var(--joyfit-red)]/5 px-3 py-1 text-xs font-bold tracking-wide text-[color:var(--joyfit-red)]">
+                ENJOY POINT
+              </span>
+              <span className="mt-2 block rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-[14px] font-semibold leading-relaxed text-zinc-800">
+                〔同じ評価☆〕〔文章付き〕で投稿いただくとエンジョイポイントが付与されます。
+              </span>
             </p>
 
             {submitError && (
@@ -664,25 +669,29 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Button
               onClick={() => void copyDraftAndOpen()}
               disabled={submitting}
-              className="h-12 w-full rounded-xl border-0 bg-[#1a73e8] text-base font-semibold text-white hover:bg-[#1765cc] focus-visible:ring-2 focus-visible:ring-blue-300/60"
+              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30"
             >
-              {submitting ? "保存中…" : "作成した口コミ文で投稿"}
+              {submitting ? "保存中…" : "文面をコピーする"}
             </Button>
-            {copied && !showPostGuide && <p className="text-center text-xs font-medium text-blue-700">文章がコピーされました。</p>}
+            {copied && !showPostGuide && (
+              <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">文章がコピーされました。</p>
+            )}
             {showPostGuide && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-                <p className="font-semibold">文章がコピーされました。</p>
-                <p>①同じ星評価をタップ</p>
-                <p>②文章を貼り付けて投稿</p>
-                <p>以上で投稿完了です。</p>
+              <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-b from-[color:var(--joyfit-red)]/5 to-white px-4 py-4 text-sm text-zinc-900 shadow-sm">
+                <p className="text-base font-bold text-[color:var(--joyfit-red)]">文章がコピーされました。</p>
+                <div className="mt-2 space-y-1 rounded-lg bg-white/80 px-3 py-2 text-[13px] leading-relaxed">
+                  <p>①同じ星評価をタップ</p>
+                  <p>②文章を貼り付けて投稿</p>
+                  <p className="font-semibold">以上で投稿完了です。</p>
+                </div>
                 <Button
                   onClick={() => {
                     setShowPostGuide(false);
                     window.open(reviewUrl, "_blank", "noopener,noreferrer");
                   }}
-                  className="mt-3 h-9 w-full rounded-lg bg-[#1a73e8] text-sm font-semibold text-white hover:bg-[#1765cc]"
+                  className="mt-3 h-10 w-full rounded-xl bg-[color:var(--joyfit-red)] text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                 >
-                  OK
+                  口コミを投稿する
                 </Button>
               </div>
             )}
