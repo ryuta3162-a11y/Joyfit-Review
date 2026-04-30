@@ -354,9 +354,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     className="absolute left-0 top-4 h-[calc(100%-2rem)] w-1 rounded-full bg-orange-500/90"
                     aria-hidden
                   />
-                  <h3 className="pl-3 text-xs font-bold text-zinc-900">アプリ登録（未登録の方）</h3>
+                  <h3 className="pl-3 text-xs font-bold text-zinc-900">JOYFITアプリ未登録の方</h3>
                   <p className="mt-2 pl-3 text-[11px] leading-relaxed text-zinc-600">
-                    まだアプリをお持ちでない方は、下記から登録のうえ会員番号をご確認ください。
+                    下記バナーから登録が可能です
                   </p>
                   <div className="mt-3 space-y-3 pl-3">
                     <a
@@ -443,9 +443,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 <br />
                 10桁の会員番号をコピペ下さい。
               </p>
-              {memberCode.trim().length === 0 ? (
-                <p className="mt-2 text-[11px] font-medium text-amber-800">会員番号の入力は必須です。</p>
-              ) : memberCode.trim().length < 10 ? (
+              {memberCode.trim().length > 0 && memberCode.trim().length < 10 ? (
                 <p className="mt-2 text-[11px] font-medium text-[color:var(--joyfit-red)]">10桁そろうまで入力してください。</p>
               ) : null}
             </div>
@@ -646,14 +644,14 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <div className="rounded-xl border border-zinc-700 bg-[#202124] p-4 text-white shadow-sm">
               <p className="text-sm font-semibold text-white/95">Google 口コミ投稿のイメージ</p>
               <div className="mt-3 rounded-xl border border-zinc-600 bg-[#1f1f1f] p-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col items-center gap-2">
                   <p className="text-xs font-semibold text-zinc-300">レビューを作成</p>
                   <Image
                     src="/google-logo.png"
                     alt="Google ロゴ"
-                    width={72}
-                    height={24}
-                    className="h-auto w-[72px] rounded-sm bg-white/90 p-0.5"
+                    width={96}
+                    height={32}
+                    className="h-auto w-[96px] rounded-md bg-white p-1"
                   />
                 </div>
                 <div className="mt-2 flex items-center gap-1">
