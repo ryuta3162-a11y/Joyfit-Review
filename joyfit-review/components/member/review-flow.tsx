@@ -89,8 +89,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [showPostGuide, setShowPostGuide] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -107,7 +105,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     setRating(value);
     if (value < 4) {
       setDraft("");
-      setCopied(false);
     }
   }
 
@@ -156,7 +153,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       .join("\n");
 
     setDraft(body);
-    setCopied(false);
   }
 
   async function submitSurvey(payloadReview: string) {
@@ -193,11 +189,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
     try {
       await navigator.clipboard.writeText(draft);
-      setCopied(true);
     } catch {
-      setCopied(false);
+      // クリップボード制限のある環境でも、投稿導線は止めない
     }
-    setShowPostGuide(true);
+    window.open(reviewUrl, "_blank", "noopener,noreferrer");
   }
 
   function getLowRatingContactDraft() {
@@ -644,7 +639,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <div className="rounded-xl bg-white p-4">
               <div className="rounded-xl bg-zinc-50/60 p-4">
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <p className="text-sm font-semibold text-zinc-500">レビューを作成</p>
                   <Image
                     src="/google-logo.png"
                     alt="Google ロゴ"
@@ -683,12 +677,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </div>
             </div>
 
-            <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-[15px] leading-relaxed text-zinc-800">
-              <span className="inline-flex rounded-md bg-[color:var(--joyfit-red)]/12 px-2 py-0.5 font-bold tracking-tight text-[color:var(--joyfit-red)] shadow-[inset_0_-1px_0_rgba(214,17,43,0.25)]">
-                同じ評価文章付きの投稿で
-              </span>
+            <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-[14px] leading-relaxed text-zinc-800">
+              コピー用文面は口コミページ移動時、自動でコピーされます。
               <br />
-              <span className="mt-1 inline-block font-semibold">500ポイントが付与されます。</span>
+              そのまま貼り付けてください。
             </p>
 
             {submitError && (
@@ -701,30 +693,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               disabled={submitting}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30"
             >
-              {submitting ? "保存中…" : "文面をコピーする"}
+              {submitting ? "保存中…" : "口コミを投稿する"}
             </Button>
-            {copied && !showPostGuide && (
-              <p className="text-center text-xs font-medium text-[color:var(--joyfit-red)]">文章がコピーされました。</p>
-            )}
-            {showPostGuide && (
-              <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-b from-[color:var(--joyfit-red)]/5 to-white px-4 py-4 text-sm text-zinc-900 shadow-sm">
-                <p className="text-base font-bold text-[color:var(--joyfit-red)]">文章がコピーされました。</p>
-                <div className="mt-2 space-y-1 rounded-lg bg-white/80 px-3 py-2 text-[13px] leading-relaxed">
-                  <p>①同じ星評価をタップ</p>
-                  <p>②文章を貼り付けて投稿</p>
-                  <p className="font-semibold">以上で投稿完了です。</p>
-                </div>
-                <Button
-                  onClick={() => {
-                    setShowPostGuide(false);
-                    window.open(reviewUrl, "_blank", "noopener,noreferrer");
-                  }}
-                  className="mt-3 h-10 w-full rounded-xl bg-[color:var(--joyfit-red)] text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
-                >
-                  口コミを投稿する
-                </Button>
-              </div>
-            )}
           </div>
         )}
 
