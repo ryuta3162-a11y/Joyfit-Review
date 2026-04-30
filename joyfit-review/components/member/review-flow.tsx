@@ -22,7 +22,6 @@ type Props = {
 };
 
 const stars = [1, 2, 3, 4, 5];
-const DEFAULT_MEMBER_CODE = "0000000000";
 const genderOptions = ["男性", "女性", "その他"] as const;
 const ageOptions = ["10代", "20代", "30代", "40代", "50代", "60代以上"] as const;
 const menuServiceOptions = [
@@ -81,7 +80,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [envPoints, setEnvPoints] = useState<string[]>([]);
   const [scenes, setScenes] = useState<string[]>([]);
   const [fullName, setFullName] = useState("");
-  const [memberCode, setMemberCode] = useState(DEFAULT_MEMBER_CODE);
+  const [memberCode, setMemberCode] = useState("");
   const [gender, setGender] = useState<(typeof genderOptions)[number] | "">("");
   const [ageRange, setAgeRange] = useState("");
   const [email, setEmail] = useState("");
@@ -127,12 +126,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
-  const memberCodeOk = useMemo(() => {
-    const t = memberCode.trim();
-    if (!/^\d{10}$/.test(t)) return false;
-    if (t === DEFAULT_MEMBER_CODE) return false;
-    return true;
-  }, [memberCode]);
+  const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const profileComplete =
     fullName.trim() &&
     gender &&
@@ -427,15 +421,16 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-700/80 bg-gradient-to-b from-[#1a1a1c] to-zinc-950 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)] ring-1 ring-white/[0.06]">
-              <p className="mb-1.5 text-[13px] font-semibold tracking-tight text-zinc-100">
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm">
+              <p className="mb-1.5 text-[13px] font-semibold tracking-tight text-zinc-900">
                 会員番号（10桁・必須）*
               </p>
               <Input
-                className="h-12 rounded-xl border border-zinc-500/80 bg-black/50 px-3 text-center font-mono text-[17px] font-semibold tabular-nums tracking-[0.18em] text-zinc-100 shadow-[inset_0_2px_8px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.04)] selection:bg-[color:var(--joyfit-red)]/40 focus-visible:border-[#fbbc04]/55 focus-visible:ring-2 focus-visible:ring-[#fbbc04]/20 sm:text-[18px] sm:tracking-[0.22em]"
+                className="h-12 rounded-xl border-zinc-300 bg-white px-3 text-center font-mono text-[17px] font-semibold tabular-nums tracking-[0.18em] text-zinc-900 shadow-inner placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)]/50 focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20 sm:text-[18px] sm:tracking-[0.22em]"
                 value={memberCode}
                 inputMode="numeric"
                 maxLength={10}
+                placeholder="0000000000"
                 autoComplete="off"
                 spellCheck={false}
                 onChange={(event) =>
@@ -443,19 +438,15 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 }
                 aria-invalid={memberCode.length > 0 && !memberCodeOk}
               />
-              <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
                 アプリ右上の「サービス」→「契約情報」
                 <br />
                 10桁の会員番号をコピペ下さい。
               </p>
               {memberCode.trim().length === 0 ? (
-                <p className="mt-2 text-[11px] font-medium text-amber-300/95">会員番号の入力は必須です。</p>
+                <p className="mt-2 text-[11px] font-medium text-amber-800">会員番号の入力は必須です。</p>
               ) : memberCode.trim().length < 10 ? (
-                <p className="mt-2 text-[11px] font-medium text-rose-400">10桁そろうまで入力してください。</p>
-              ) : memberCode.trim() === DEFAULT_MEMBER_CODE ? (
-                <p className="mt-2 text-[11px] font-medium text-amber-300/95">
-                  アプリに表示されている10桁の番号に置き換えてください。
-                </p>
+                <p className="mt-2 text-[11px] font-medium text-[color:var(--joyfit-red)]">10桁そろうまで入力してください。</p>
               ) : null}
             </div>
           </div>
