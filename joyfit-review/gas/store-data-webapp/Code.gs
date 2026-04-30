@@ -207,6 +207,9 @@ function saveSurveyResponse(data) {
   if (!/^\d{10}$/.test(memberCode)) {
     return { ok: false, error: "memberCode must be 10-digit number" };
   }
+  if (/^0{10}$/.test(memberCode)) {
+    return { ok: false, error: "memberCode must not be placeholder" };
+  }
 
   var to = String(data.to || "").trim();
   var sheet = getOrCreateSurveySheet(storeId, storeName);

@@ -22,6 +22,7 @@ type Props = {
 };
 
 const stars = [1, 2, 3, 4, 5];
+const DEFAULT_MEMBER_CODE = "0000000000";
 const genderOptions = ["男性", "女性", "その他"] as const;
 const ageOptions = ["10代", "20代", "30代", "40代", "50代", "60代以上"] as const;
 const menuServiceOptions = [
@@ -80,7 +81,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [envPoints, setEnvPoints] = useState<string[]>([]);
   const [scenes, setScenes] = useState<string[]>([]);
   const [fullName, setFullName] = useState("");
-  const [memberCode, setMemberCode] = useState("");
+  const [memberCode, setMemberCode] = useState(DEFAULT_MEMBER_CODE);
   const [gender, setGender] = useState<(typeof genderOptions)[number] | "">("");
   const [ageRange, setAgeRange] = useState("");
   const [email, setEmail] = useState("");
@@ -126,7 +127,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
-  const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
+  const memberCodeOk = useMemo(() => {
+    const t = memberCode.trim();
+    if (!/^\d{10}$/.test(t)) return false;
+    if (t === DEFAULT_MEMBER_CODE) return false;
+    return true;
+  }, [memberCode]);
   const profileComplete =
     fullName.trim() &&
     gender &&
@@ -426,11 +432,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 会員番号（10桁・必須）*
               </p>
               <Input
-                className="h-11 rounded-xl border-zinc-600/90 bg-zinc-900/80 text-[15px] font-medium tracking-widest text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] placeholder:text-zinc-500 focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-white/10"
+                className="h-12 rounded-xl border border-zinc-500/80 bg-black/50 px-3 text-center font-mono text-[17px] font-semibold tabular-nums tracking-[0.18em] text-zinc-100 shadow-[inset_0_2px_8px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.04)] selection:bg-[color:var(--joyfit-red)]/40 focus-visible:border-[#fbbc04]/55 focus-visible:ring-2 focus-visible:ring-[#fbbc04]/20 sm:text-[18px] sm:tracking-[0.22em]"
                 value={memberCode}
                 inputMode="numeric"
                 maxLength={10}
-                placeholder="000"
+                autoComplete="off"
+                spellCheck={false}
                 onChange={(event) =>
                   setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
                 }
@@ -443,9 +450,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </p>
               {memberCode.trim().length === 0 ? (
                 <p className="mt-2 text-[11px] font-medium text-amber-300/95">会員番号の入力は必須です。</p>
-              ) : !memberCodeOk ? (
-                <p className="mt-2 text-[11px] font-medium text-rose-400">
-                  10桁そろうまで入力してください。
+              ) : memberCode.trim().length < 10 ? (
+                <p className="mt-2 text-[11px] font-medium text-rose-400">10桁そろうまで入力してください。</p>
+              ) : memberCode.trim() === DEFAULT_MEMBER_CODE ? (
+                <p className="mt-2 text-[11px] font-medium text-amber-300/95">
+                  アプリに表示されている10桁の番号に置き換えてください。
                 </p>
               ) : null}
             </div>

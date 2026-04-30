@@ -27,10 +27,6 @@ function resolveRecipients(storeEmail: string, fallback: string): string {
   return a || b;
 }
 
-function isValidMemberCode(value: string): boolean {
-  return /^\d{10}$/.test(value.trim());
-}
-
 export async function submitMemberSurvey(
   input: SubmitMemberSurveyInput,
 ): Promise<SubmitMemberSurveyResult> {
@@ -39,8 +35,12 @@ export async function submitMemberSurvey(
     return { ok: false, error: "ただいま送信をお受けできません。" };
   }
 
-  if (!isValidMemberCode(input.memberCode)) {
+  const mc = input.memberCode.trim();
+  if (!/^\d{10}$/.test(mc)) {
     return { ok: false, error: "会員番号は半角数字10桁で入力してください。" };
+  }
+  if (/^0{10}$/.test(mc)) {
+    return { ok: false, error: "アプリに表示されている会員番号に置き換えてください。" };
   }
 
   const defaultEmail = process.env.DEFAULT_LOW_RATING_EMAIL?.trim() ?? "";
