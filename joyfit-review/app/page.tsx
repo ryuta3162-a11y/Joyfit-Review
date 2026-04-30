@@ -45,13 +45,15 @@ export default function Home() {
             </li>
           </ul>
 
-          <p className="flex gap-2 rounded-xl border border-zinc-200/90 bg-zinc-50/80 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--joyfit-red)]" aria-hidden />
-            <span>
-              <strong className="font-semibold text-foreground">位置情報の許可が必須です。</strong>
-              下のボタンを押すと許可の確認が表示され、許可後に店舗選択へ進みます。許可いただけない場合はこのサービスをご利用いただけません。
-            </span>
-          </p>
+          <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white px-4 py-3 text-center shadow-sm">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)] ring-1 ring-[color:var(--joyfit-red)]/20">
+              <MapPin className="h-3.5 w-3.5" aria-hidden />
+              LOCATION
+            </p>
+            <p className="mt-2 text-lg font-extrabold tracking-tight text-[color:var(--joyfit-red)] md:text-xl">
+              位置情報の許可が必要です
+            </p>
+          </div>
 
           <StartReviewCta />
         </div>
