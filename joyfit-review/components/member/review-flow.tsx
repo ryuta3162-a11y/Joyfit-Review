@@ -421,24 +421,30 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </div>
             </div>
 
-            <div>
-              <p className={labelClass}>会員番号（10桁・必須）*</p>
+            <div className="rounded-2xl border border-zinc-700/80 bg-gradient-to-b from-[#1a1a1c] to-zinc-950 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)] ring-1 ring-white/[0.06]">
+              <p className="mb-1.5 text-[13px] font-semibold tracking-tight text-zinc-100">
+                会員番号（10桁・必須）*
+              </p>
               <Input
-                className={fieldClass}
+                className="h-11 rounded-xl border-zinc-600/90 bg-zinc-900/80 text-[15px] font-medium tracking-widest text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] placeholder:text-zinc-500 focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-white/10"
                 value={memberCode}
                 inputMode="numeric"
                 maxLength={10}
-                placeholder="0123456789"
+                placeholder="000"
                 onChange={(event) =>
                   setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
                 }
                 aria-invalid={memberCode.length > 0 && !memberCodeOk}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">半角数字10桁（ハイフンは入れないでください）</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+                アプリ右上の「サービス」→「契約情報」
+                <br />
+                10桁の会員番号をコピペ下さい。
+              </p>
               {memberCode.trim().length === 0 ? (
-                <p className="mt-1 text-[11px] font-medium text-amber-800">会員番号の入力は必須です。</p>
+                <p className="mt-2 text-[11px] font-medium text-amber-300/95">会員番号の入力は必須です。</p>
               ) : !memberCodeOk ? (
-                <p className="mt-1 text-[11px] font-medium text-[color:var(--joyfit-red)]">
+                <p className="mt-2 text-[11px] font-medium text-rose-400">
                   10桁そろうまで入力してください。
                 </p>
               ) : null}
