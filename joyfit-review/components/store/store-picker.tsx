@@ -168,13 +168,11 @@ export function StorePicker({ stores }: Props) {
             <br />
             選択してください
           </h1>
-          <p className="mx-auto mt-2 max-w-[280px] text-xs leading-relaxed text-white/90">
-            店舗名・エリア・読みで検索できます
-          </p>
         </div>
 
         {showStoreUi ? (
           <div className="border-t border-zinc-100 bg-card px-5 py-5">
+            <p className="mb-3 text-sm font-bold text-zinc-900">他の店舗の口コミを投稿</p>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <Input
@@ -185,7 +183,9 @@ export function StorePicker({ stores }: Props) {
               />
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              現在地に基づき、近い順に並べ替えています。
+              位置情報の許可が必須です。
+              <br />
+              現在地に基づき、店舗の候補が表示されます。
             </p>
           </div>
         ) : (
