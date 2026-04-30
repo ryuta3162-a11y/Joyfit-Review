@@ -646,7 +646,16 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <div className="rounded-xl border border-zinc-700 bg-[#202124] p-4 text-white shadow-sm">
               <p className="text-sm font-semibold text-white/95">Google 口コミ投稿のイメージ</p>
               <div className="mt-3 rounded-xl border border-zinc-600 bg-[#1f1f1f] p-3">
-                <p className="text-xs font-semibold text-zinc-300">レビューを作成</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-zinc-300">レビューを作成</p>
+                  <Image
+                    src="/google-logo.png"
+                    alt="Google ロゴ"
+                    width={72}
+                    height={24}
+                    className="h-auto w-[72px] rounded-sm bg-white/90 p-0.5"
+                  />
+                </div>
                 <div className="mt-2 flex items-center gap-1">
                   {stars.map((value) => (
                     <Star
