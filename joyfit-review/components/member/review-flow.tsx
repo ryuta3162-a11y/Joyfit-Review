@@ -496,25 +496,25 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-700 bg-[#202124] p-4 text-white shadow-sm">
-          <p className="mb-3 text-sm font-semibold text-zinc-100">口コミ評価（星をタップ）</p>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-zinc-900">口コミ評価（星をタップ）</p>
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => selectRating(value)}
-                className="rounded-lg p-1.5 transition hover:bg-white/10"
+                className="rounded-lg p-1.5 transition hover:bg-zinc-100"
                 aria-label={`${value}つ星`}
               >
                 <Star
-                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
+                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300"}`}
                 />
               </button>
             ))}
           </div>
           {rating && (
-            <p className="mt-2 text-xs font-semibold text-zinc-200">
+            <p className="mt-2 text-xs font-semibold text-zinc-700">
               選択中の評価: 星{rating}
             </p>
           )}
@@ -641,24 +641,24 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {draft && isHigh && (
           <div className="space-y-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm md:p-5">
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="rounded-xl bg-white p-4">
               <p className="text-sm font-semibold text-zinc-900">Google 口コミ投稿のイメージ</p>
-              <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3">
+              <div className="mt-3 rounded-xl bg-zinc-50/60 p-4">
                 <div className="flex flex-col items-center gap-2">
-                  <p className="text-xs font-semibold text-zinc-500">レビューを作成</p>
+                  <p className="text-sm font-semibold text-zinc-500">レビューを作成</p>
                   <Image
                     src="/google-logo.png"
                     alt="Google ロゴ"
-                    width={96}
-                    height={32}
-                    className="h-auto w-[96px] rounded-md bg-white p-1 ring-1 ring-zinc-200"
+                    width={140}
+                    height={46}
+                    className="h-auto w-[140px]"
                   />
                 </div>
-                <div className="mt-2 flex items-center gap-1">
+                <div className="mt-3 flex items-center gap-1.5">
                   {stars.map((value) => (
                     <Star
                       key={`preview-${value}`}
-                      className={`h-5 w-5 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
+                      className={`h-8 w-8 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
                     />
                   ))}
                 </div>
