@@ -1,10 +1,9 @@
-import Link from "next/link";
-import { ArrowRight, Gift, MapPin } from "lucide-react";
+import { Gift, MapPin } from "lucide-react";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
+import { StartReviewCta } from "@/components/member/start-review-cta";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
-import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -36,7 +35,7 @@ export default function Home() {
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
                 2
               </span>
-              <span>満足度とよかった点をタップ</span>
+              <span>口コミ評価とよかった点をタップ</span>
             </li>
             <li className="flex gap-2">
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
@@ -49,22 +48,12 @@ export default function Home() {
           <p className="flex gap-2 rounded-xl border border-zinc-200/90 bg-zinc-50/80 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--joyfit-red)]" aria-hidden />
             <span>
-              <strong className="font-semibold text-foreground">位置情報は必須ではありません。</strong>
-              次の画面で、ご希望の方だけボタンから現在地の利用を許可できます。許可いただくと、近い店舗を先に候補表示できます。
+              <strong className="font-semibold text-foreground">位置情報の許可が必須です。</strong>
+              下のボタンを押すと許可の確認が表示され、許可後に店舗選択へ進みます。許可いただけない場合はこのサービスをご利用いただけません。
             </span>
           </p>
 
-          <Button
-            asChild
-            size="lg"
-            variant="default"
-            className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] !text-white hover:bg-[color:var(--joyfit-red-dark)]"
-          >
-            <Link href="/select-store">
-              店舗を選んで開始する
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <StartReviewCta />
         </div>
       </div>
     </MemberPageShell>

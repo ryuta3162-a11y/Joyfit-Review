@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MapPin, Search, Store } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronRight, Search, Store } from "lucide-react";
 
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { Input } from "@/components/ui/input";
 import type { StoreMasterRow } from "@/lib/store-master";
+import { REVIEW_GEO_MAX_AGE_MS, REVIEW_GEO_STORAGE_KEY } from "@/lib/review-geo-storage";
 
 type Props = {
   stores: StoreMasterRow[];
@@ -46,48 +47,78 @@ function storeSubtitle(store: StoreMasterRow) {
   return `店舗ID: ${store.id}`;
 }
 
-type GeoPhase = "idle" | "loading" | "ok" | "blocked" | "unsupported";
+type GeoPhase = "loading" | "ok" | "blocked" | "unsupported";
 
 export function StorePicker({ stores }: Props) {
   const [query, setQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoPhase, setGeoPhase] = useState<GeoPhase>("idle");
+  const [geoPhase, setGeoPhase] = useState<GeoPhase>("loading");
   const [nearestPromptDismissed, setNearestPromptDismissed] = useState(false);
 
-  useEffect(() => {
+  const acquireLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoPhase("unsupported");
-    }
-  }, []);
-
-  function requestUserLocation() {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setUserLocation(null);
       setGeoPhase("unsupported");
       return;
     }
     setGeoPhase("loading");
+    setUserLocation(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(loc);
         setGeoPhase("ok");
         setNearestPromptDismissed(false);
+        try {
+          sessionStorage.setItem(
+            REVIEW_GEO_STORAGE_KEY,
+            JSON.stringify({ ...loc, t: Date.now() }),
+          );
+        } catch {
+          /* ignore */
+        }
       },
       () => {
         setUserLocation(null);
         setGeoPhase("blocked");
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 },
     );
-  }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(REVIEW_GEO_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { lat?: unknown; lng?: unknown; t?: unknown };
+        const lat = parsed.lat;
+        const lng = parsed.lng;
+        const t = parsed.t;
+        if (
+          typeof lat === "number" &&
+          typeof lng === "number" &&
+          typeof t === "number" &&
+          Date.now() - t < REVIEW_GEO_MAX_AGE_MS
+        ) {
+          setUserLocation({ lat, lng });
+          setGeoPhase("ok");
+          return;
+        }
+      }
+    } catch {
+      /* fall through */
+    }
+    acquireLocation();
+  }, [acquireLocation]);
 
   const filteredAndSorted = useMemo<StoreWithDistance[]>(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
     const base = !tokens.length
       ? stores
       : stores.filter((store) => {
-      const haystack = normalize(`${store.name} ${store.searchText}`);
-      return tokens.every((token) => haystack.includes(token));
-    });
+          const haystack = normalize(`${store.name} ${store.searchText}`);
+          return tokens.every((token) => haystack.includes(token));
+        });
 
     if (!userLocation) return base.map((store) => ({ store, distanceMeters: undefined }));
 
@@ -119,6 +150,8 @@ export function StorePicker({ stores }: Props) {
     return first;
   }, [filteredAndSorted, geoPhase, nearestPromptDismissed, query]);
 
+  const showStoreUi = geoPhase === "ok" && userLocation !== null;
+
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -140,55 +173,72 @@ export function StorePicker({ stores }: Props) {
           </p>
         </div>
 
-        <div className="border-t border-zinc-100 bg-card px-5 py-5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="店舗名を検索"
-              className="h-12 rounded-xl border-zinc-200 bg-zinc-50 pl-10 text-base shadow-inner focus-visible:border-[color:var(--joyfit-red)]/40"
-            />
+        {showStoreUi ? (
+          <div className="border-t border-zinc-100 bg-card px-5 py-5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="店舗名を検索"
+                className="h-12 rounded-xl border-zinc-200 bg-zinc-50 pl-10 text-base shadow-inner focus-visible:border-[color:var(--joyfit-red)]/40"
+              />
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              現在地に基づき、近い順に並べ替えています。
+            </p>
           </div>
-
-          {geoPhase !== "unsupported" && (
-            <div className="mt-4 space-y-2">
-              {geoPhase === "idle" && (
+        ) : (
+          <div className="border-t border-zinc-100 bg-card px-5 py-8">
+            {geoPhase === "loading" && (
+              <p className="text-center text-sm font-medium text-muted-foreground">
+                位置情報を確認しています…
+              </p>
+            )}
+            {geoPhase === "blocked" && (
+              <div className="space-y-4 text-center">
+                <p className="text-sm font-semibold leading-relaxed text-zinc-900">
+                  位置情報が許可されていないため、店舗を表示できません。
+                </p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  口コミサポートをご利用になるには、ブラウザで当サイトへの位置情報の許可が必要です。
+                </p>
                 <button
                   type="button"
-                  onClick={requestUserLocation}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-semibold text-zinc-800 shadow-sm transition hover:border-[color:var(--joyfit-red)]/35 hover:bg-zinc-50"
+                  onClick={acquireLocation}
+                  className="w-full rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                 >
-                  <MapPin className="h-3.5 w-3.5 text-[color:var(--joyfit-red)]" aria-hidden />
-                  現在地から近い店舗を候補表示（任意・タップで許可）
+                  許可を確認して再試行
                 </button>
-              )}
-              {geoPhase === "loading" && (
-                <p className="text-center text-[11px] text-muted-foreground">位置情報を取得しています…</p>
-              )}
-              {geoPhase === "blocked" && (
-                <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-[11px] leading-relaxed text-amber-950">
-                  <p>位置情報が利用できませんでした。店舗名の検索・一覧からお選びください。</p>
-                  <button
-                    type="button"
-                    onClick={requestUserLocation}
-                    className="mt-1.5 font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
-                  >
-                    もう一度許可を試す
-                  </button>
-                </div>
-              )}
-              {geoPhase === "ok" && (
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  現在地に基づき、近い順に並べ替えています。
+                <Link
+                  href="/"
+                  className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
+                >
+                  トップに戻る
+                </Link>
+              </div>
+            )}
+            {geoPhase === "unsupported" && (
+              <div className="space-y-3 text-center">
+                <p className="text-sm font-semibold text-zinc-900">
+                  お使いの環境では位置情報を利用できません。
                 </p>
-              )}
-            </div>
-          )}
-        </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  スマートフォンのブラウザなど、位置情報に対応した端末からお試しください。
+                </p>
+                <Link
+                  href="/"
+                  className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
+                >
+                  トップに戻る
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {nearestStore && (
+      {showStoreUi && nearestStore && (
         <div className="rounded-2xl border border-[color:var(--joyfit-red)]/30 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white p-5 shadow-md">
           <p className="mt-2 text-base font-bold leading-snug text-zinc-900">
             口コミを投稿する店舗は「{nearestStore.store.name}」で合っていますか？
@@ -211,35 +261,37 @@ export function StorePicker({ stores }: Props) {
         </div>
       )}
 
-      {(!nearestStore || nearestPromptDismissed) && <ul className="space-y-3">
-        {filteredAndSorted.length === 0 ? (
-          <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-10 text-center text-sm text-muted-foreground">
-            該当する店舗がありません。
-            <br />
-            別のキーワードでお試しください。
-          </li>
-        ) : (
-          filteredAndSorted.map(({ store }) => (
-            <li key={store.id}>
-              <Link
-                href={`/member/${store.id}`}
-                className="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-[color:var(--joyfit-red)]/40"
-              >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)]/16">
-                  <Store className="h-6 w-6" />
-                </span>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block text-base font-bold text-foreground">{store.name}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {storeSubtitle(store)}
-                  </span>
-                </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-[color:var(--joyfit-red)]" />
-              </Link>
+      {showStoreUi && (!nearestStore || nearestPromptDismissed) && (
+        <ul className="space-y-3">
+          {filteredAndSorted.length === 0 ? (
+            <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-10 text-center text-sm text-muted-foreground">
+              該当する店舗がありません。
+              <br />
+              別のキーワードでお試しください。
             </li>
-          ))
-        )}
-      </ul>}
+          ) : (
+            filteredAndSorted.map(({ store }) => (
+              <li key={store.id}>
+                <Link
+                  href={`/member/${store.id}`}
+                  className="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-[color:var(--joyfit-red)]/40"
+                >
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)]/16">
+                    <Store className="h-6 w-6" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-base font-bold text-foreground">{store.name}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {storeSubtitle(store)}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-[color:var(--joyfit-red)]" />
+                </Link>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
     </div>
   );
 }
