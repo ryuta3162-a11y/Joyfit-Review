@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Gift } from "lucide-react";
+import { ArrowRight, Gift, MapPin } from "lucide-react";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
@@ -46,10 +46,19 @@ export default function Home() {
             </li>
           </ul>
 
+          <p className="flex gap-2 rounded-xl border border-zinc-200/90 bg-zinc-50/80 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--joyfit-red)]" aria-hidden />
+            <span>
+              <strong className="font-semibold text-foreground">位置情報は必須ではありません。</strong>
+              次の画面で、ご希望の方だけボタンから現在地の利用を許可できます。許可いただくと、近い店舗を先に候補表示できます。
+            </span>
+          </p>
+
           <Button
             asChild
             size="lg"
-            className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+            variant="default"
+            className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] !text-white hover:bg-[color:var(--joyfit-red-dark)]"
           >
             <Link href="/select-store">
               店舗を選んで開始する

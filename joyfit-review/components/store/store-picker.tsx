@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Search, Store } from "lucide-react";
+import { ChevronRight, MapPin, Search, Store } from "lucide-react";
 
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { Input } from "@/components/ui/input";
@@ -46,26 +46,39 @@ function storeSubtitle(store: StoreMasterRow) {
   return `店舗ID: ${store.id}`;
 }
 
+type GeoPhase = "idle" | "loading" | "ok" | "blocked" | "unsupported";
+
 export function StorePicker({ stores }: Props) {
   const [query, setQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoStatus, setGeoStatus] = useState<"idle" | "ok" | "blocked" | "unsupported">("idle");
+  const [geoPhase, setGeoPhase] = useState<GeoPhase>("idle");
   const [nearestPromptDismissed, setNearestPromptDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoStatus("unsupported");
+      setGeoPhase("unsupported");
+    }
+  }, []);
+
+  function requestUserLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoPhase("unsupported");
       return;
     }
+    setGeoPhase("loading");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGeoStatus("ok");
+        setGeoPhase("ok");
+        setNearestPromptDismissed(false);
       },
-      () => setGeoStatus("blocked"),
+      () => {
+        setUserLocation(null);
+        setGeoPhase("blocked");
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
     );
-  }, []);
+  }
 
   const filteredAndSorted = useMemo<StoreWithDistance[]>(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
@@ -100,11 +113,11 @@ export function StorePicker({ stores }: Props) {
   }, [query, stores, userLocation]);
 
   const nearestStore = useMemo(() => {
-    if (geoStatus !== "ok" || query.trim() || nearestPromptDismissed) return null;
+    if (geoPhase !== "ok" || query.trim() || nearestPromptDismissed) return null;
     const first = filteredAndSorted[0];
     if (!first?.store) return null;
     return first;
-  }, [filteredAndSorted, geoStatus, nearestPromptDismissed, query]);
+  }, [filteredAndSorted, geoPhase, nearestPromptDismissed, query]);
 
   return (
     <div className="space-y-4">
@@ -137,6 +150,41 @@ export function StorePicker({ stores }: Props) {
               className="h-12 rounded-xl border-zinc-200 bg-zinc-50 pl-10 text-base shadow-inner focus-visible:border-[color:var(--joyfit-red)]/40"
             />
           </div>
+
+          {geoPhase !== "unsupported" && (
+            <div className="mt-4 space-y-2">
+              {geoPhase === "idle" && (
+                <button
+                  type="button"
+                  onClick={requestUserLocation}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-semibold text-zinc-800 shadow-sm transition hover:border-[color:var(--joyfit-red)]/35 hover:bg-zinc-50"
+                >
+                  <MapPin className="h-3.5 w-3.5 text-[color:var(--joyfit-red)]" aria-hidden />
+                  現在地から近い店舗を候補表示（任意・タップで許可）
+                </button>
+              )}
+              {geoPhase === "loading" && (
+                <p className="text-center text-[11px] text-muted-foreground">位置情報を取得しています…</p>
+              )}
+              {geoPhase === "blocked" && (
+                <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-[11px] leading-relaxed text-amber-950">
+                  <p>位置情報が利用できませんでした。店舗名の検索・一覧からお選びください。</p>
+                  <button
+                    type="button"
+                    onClick={requestUserLocation}
+                    className="mt-1.5 font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
+                  >
+                    もう一度許可を試す
+                  </button>
+                </div>
+              )}
+              {geoPhase === "ok" && (
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  現在地に基づき、近い順に並べ替えています。
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
