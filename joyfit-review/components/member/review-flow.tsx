@@ -588,7 +588,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               <Textarea
                 value={feedback}
                 onChange={(event) => setFeedback(event.target.value)}
-                placeholder="あればご記入ください（未入力でも進められます）"
+                placeholder=""
                 rows={4}
                 className={areaClass}
               />
@@ -663,20 +663,17 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                       : `星${rating}の高評価ありがとうございます。`}
                 </p>
                 <p className="mt-1 text-center text-[11px] text-zinc-600">投稿時は同じ評価（星{rating}）を選択してください。</p>
-                <div className="mx-auto mt-3 w-full max-w-[560px] rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="inline-flex items-center rounded-md border border-[#fbbc04]/40 bg-[#fbbc04]/10 px-2.5 py-1 text-xs font-semibold text-[#7a5d00]">
-                      コピー用文面〔こちらで添削可能です〕
-                    </p>
-                    <span className="text-[10px] font-medium text-zinc-500">そのままでもOK</span>
-                  </div>
-                  <Textarea
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    rows={6}
-                    className="min-h-[150px] rounded-xl border-zinc-300 bg-white text-base leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)]/45 focus-visible:ring-[color:var(--joyfit-red)]/20"
-                  />
+                <div className="mt-3 flex justify-center">
+                  <p className="inline-flex items-center rounded-md border border-[#fbbc04]/40 bg-[#fbbc04]/10 px-2.5 py-1 text-xs font-semibold text-[#7a5d00]">
+                    コピー用文面〔こちらで添削可能です〕
+                  </p>
                 </div>
+                <Textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  rows={6}
+                  className="mt-2 w-full rounded-xl border-zinc-300 bg-white text-base leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)]/45 focus-visible:ring-[color:var(--joyfit-red)]/20"
+                />
               </div>
             </div>
 
