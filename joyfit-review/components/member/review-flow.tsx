@@ -642,9 +642,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         {draft && isHigh && (
           <div className="space-y-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm md:p-5">
             <div className="rounded-xl bg-white p-4">
-              <p className="text-sm font-semibold text-zinc-900">Google 口コミ投稿のイメージ</p>
-              <div className="mt-3 rounded-xl bg-zinc-50/60 p-4">
-                <div className="flex flex-col items-center gap-2">
+              <div className="rounded-xl bg-zinc-50/60 p-4">
+                <div className="flex flex-col items-center gap-2 text-center">
                   <p className="text-sm font-semibold text-zinc-500">レビューを作成</p>
                   <Image
                     src="/google-logo.png"
@@ -654,30 +653,32 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     className="h-auto w-[140px]"
                   />
                 </div>
-                <div className="mt-3 flex items-center gap-1.5">
+                <div className="mt-3 flex items-center justify-center gap-1.5">
                   {stars.map((value) => (
                     <Star
                       key={`preview-${value}`}
-                      className={`h-8 w-8 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
+                      className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-600"}`}
                     />
                   ))}
                 </div>
-                <p className="mt-3 text-xs font-semibold text-zinc-900">
+                <p className="mt-3 text-center text-xs font-semibold text-zinc-900">
                   {rating === 5
                     ? "星5の高評価ありがとうございます。"
                     : rating === 4
                       ? "星4の高評価ありがとうございます。"
                       : `星${rating}の高評価ありがとうございます。`}
                 </p>
-                <p className="mt-1 text-[11px] text-zinc-600">投稿時は同じ評価（星{rating}）を選択してください。</p>
-                <p className="mt-3 inline-flex items-center rounded-md border border-[#fbbc04]/40 bg-[#fbbc04]/10 px-2.5 py-1 text-xs font-semibold text-[#7a5d00]">
-                  コピー用文面〔こちらで添削可能です〕
-                </p>
+                <p className="mt-1 text-center text-[11px] text-zinc-600">投稿時は同じ評価（星{rating}）を選択してください。</p>
+                <div className="mt-3 flex justify-center">
+                  <p className="inline-flex items-center rounded-md border border-[#fbbc04]/40 bg-[#fbbc04]/10 px-2.5 py-1 text-xs font-semibold text-[#7a5d00]">
+                    コピー用文面〔こちらで添削可能です〕
+                  </p>
+                </div>
                 <Textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   rows={6}
-                  className="mt-1 rounded-xl border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-[#8ab4f8]"
+                  className="mx-auto mt-1 max-w-[560px] rounded-xl border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-[#8ab4f8]"
                 />
               </div>
             </div>
