@@ -278,8 +278,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         </Link>
         <JoyfitHeaderLogo className="mb-1" />
         <h1 className="relative z-[1] mt-3 text-xl font-bold md:text-2xl">{storeName}</h1>
-        <p className="relative z-[1] mt-2 text-sm text-white/90">本日のトレーニングのご感想をお聞かせください</p>
-        <p className="relative z-[1] mt-3 inline-block rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-semibold text-white">
+        <p className="relative z-[1] mt-4 inline-block rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-semibold text-white">
           特典：{ENJOY_POINT_REWARD_LABEL}
         </p>
       </div>
@@ -292,116 +291,133 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             <Input className={fieldClass} value={fullName} onChange={(event) => setFullName(event.target.value)} />
           </div>
           <div className="space-y-3">
-            <div className="overflow-hidden rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-white via-white to-[color:var(--joyfit-red)]/[0.06] shadow-sm ring-1 ring-zinc-100">
-              <div className="flex items-center gap-2 border-b border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/10 px-3 py-2.5">
-                <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-100">
+              <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-3">
+                <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
                   JOYFIT APP
                 </span>
-                <p className="text-xs font-bold leading-tight text-zinc-900">会員番号の確認手順（必須）</p>
+                <p className="text-[13px] font-semibold tracking-tight text-zinc-900">会員番号の確認・アプリ登録</p>
               </div>
-              <div className="space-y-2 px-3 py-2.5">
-                <p className="text-[11px] leading-relaxed text-zinc-700">
-                  アプリを開き、右上の<strong>「サービス」</strong>→<strong>「契約情報」</strong>の順で進むと、
-                  <strong className="text-[color:var(--joyfit-red)]">10桁の会員番号</strong>が表示されます。
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50/80 shadow-sm">
-                    <figcaption className="flex items-center gap-1.5 border-b border-zinc-200 bg-white px-2 py-1.5">
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[9px] font-bold text-white">
-                        01
-                      </span>
-                      <span className="text-[10px] font-semibold leading-tight text-zinc-700">「サービス」をタップ</span>
-                    </figcaption>
-                    <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
-                      <Image
-                        src="/joyfit-app-member-1.png"
-                        alt="JOYFITアプリの右上「サービス」をタップする画面"
-                        fill
-                        className="object-contain object-top p-1"
-                        sizes="(max-width: 640px) 45vw, 200px"
-                      />
-                    </div>
-                  </figure>
-                  <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50/80 shadow-sm">
-                    <figcaption className="flex items-center gap-1.5 border-b border-zinc-200 bg-white px-2 py-1.5">
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[9px] font-bold text-white">
-                        02
-                      </span>
-                      <span className="text-[10px] font-semibold leading-tight text-zinc-700">「契約情報」で番号確認</span>
-                    </figcaption>
-                    <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
-                      <Image
-                        src="/joyfit-app-member-2.png"
-                        alt="契約情報画面で会員番号を確認する例"
-                        fill
-                        className="object-contain object-top p-1"
-                        sizes="(max-width: 640px) 45vw, 200px"
-                      />
-                    </div>
-                  </figure>
-                </div>
 
-                <div className="overflow-hidden rounded-2xl border border-orange-300/70 bg-gradient-to-br from-orange-50 via-white to-orange-50/70 shadow-sm ring-1 ring-orange-100">
-                  <div className="flex items-center gap-2 border-b border-orange-200 bg-orange-100/80 px-3 py-2.5">
-                    <span className="shrink-0 rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
-                      JOYFIT APP
-                    </span>
-                    <p className="text-xs font-bold leading-tight text-zinc-900">アプリ登録手順（未登録の方向け）</p>
-                  </div>
-                  <div className="space-y-2 px-3 py-2.5">
-                  <a
-                    href="https://procedure.joyfit.jp/qrcode2/index.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-[11px] font-semibold text-white hover:bg-orange-600"
-                  >
-                    アプリ登録していない方はこちらをタップ
-                  </a>
-                  <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
-                    ① お名前・生年月日・電話番号を入力
-                    <br />
-                    ②{" "}
-                    <span className="font-bold text-sky-600 underline decoration-2 underline-offset-2">
-                      水色の「アプリアクティベート」
-                    </span>
-                    をタップして開く
-                    <br />
-                    ③ OKになれば登録完了
+              <div className="divide-y divide-zinc-100">
+                <section className="relative px-4 py-4">
+                  <div
+                    className="absolute left-0 top-4 h-[calc(100%-2rem)] w-1 rounded-full bg-[color:var(--joyfit-red)]/85"
+                    aria-hidden
+                  />
+                  <h3 className="pl-3 text-xs font-bold text-zinc-900">会員番号の確認（必須）</h3>
+                  <p className="mt-2 pl-3 text-[11px] leading-relaxed text-zinc-600">
+                    アプリ右上の<strong className="font-semibold text-zinc-800">「サービス」</strong>
+                    →<strong className="font-semibold text-zinc-800">「契約情報」</strong>で、
+                    <strong className="text-[color:var(--joyfit-red)]">10桁の会員番号</strong>をご確認ください。
                   </p>
-                  <div className="mt-2 rounded-xl bg-orange-50 p-2">
-                    <div className="grid grid-cols-2 gap-2">
-                    <figure className="overflow-hidden rounded-xl bg-orange-50 shadow-sm ring-1 ring-orange-200/70">
-                      <figcaption className="border-b border-orange-200/70 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
-                        01 入力画面
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3 pl-3">
+                    <figure className="overflow-hidden rounded-xl border border-zinc-200/90 bg-zinc-50/50 shadow-sm">
+                      <figcaption className="flex items-center gap-1.5 border-b border-zinc-100 bg-white px-2 py-1.5">
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[9px] font-bold text-white">
+                          01
+                        </span>
+                        <span className="text-[10px] font-semibold leading-tight text-zinc-700">「サービス」をタップ</span>
                       </figcaption>
-                      <div className="relative aspect-[9/16] w-full bg-orange-50">
+                      <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
                         <Image
-                          src="/joyfit-app-register-form.png"
-                          alt="アプリ登録の会員検索入力画面"
+                          src="/joyfit-app-member-1.png"
+                          alt="JOYFITアプリの右上「サービス」をタップする画面"
                           fill
-                          className="object-contain object-top"
+                          className="object-contain object-top p-1"
                           sizes="(max-width: 640px) 45vw, 200px"
                         />
                       </div>
                     </figure>
-                    <figure className="overflow-hidden rounded-xl bg-orange-50 shadow-sm ring-1 ring-orange-200/70">
-                      <figcaption className="border-b border-orange-200/70 bg-orange-100 px-2 py-1 text-[10px] font-semibold text-zinc-700">
-                        02 QR/アクティベート
+                    <figure className="overflow-hidden rounded-xl border border-zinc-200/90 bg-zinc-50/50 shadow-sm">
+                      <figcaption className="flex items-center gap-1.5 border-b border-zinc-100 bg-white px-2 py-1.5">
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[9px] font-bold text-white">
+                          02
+                        </span>
+                        <span className="text-[10px] font-semibold leading-tight text-zinc-700">「契約情報」で番号確認</span>
                       </figcaption>
-                      <div className="relative aspect-[9/16] w-full bg-orange-50">
+                      <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
                         <Image
-                          src="/joyfit-app-register-qr.png"
-                          alt="アプリ登録のQRコード表示画面"
+                          src="/joyfit-app-member-2.png"
+                          alt="契約情報画面で会員番号を確認する例"
                           fill
-                          className="object-contain object-top"
+                          className="object-contain object-top p-1"
                           sizes="(max-width: 640px) 45vw, 200px"
                         />
                       </div>
                     </figure>
+                  </div>
+                </section>
+
+                <section className="relative px-4 py-4">
+                  <div
+                    className="absolute left-0 top-4 h-[calc(100%-2rem)] w-1 rounded-full bg-orange-500/90"
+                    aria-hidden
+                  />
+                  <h3 className="pl-3 text-xs font-bold text-zinc-900">アプリ登録（未登録の方）</h3>
+                  <p className="mt-2 pl-3 text-[11px] leading-relaxed text-zinc-600">
+                    まだアプリをお持ちでない方は、下記から登録のうえ会員番号をご確認ください。
+                  </p>
+                  <div className="mt-3 space-y-3 pl-3">
+                    <a
+                      href="https://procedure.joyfit.jp/qrcode2/index.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-11 w-full items-center justify-center rounded-xl bg-orange-500 text-[12px] font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                    >
+                      アプリ登録ページを開く
+                    </a>
+                    <p className="text-[11px] leading-relaxed text-zinc-600">
+                      ① お名前・生年月日・電話番号を入力
+                      <br />
+                      ②{" "}
+                      <span className="font-semibold text-sky-700 underline decoration-sky-700/40 underline-offset-2">
+                        「アプリアクティベート」
+                      </span>
+                      をタップ
+                      <br />
+                      ③ OK表示で登録完了
+                    </p>
+                    <div className="rounded-xl border border-orange-200/60 bg-orange-50/40 p-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <figure className="overflow-hidden rounded-lg border border-orange-200/50 bg-white shadow-sm">
+                          <figcaption className="flex items-center gap-1.5 border-b border-orange-100 bg-orange-50/80 px-2 py-1.5">
+                            <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-orange-500 text-[9px] font-bold text-white">
+                              01
+                            </span>
+                            <span className="text-[10px] font-semibold text-zinc-700">入力画面</span>
+                          </figcaption>
+                          <div className="relative aspect-[9/16] w-full bg-white">
+                            <Image
+                              src="/joyfit-app-register-form.png"
+                              alt="アプリ登録の会員検索入力画面"
+                              fill
+                              className="object-contain object-top"
+                              sizes="(max-width: 640px) 45vw, 200px"
+                            />
+                          </div>
+                        </figure>
+                        <figure className="overflow-hidden rounded-lg border border-orange-200/50 bg-white shadow-sm">
+                          <figcaption className="flex items-center gap-1.5 border-b border-orange-100 bg-orange-50/80 px-2 py-1.5">
+                            <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-orange-500 text-[9px] font-bold text-white">
+                              02
+                            </span>
+                            <span className="text-[10px] font-semibold text-zinc-700">QR / アクティベート</span>
+                          </figcaption>
+                          <div className="relative aspect-[9/16] w-full bg-white">
+                            <Image
+                              src="/joyfit-app-register-qr.png"
+                              alt="アプリ登録のQRコード表示画面"
+                              fill
+                              className="object-contain object-top"
+                              sizes="(max-width: 640px) 45vw, 200px"
+                            />
+                          </div>
+                        </figure>
+                      </div>
                     </div>
                   </div>
-                  </div>
-                </div>
+                </section>
               </div>
             </div>
 
