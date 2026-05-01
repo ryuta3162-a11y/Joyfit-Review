@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 export function MemberPageShell({ children }: { children: ReactNode }) {
   return (
     <div className="joyfit-member-bg min-h-screen px-4 pb-10 pt-6 md:px-6 md:pt-8">
-      <div className="mx-auto w-full max-w-lg">{children}</div>
+      <div className="mx-auto w-full max-w-2xl">{children}</div>
     </div>
   );
 }
