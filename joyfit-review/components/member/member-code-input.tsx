@@ -31,11 +31,12 @@ export function MemberCodeInput({ value, onChange, invalid, id }: Props) {
     refs.current[i]?.select();
   };
 
-  const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
+  const handlePaste = (event: ClipboardEvent<HTMLInputElement | HTMLDivElement>) => {
     event.preventDefault();
     const pasted = event.clipboardData.getData("text");
-    applyDigits(pasted);
-    const nextFocus = Math.min(pasted.replace(/\D/g, "").length, LENGTH - 1);
+    const clean = pasted.replace(/\D/g, "").slice(0, LENGTH);
+    applyDigits(clean);
+    const nextFocus = clean.length >= LENGTH ? LENGTH - 1 : Math.max(0, clean.length - 1);
     requestAnimationFrame(() => focusAt(nextFocus));
   };
 
@@ -80,7 +81,9 @@ export function MemberCodeInput({ value, onChange, invalid, id }: Props) {
       id={id}
       role="group"
       aria-label="会員番号10桁"
-      className="grid grid-cols-10 gap-1.5 sm:gap-2"
+      tabIndex={0}
+      className="grid grid-cols-10 gap-1.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20 sm:gap-2"
+      onPaste={handlePaste}
     >
       {digits.map((digit, index) => (
         <input

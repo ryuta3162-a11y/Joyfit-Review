@@ -8,6 +8,7 @@ import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
+import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberCodeInput } from "@/components/member/member-code-input";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
@@ -304,41 +305,19 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     →<strong className="font-semibold text-zinc-800">「契約情報」</strong>で、
                     <strong className="text-[color:var(--joyfit-red)]">10桁の会員番号</strong>をご確認ください。
                   </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3 pl-3">
-                    <figure className="overflow-hidden rounded-xl border border-zinc-200/90 bg-zinc-50/50 shadow-sm">
-                      <figcaption className="flex items-center gap-1.5 border-b border-zinc-100 bg-white px-2 py-1.5">
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[9px] font-bold text-white">
-                          01
-                        </span>
-                        <span className="text-[10px] font-semibold leading-tight text-zinc-700">「サービス」をタップ</span>
-                      </figcaption>
-                      <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
-                        <Image
-                          src="/joyfit-app-member-1.png"
-                          alt="JOYFITアプリの右上「サービス」をタップする画面"
-                          fill
-                          className="object-contain object-top p-1"
-                          sizes="(max-width: 640px) 45vw, 200px"
-                        />
-                      </div>
-                    </figure>
-                    <figure className="overflow-hidden rounded-xl border border-zinc-200/90 bg-zinc-50/50 shadow-sm">
-                      <figcaption className="flex items-center gap-1.5 border-b border-zinc-100 bg-white px-2 py-1.5">
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[9px] font-bold text-white">
-                          02
-                        </span>
-                        <span className="text-[10px] font-semibold leading-tight text-zinc-700">「契約情報」で番号確認</span>
-                      </figcaption>
-                      <div className="relative aspect-[9/16] max-h-[220px] w-full bg-white">
-                        <Image
-                          src="/joyfit-app-member-2.png"
-                          alt="契約情報画面で会員番号を確認する例"
-                          fill
-                          className="object-contain object-top p-1"
-                          sizes="(max-width: 640px) 45vw, 200px"
-                        />
-                      </div>
-                    </figure>
+                  <div className="mt-3 grid grid-cols-2 items-stretch gap-2 sm:gap-3 pl-3">
+                    <AppGuideScreenshot
+                      step="01"
+                      caption="「サービス」をタップ"
+                      src="/joyfit-app-member-1.png"
+                      alt="JOYFITアプリの右上「サービス」をタップする画面"
+                    />
+                    <AppGuideScreenshot
+                      step="02"
+                      caption="「契約情報」で番号確認"
+                      src="/joyfit-app-member-2.png"
+                      alt="契約情報画面で会員番号を確認する例"
+                    />
                   </div>
                 </section>
 
@@ -372,41 +351,21 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                       ③ OK表示で登録完了
                     </p>
                     <div className="rounded-xl border border-orange-200/60 bg-orange-50/40 p-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <figure className="overflow-hidden rounded-lg border border-orange-200/50 bg-white shadow-sm">
-                          <figcaption className="flex items-center gap-1.5 border-b border-orange-100 bg-orange-50/80 px-2 py-1.5">
-                            <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-orange-500 text-[9px] font-bold text-white">
-                              01
-                            </span>
-                            <span className="text-[10px] font-semibold text-zinc-700">入力画面</span>
-                          </figcaption>
-                          <div className="relative aspect-[9/16] w-full bg-white">
-                            <Image
-                              src="/joyfit-app-register-form.png"
-                              alt="アプリ登録の会員検索入力画面"
-                              fill
-                              className="object-contain object-top"
-                              sizes="(max-width: 640px) 45vw, 200px"
-                            />
-                          </div>
-                        </figure>
-                        <figure className="overflow-hidden rounded-lg border border-orange-200/50 bg-white shadow-sm">
-                          <figcaption className="flex items-center gap-1.5 border-b border-orange-100 bg-orange-50/80 px-2 py-1.5">
-                            <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-orange-500 text-[9px] font-bold text-white">
-                              02
-                            </span>
-                            <span className="text-[10px] font-semibold text-zinc-700">QR / アクティベート</span>
-                          </figcaption>
-                          <div className="relative aspect-[9/16] w-full bg-white">
-                            <Image
-                              src="/joyfit-app-register-qr.png"
-                              alt="アプリ登録のQRコード表示画面"
-                              fill
-                              className="object-contain object-top"
-                              sizes="(max-width: 640px) 45vw, 200px"
-                            />
-                          </div>
-                        </figure>
+                      <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3">
+                        <AppGuideScreenshot
+                          step="01"
+                          caption="入力画面"
+                          src="/joyfit-app-register-form.png"
+                          alt="アプリ登録の会員検索入力画面"
+                          variant="orange"
+                        />
+                        <AppGuideScreenshot
+                          step="02"
+                          caption="QR / アクティベート"
+                          src="/joyfit-app-register-qr.png"
+                          alt="アプリ登録のQRコード表示画面"
+                          variant="orange"
+                        />
                       </div>
                     </div>
                   </div>
@@ -419,7 +378,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             required
             hint={
               <>
-                アプリ右上の「サービス」→「契約情報」から確認し、コピー＆ペーストできます。
+                アプリ右上の「サービス」→「契約情報」から10桁をコピーし、どのマスにでも貼り付けできます（ハイフン・スペースは自動で除かれます）。
               </>
             }
             error={
