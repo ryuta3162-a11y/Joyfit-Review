@@ -8,6 +8,12 @@ import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
+import { MemberCodeInput } from "@/components/member/member-code-input";
+import { MemberFormField } from "@/components/member/member-form-field";
+import {
+  memberFormInputClass,
+  memberFormLabelClass,
+} from "@/components/member/member-form-styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
@@ -94,11 +100,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
-  const fieldClass =
-    "h-11 rounded-xl border-zinc-300 bg-white shadow-sm focus-visible:border-[color:var(--joyfit-red)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20";
   const areaClass =
-    "rounded-xl border-zinc-300 bg-white shadow-sm focus-visible:border-[color:var(--joyfit-red)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20";
-  const labelClass = "mb-1.5 text-[13px] font-semibold tracking-tight text-zinc-700";
+    "min-h-16 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-base shadow-sm outline-none transition placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20";
 
   function selectRating(value: number) {
     setRating(value);
@@ -278,14 +281,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       </div>
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
-        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="space-y-5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-zinc-900">会員情報の入力</p>
-          <div>
-            <p className={labelClass}>名前（フルネーム）*</p>
-            <Input className={fieldClass} value={fullName} onChange={(event) => setFullName(event.target.value)} />
-          </div>
-          <div className="space-y-3">
-            <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-100">
+
+          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
               <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-3">
                 <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
                   JOYFIT APP
@@ -415,35 +414,41 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm">
-              <p className="mb-1.5 text-[13px] font-semibold tracking-tight text-zinc-900">
-                会員番号（10桁・必須）*
-              </p>
-              <Input
-                className="h-12 rounded-xl border-zinc-300 bg-white px-3 text-center font-mono text-[17px] font-semibold tabular-nums tracking-[0.18em] text-zinc-900 shadow-inner placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)]/50 focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20 sm:text-[18px] sm:tracking-[0.22em]"
-                value={memberCode}
-                inputMode="numeric"
-                maxLength={10}
-                placeholder="0000000000"
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(event) =>
-                  setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
-                }
-                aria-invalid={memberCode.length > 0 && !memberCodeOk}
-              />
-              <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
-                アプリ右上の「サービス」→「契約情報」
-                <br />
-                10桁の会員番号をコピペ下さい。
-              </p>
-              {memberCode.trim().length > 0 && memberCode.trim().length < 10 ? (
-                <p className="mt-2 text-[11px] font-medium text-[color:var(--joyfit-red)]">10桁そろうまで入力してください。</p>
-              ) : null}
-            </div>
-          </div>
+          <MemberFormField
+            label="会員番号（10桁）"
+            required
+            hint={
+              <>
+                アプリ右上の「サービス」→「契約情報」から確認し、コピー＆ペーストできます。
+              </>
+            }
+            error={
+              memberCode.length > 0 && !memberCodeOk
+                ? "10桁そろうまで入力してください。"
+                : null
+            }
+          >
+            <MemberCodeInput
+              value={memberCode}
+              onChange={setMemberCode}
+              invalid={memberCode.length > 0 && !memberCodeOk}
+            />
+          </MemberFormField>
+
+          <MemberFormField label="名前（フルネーム）" required>
+            <Input
+              className={memberFormInputClass}
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="山田 太郎"
+              autoComplete="name"
+            />
+          </MemberFormField>
+
           <div>
-            <p className={labelClass}>性別*</p>
+            <p className={memberFormLabelClass}>
+              性別<span className="text-[color:var(--joyfit-red)]"> *</span>
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {genderOptions.map((item) => (
                 <button
@@ -461,32 +466,31 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               ))}
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <p className={labelClass}>年齢*</p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <MemberFormField label="年齢" required>
               <select
                 value={ageRange}
                 onChange={(event) => setAgeRange(event.target.value)}
-                className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm shadow-sm outline-none focus:border-[color:var(--joyfit-red)] focus:ring-2 focus:ring-[color:var(--joyfit-red)]/20"
+                className={memberFormInputClass}
               >
-                <option value="">- 年齢を選択してください -</option>
+                <option value="">年齢を選択</option>
                 {ageOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <p className={labelClass}>メールアドレス*</p>
+            </MemberFormField>
+            <MemberFormField label="メールアドレス" required>
               <Input
                 type="email"
-                className={fieldClass}
+                className={memberFormInputClass}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="sample@example.com"
+                autoComplete="email"
               />
-            </div>
+            </MemberFormField>
           </div>
         </div>
 
