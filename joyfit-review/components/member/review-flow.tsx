@@ -212,10 +212,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     const subject = `【${storeName}】お客様のお声`;
     const body = [
       `店舗名: ${storeName}`,
-      `評価: 星${rating ?? ""}`,
-      `氏名: ${fullName.trim()}`,
-      `会員番号: ${memberCode.trim()}`,
-      `メールアドレス: ${email.trim()}`,
       "",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━",
       "▼ この枠内にお問い合わせ内容をご記入ください ▼",
@@ -376,11 +372,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           <MemberFormField
             label="会員番号（10桁）"
             required
-            hint={
-              <>
-                アプリ右上の「サービス」→「契約情報」から10桁をコピーし、どのマスにでも貼り付けできます（ハイフン・スペースは自動で除かれます）。
-              </>
-            }
+            hint="アプリ右上の「サービス」→「契約情報」から10桁をコピーし貼り付けてください。"
             error={
               memberCode.length > 0 && !memberCodeOk
                 ? "10桁そろうまで入力してください。"
