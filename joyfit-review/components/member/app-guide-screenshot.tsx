@@ -19,8 +19,8 @@ export function AppGuideScreenshot({ step, caption, src, alt, variant = "neutral
   return (
     <figure
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm",
-        isOrange ? "border-orange-200/60" : "border-zinc-200/90",
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-white shadow-[0_1px_4px_rgba(24,24,27,0.05)]",
+        isOrange ? "border-orange-200/50" : "border-zinc-100/90",
       )}
     >
       <figcaption

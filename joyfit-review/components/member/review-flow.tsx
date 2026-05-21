@@ -9,11 +9,17 @@ import { Mail, Star } from "lucide-react";
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
-import { MemberCodeInput } from "@/components/member/member-code-input";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
+  memberFormCardClass,
+  memberFormChoiceClass,
+  memberFormGuideCardClass,
   memberFormInputClass,
   memberFormLabelClass,
+  memberFormPanelClass,
+  memberFormSectionTitleClass,
+  memberFormTagClass,
+  memberFormTextareaClass,
 } from "@/components/member/member-form-styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,8 +107,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
-  const areaClass =
-    "min-h-16 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-base shadow-sm outline-none transition placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/20";
 
   function selectRating(value: number) {
     setRating(value);
@@ -249,7 +253,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
   if (sent) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className={memberFormCardClass}>
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
           <p className="text-4xl">🙏</p>
           <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
@@ -262,7 +266,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   return (
-    <div className={`${notoSansJp.className} overflow-hidden rounded-2xl border border-zinc-200 bg-white text-foreground shadow-sm`}>
+    <div className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}>
       <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
           href="/select-store"
@@ -278,10 +282,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       </div>
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
-        <div className="space-y-5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-zinc-900">会員情報の入力</p>
+        <div className={`space-y-5 ${memberFormPanelClass}`}>
+          <p className={memberFormSectionTitleClass}>会員情報の入力</p>
 
-          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <div className={memberFormGuideCardClass}>
               <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-3">
                 <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
                   JOYFIT APP
@@ -372,17 +376,24 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           <MemberFormField
             label="会員番号（10桁）"
             required
-            hint="アプリ右上の「サービス」→「契約情報」から10桁をコピーし貼り付けてください。"
             error={
               memberCode.length > 0 && !memberCodeOk
                 ? "10桁そろうまで入力してください。"
                 : null
             }
           >
-            <MemberCodeInput
+            <Input
+              className={memberFormInputClass}
               value={memberCode}
-              onChange={setMemberCode}
-              invalid={memberCode.length > 0 && !memberCodeOk}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="10桁の会員番号"
+              autoComplete="off"
+              spellCheck={false}
+              aria-invalid={memberCode.length > 0 && !memberCodeOk}
+              onChange={(event) =>
+                setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
+              }
             />
           </MemberFormField>
 
@@ -406,11 +417,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   key={item}
                   type="button"
                   onClick={() => setGender(item)}
-                  className={`rounded-xl border-2 px-3 py-2 text-xs font-semibold transition ${
-                    gender === item
-                      ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white"
-                      : "border-zinc-200 bg-zinc-50 text-foreground hover:border-zinc-300"
-                  }`}
+                  className={memberFormChoiceClass(gender === item)}
                 >
                   {item}
                 </button>
@@ -445,8 +452,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm font-semibold text-zinc-900">口コミ評価（星をタップ）</p>
+        <div className={memberFormPanelClass}>
+          <p className={`mb-3 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
               <button
@@ -470,8 +477,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         </div>
 
         {canBuildGoogleDraft && (
-          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/90 p-5 shadow-sm">
-            <p className="text-sm font-semibold text-foreground">よかった点を教えてください（複数選択可）</p>
+          <div className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white`}>
+            <p className={memberFormSectionTitleClass}>よかった点を教えてください（複数選択可）</p>
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 1. メニュー・サービスで良かった点
@@ -482,11 +489,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     key={point}
                     type="button"
                     onClick={() => toggleList(point, setMenuPoints)}
-                    className={`rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition ${
-                      menuPoints.includes(point)
-                        ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
-                        : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
-                    }`}
+                    className={memberFormTagClass(menuPoints.includes(point))}
                   >
                     {point}
                   </button>
@@ -501,11 +504,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     key={point}
                     type="button"
                     onClick={() => toggleList(point, setEnvPoints)}
-                    className={`rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition ${
-                      envPoints.includes(point)
-                        ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
-                        : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
-                    }`}
+                    className={memberFormTagClass(envPoints.includes(point))}
                   >
                     {point}
                   </button>
@@ -522,11 +521,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     key={scene}
                     type="button"
                     onClick={() => toggleScene(scene)}
-                    className={`rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition ${
-                      scenes.includes(scene)
-                        ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-sm"
-                        : "border-zinc-200 bg-white text-foreground shadow-sm ring-1 ring-zinc-100 hover:border-zinc-300"
-                    }`}
+                    className={memberFormTagClass(scenes.includes(scene))}
                   >
                     {scene}
                   </button>
@@ -544,7 +539,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 onChange={(event) => setFeedback(event.target.value)}
                 placeholder=""
                 rows={4}
-                className={areaClass}
+                className={memberFormTextareaClass}
               />
             </div>
 
@@ -562,7 +557,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         )}
 
         {isLowSelected && (
-          <div className="space-y-4 rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4 md:p-5">
+          <div className="space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6">
             <p className="text-sm font-medium text-foreground">
               サービス向上のため、店舗スタッフへ直接お問い合わせください。
             </p>
@@ -590,7 +585,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {draft && isHigh && (
           <div className="space-y-5">
-            <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm md:p-6">
+            <section className={memberFormPanelClass}>
               <div className="flex flex-col items-center gap-1 text-center">
                 <Image
                   src="/google-logo.png"
@@ -627,7 +622,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 rows={7}
-                className="mt-3 w-full rounded-xl border-zinc-200 bg-zinc-50/50 px-3 py-3 text-base leading-[1.75] text-zinc-900 placeholder:text-zinc-400 focus-visible:border-[color:var(--joyfit-red)]/50 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/15"
+                className={`mt-3 ${memberFormTextareaClass} leading-[1.75]`}
               />
             </section>
 

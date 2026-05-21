@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Search, Store } from "lucide-react";
 
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
+import { memberFormCardClass, memberFormInputClass } from "@/components/member/member-form-styles";
 import { Input } from "@/components/ui/input";
 import type { StoreMasterRow } from "@/lib/store-master";
 import { REVIEW_GEO_MAX_AGE_MS, REVIEW_GEO_STORAGE_KEY } from "@/lib/review-geo-storage";
@@ -154,7 +155,7 @@ export function StorePicker({ stores }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className={memberFormCardClass}>
         <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white">
           <Link
             href="/"
@@ -179,7 +180,7 @@ export function StorePicker({ stores }: Props) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="店舗名を検索"
-                className="h-12 rounded-xl border-zinc-200 bg-zinc-50 pl-10 text-base shadow-inner focus-visible:border-[color:var(--joyfit-red)]/40"
+                className={`${memberFormInputClass} h-12 pl-10`}
               />
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">

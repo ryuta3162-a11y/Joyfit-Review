@@ -3,12 +3,13 @@ import { Gift, MapPin } from "lucide-react";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { StartReviewCta } from "@/components/member/start-review-cta";
+import { memberFormCardClass } from "@/components/member/member-form-styles";
 import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
 
 export default function Home() {
   return (
     <MemberPageShell>
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className={memberFormCardClass}>
         <div className="joyfit-brand-header px-6 pb-8 pt-8 text-center text-white">
           <JoyfitHeaderLogo className="mb-1" />
           <h1 className="mt-4 text-2xl font-bold tracking-tight md:text-[1.65rem]">口コミサポート</h1>
