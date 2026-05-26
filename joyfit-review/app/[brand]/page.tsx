@@ -20,6 +20,27 @@ export default async function BrandHomePage({ params }: Props) {
   const theme = BRAND_THEMES[brand];
   const brandVars = brandCssVars(theme);
   const hasMascot = Boolean(theme.mascotSrc);
+  const isFit365 = brand === "fit365";
+
+  // FIT365: ピンク × グレー × 黒 × 白 の 4 色構成。
+  // JOYFIT: 既存のレッド系をそのまま踏襲。
+  const stepBadgeClass = isFit365
+    ? "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white"
+    : "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]";
+
+  const locationCardClass = isFit365
+    ? "rounded-2xl border border-zinc-900/15 bg-zinc-50 px-4 py-3 text-center shadow-sm"
+    : "rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white px-4 py-3 text-center shadow-sm";
+
+  const locationBadgeClass = isFit365
+    ? "inline-flex items-center rounded-full bg-[color:var(--joyfit-red)] px-3 py-1 text-[11px] font-semibold text-white"
+    : "inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)] ring-1 ring-[color:var(--joyfit-red)]/20";
+
+  const locationTitleClass = isFit365
+    ? "mt-2 text-lg font-extrabold tracking-tight text-zinc-900 md:text-xl"
+    : "mt-2 text-lg font-extrabold tracking-tight text-[color:var(--joyfit-red)] md:text-xl";
+
+  const stepTextClass = isFit365 ? "text-zinc-900" : "text-muted-foreground";
 
   return (
     <MemberPageShell>
@@ -32,18 +53,18 @@ export default async function BrandHomePage({ params }: Props) {
               width={723}
               height={210}
               priority
-              className="h-16 w-auto object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+              className="h-20 w-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.18)]"
             />
           </div>
         ) : null}
         <div
           data-brand={brand}
-          className={`${memberFormCardClass} ${hasMascot ? "mt-8" : ""}`}
+          className={`${memberFormCardClass} ${hasMascot ? "mt-14" : ""}`}
           style={brandVars}
         >
           <div
             className={`joyfit-brand-header px-6 pb-9 text-center text-white ${
-              hasMascot ? "pt-12 md:pt-14" : "pt-8 md:pt-10"
+              hasMascot ? "pt-10 md:pt-12" : "pt-8 md:pt-10"
             }`}
           >
             <JoyfitHeaderLogo brand={brand} />
@@ -54,7 +75,7 @@ export default async function BrandHomePage({ params }: Props) {
               アンケート・クチコミにご協力ください。
             </p>
             <div className="relative z-[1] mt-6 flex justify-center">
-              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-1.5 text-[11px] font-medium text-white">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
                 <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
                 <span className="leading-tight">{theme.rewardLabel}</span>
               </div>
@@ -62,35 +83,27 @@ export default async function BrandHomePage({ params }: Props) {
           </div>
 
           <div className="space-y-5 px-6 py-8">
-            <ul className="space-y-3 text-sm text-muted-foreground">
+            <ul className={`space-y-3 text-sm ${stepTextClass}`}>
               <li className="flex gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                  1
-                </span>
+                <span className={stepBadgeClass}>1</span>
                 <span>店舗を検索して選択</span>
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                  2
-                </span>
+                <span className={stepBadgeClass}>2</span>
                 <span>アンケートに回答（評価とよかった点をタップ）</span>
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                  3
-                </span>
+                <span className={stepBadgeClass}>3</span>
                 <span>必要に応じてGoogleクチコミ投稿へ</span>
               </li>
             </ul>
 
-            <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white px-4 py-3 text-center shadow-sm">
-              <p className="inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)] ring-1 ring-[color:var(--joyfit-red)]/20">
+            <div className={locationCardClass}>
+              <p className={locationBadgeClass}>
                 <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
                 LOCATION
               </p>
-              <p className="mt-2 text-lg font-extrabold tracking-tight text-[color:var(--joyfit-red)] md:text-xl">
-                位置情報の許可が必要です
-              </p>
+              <p className={locationTitleClass}>位置情報の許可が必要です</p>
             </div>
 
             <StartReviewCta brand={brand} />

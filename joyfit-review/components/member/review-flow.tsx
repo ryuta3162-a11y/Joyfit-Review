@@ -279,20 +279,20 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             width={723}
             height={210}
             priority
-            className="h-16 w-auto object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+            className="h-20 w-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.18)]"
           />
         </div>
       ) : null}
       <div
         data-brand={brandTheme.brand}
         className={`${notoSansJp.className} ${memberFormCardClass} text-foreground ${
-          hasMascot ? "mt-8" : ""
+          hasMascot ? "mt-14" : ""
         }`}
         style={brandVars}
       >
         <div
           className={`joyfit-brand-header px-5 pb-7 text-center text-white md:px-6 ${
-            hasMascot ? "pt-12 md:pt-14" : "pt-6 md:pt-8"
+            hasMascot ? "pt-10 md:pt-12" : "pt-6 md:pt-8"
           }`}
         >
           <Link

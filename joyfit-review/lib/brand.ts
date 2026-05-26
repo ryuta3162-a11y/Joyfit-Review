@@ -41,8 +41,8 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
   },
   fit365: {
     brand: "fit365",
-    primary: "#e85a86",
-    primaryDark: "#c4406b",
+    primary: "#f29bb4",
+    primaryDark: "#d97b9d",
     primarySoft: "#f29bb4",
     label: "FIT365",
     fullLabel: "FIT365 24時間ジム",

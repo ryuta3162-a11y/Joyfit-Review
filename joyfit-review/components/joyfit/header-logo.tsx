@@ -13,9 +13,8 @@ export function JoyfitHeaderLogo({ className, brand = "joyfit" }: Props) {
   if (brand === "fit365") {
     return (
       <div className={`relative z-[1] flex justify-center ${className ?? ""}`}>
-        <span className="inline-flex items-end gap-1 rounded-2xl bg-white/95 px-5 py-2 text-[1.6rem] font-extrabold leading-none tracking-tight text-[color:var(--joyfit-red)] shadow-[0_4px_14px_rgba(0,0,0,0.12)]">
-          <span>FIT</span>
-          <span className="text-[1.85rem] leading-none">365</span>
+        <span className="inline-flex items-center rounded-xl bg-white px-5 py-2 text-[1.55rem] font-black leading-none tracking-[-0.01em] text-zinc-900 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+          FIT365
         </span>
       </div>
     );

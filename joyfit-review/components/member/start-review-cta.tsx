@@ -58,7 +58,11 @@ export function StartReviewCta({ brand }: Props) {
       <Button
         type="button"
         size="lg"
-        className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] !text-white hover:bg-[color:var(--joyfit-red-dark)]"
+        className={
+          brand === "fit365"
+            ? "h-12 w-full rounded-xl border-0 bg-zinc-900 !text-white hover:bg-zinc-800"
+            : "h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] !text-white hover:bg-[color:var(--joyfit-red-dark)]"
+        }
         onClick={start}
         disabled={busy}
       >

@@ -48,13 +48,10 @@ export default function BrandSelectorPage() {
                 className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
               >
                 <div
-                  className="relative flex items-center gap-4 px-5 py-5 text-white"
-                  style={{
-                    background:
-                      brand === "fit365"
-                        ? `linear-gradient(120deg, ${theme.primarySoft} 0%, ${theme.primary} 80%)`
-                        : theme.primary,
-                  }}
+                  className={`relative flex items-center gap-4 px-5 py-5 ${
+                    brand === "fit365" ? "text-zinc-900" : "text-white"
+                  }`}
+                  style={{ background: theme.primary }}
                 >
                   {brand === "fit365" ? (
                     <div className="relative h-16 w-24 shrink-0">
@@ -79,18 +76,30 @@ export default function BrandSelectorPage() {
                   )}
 
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="text-[11px] font-semibold tracking-[0.18em] text-white/80">
+                    <p
+                      className={`text-[11px] font-semibold tracking-[0.18em] ${
+                        brand === "fit365" ? "text-zinc-900/70" : "text-white/80"
+                      }`}
+                    >
                       {theme.fullLabel}
                     </p>
                     <p className="mt-0.5 text-base font-bold leading-snug">
                       アンケートに進む
                     </p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-white/85">
+                    <p
+                      className={`mt-1 text-[11px] leading-relaxed ${
+                        brand === "fit365" ? "text-zinc-900/75" : "text-white/85"
+                      }`}
+                    >
                       {description}
                     </p>
                   </div>
 
-                  <ArrowRight className="h-5 w-5 shrink-0 text-white/85 transition group-hover:translate-x-0.5" />
+                  <ArrowRight
+                    className={`h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 ${
+                      brand === "fit365" ? "text-zinc-900/70" : "text-white/85"
+                    }`}
+                  />
                 </div>
               </Link>
             );
