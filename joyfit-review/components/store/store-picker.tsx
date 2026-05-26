@@ -7,11 +7,13 @@ import { ChevronRight, Search, Store } from "lucide-react";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { memberFormCardClass, memberFormInputClass } from "@/components/member/member-form-styles";
 import { Input } from "@/components/ui/input";
+import { BRAND_THEMES, brandCssVars, type Brand } from "@/lib/brand";
 import type { StoreMasterRow } from "@/lib/store-master";
 import { REVIEW_GEO_MAX_AGE_MS, REVIEW_GEO_STORAGE_KEY } from "@/lib/review-geo-storage";
 
 type Props = {
   stores: StoreMasterRow[];
+  brand: Brand;
 };
 
 type StoreWithDistance = {
@@ -50,7 +52,10 @@ function storeSubtitle(store: StoreMasterRow) {
 
 type GeoPhase = "loading" | "ok" | "blocked" | "unsupported";
 
-export function StorePicker({ stores }: Props) {
+export function StorePicker({ stores, brand }: Props) {
+  const theme = BRAND_THEMES[brand];
+  const brandVars = useMemo(() => brandCssVars(theme), [theme]);
+  const memberHref = (storeId: string) => `/${brand}/member/${storeId}`;
   const [query, setQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [geoPhase, setGeoPhase] = useState<GeoPhase>("loading");
@@ -154,18 +159,21 @@ export function StorePicker({ stores }: Props) {
   const showStoreUi = geoPhase === "ok" && userLocation !== null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-brand={brand} style={brandVars}>
       <div className={memberFormCardClass}>
         <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white">
           <Link
-            href="/"
+            href={`/${brand}`}
             className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
           >
             ← トップに戻る
           </Link>
-          <JoyfitHeaderLogo className="mb-1" />
-          <h1 className="mt-3 text-lg font-bold leading-snug md:text-xl">
-            口コミを投稿する店舗を
+          <JoyfitHeaderLogo className="mb-1" brand={brand} />
+          <p className="relative z-[1] mt-3 text-[11px] font-semibold tracking-[0.2em] text-white/85">
+            {theme.fullLabel}
+          </p>
+          <h1 className="relative z-[1] mt-2 text-lg font-bold leading-snug md:text-xl">
+            アンケート対象店舗を
             <br />
             選択してください
           </h1>
@@ -202,7 +210,7 @@ export function StorePicker({ stores }: Props) {
                   位置情報が許可されていないため、店舗を表示できません。
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  口コミサポートをご利用になるには、ブラウザで当サイトへの位置情報の許可が必要です。
+                  ご利用には、ブラウザで当サイトへの位置情報の許可が必要です。
                 </p>
                 <button
                   type="button"
@@ -212,7 +220,7 @@ export function StorePicker({ stores }: Props) {
                   許可を確認して再試行
                 </button>
                 <Link
-                  href="/"
+                  href={`/${brand}`}
                   className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
                 >
                   トップに戻る
@@ -228,7 +236,7 @@ export function StorePicker({ stores }: Props) {
                   スマートフォンのブラウザなど、位置情報に対応した端末からお試しください。
                 </p>
                 <Link
-                  href="/"
+                  href={`/${brand}`}
                   className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
                 >
                   トップに戻る
@@ -246,10 +254,10 @@ export function StorePicker({ stores }: Props) {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
-              href={`/member/${nearestStore.store.id}`}
+              href={memberHref(nearestStore.store.id)}
               className="inline-flex items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
             >
-              口コミ投稿する
+              アンケートに進む
             </Link>
             <button
               type="button"
@@ -274,7 +282,7 @@ export function StorePicker({ stores }: Props) {
             filteredAndSorted.map(({ store }) => (
               <li key={store.id}>
                 <Link
-                  href={`/member/${store.id}`}
+                  href={memberHref(store.id)}
                   className="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-[color:var(--joyfit-red)]/40"
                 >
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)]/16">

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "口コミサポート | JOYFIT24",
-  description: "店舗の口コミ投稿のご案内",
+  title: "アンケートページ | JOYFIT / FIT365",
+  description: "JOYFIT / FIT365 各店舗のアンケート・クチコミご協力ページです。",
 };
 
 export default function RootLayout({

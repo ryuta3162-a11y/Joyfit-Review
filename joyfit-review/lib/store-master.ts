@@ -22,6 +22,13 @@ export const STORES_FALLBACK: StoreMasterRow[] = [
     googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
     feedbackEmail: "",
   },
+  {
+    id: "kofu",
+    name: "FIT365甲府",
+    searchText: "甲府 こうふ コウフ kofu fit365 フィット365",
+    googleReviewUrl: "https://g.page/r/CZJF9V5CGMtgEBM/review",
+    feedbackEmail: "",
+  },
 ];
 
 export const STORE_MASTER_SHEET_URL =

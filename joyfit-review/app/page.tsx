@@ -1,62 +1,104 @@
-import { Gift, MapPin } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
-import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
-import { StartReviewCta } from "@/components/member/start-review-cta";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
-import { ENJOY_POINT_REWARD_LABEL } from "@/lib/member-reward-copy";
+import { BRAND_THEMES } from "@/lib/brand";
 
-export default function Home() {
+const cards: Array<{
+  brand: "joyfit" | "fit365";
+  description: string;
+}> = [
+  {
+    brand: "joyfit",
+    description: "JOYFIT24・JOYFIT24ジムLITE 各店舗のアンケート",
+  },
+  {
+    brand: "fit365",
+    description: "FIT365 各店舗のアンケート",
+  },
+];
+
+export default function BrandSelectorPage() {
   return (
     <MemberPageShell>
       <div className={memberFormCardClass}>
-        <div className="joyfit-brand-header px-6 pb-8 pt-8 text-center text-white">
-          <JoyfitHeaderLogo className="mb-1" />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight md:text-[1.65rem]">口コミサポート</h1>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
-            店舗を選び、Googleマップの口コミ投稿へ案内します。
+        <div className="bg-zinc-50/60 px-6 pb-6 pt-7 text-center">
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">
+            JOYFIT / FIT365
           </p>
-          <div className="mt-5 flex justify-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1.5 text-xs font-medium text-white">
-              <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
-              特典：{ENJOY_POINT_REWARD_LABEL}
-            </div>
-          </div>
+          <h1 className="mt-2 text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
+            アンケートページ
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-zinc-600">
+            ご利用ブランドを選択してください。
+            <br />
+            アンケート・クチコミにご協力ください。
+          </p>
         </div>
 
-        <div className="space-y-5 px-6 py-8">
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            <li className="flex gap-2">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                1
-              </span>
-              <span>店舗を検索して選択</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                2
-              </span>
-              <span>口コミ評価とよかった点をタップ</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                3
-              </span>
-              <span>文章をコピーしてGoogleに貼り付け</span>
-            </li>
-          </ul>
+        <div className="space-y-3 px-5 pb-7 pt-1 md:px-6">
+          {cards.map(({ brand, description }) => {
+            const theme = BRAND_THEMES[brand];
+            return (
+              <Link
+                key={brand}
+                href={`/${brand}`}
+                className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
+              >
+                <div
+                  className="relative flex items-center gap-4 px-5 py-5 text-white"
+                  style={{
+                    background:
+                      brand === "fit365"
+                        ? `linear-gradient(120deg, ${theme.primarySoft} 0%, ${theme.primary} 80%)`
+                        : theme.primary,
+                  }}
+                >
+                  {brand === "fit365" ? (
+                    <div className="relative h-16 w-24 shrink-0">
+                      <Image
+                        src="/fit365-bears.png"
+                        alt="FIT365 ベアクマ"
+                        fill
+                        sizes="96px"
+                        className="object-contain object-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative h-12 w-24 shrink-0">
+                      <Image
+                        src="/joyfit-logo.png"
+                        alt="JOYFIT24"
+                        fill
+                        sizes="96px"
+                        className="object-contain object-left"
+                      />
+                    </div>
+                  )}
 
-          <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white px-4 py-3 text-center shadow-sm">
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)] ring-1 ring-[color:var(--joyfit-red)]/20">
-              <MapPin className="h-3.5 w-3.5" aria-hidden />
-              LOCATION
-            </p>
-            <p className="mt-2 text-lg font-extrabold tracking-tight text-[color:var(--joyfit-red)] md:text-xl">
-              位置情報の許可が必要です
-            </p>
-          </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-[11px] font-semibold tracking-[0.18em] text-white/80">
+                      {theme.fullLabel}
+                    </p>
+                    <p className="mt-0.5 text-base font-bold leading-snug">
+                      アンケートに進む
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-white/85">
+                      {description}
+                    </p>
+                  </div>
 
-          <StartReviewCta />
+                  <ArrowRight className="h-5 w-5 shrink-0 text-white/85 transition group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+            );
+          })}
+
+          <p className="mt-2 px-1 text-[11px] leading-relaxed text-zinc-500">
+            ※ 店舗の QR コードからご利用の場合は、自動でブランド別ページに移動します。
+          </p>
         </div>
       </div>
     </MemberPageShell>

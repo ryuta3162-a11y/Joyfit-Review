@@ -1,11 +1,25 @@
 import Image from "next/image";
 
+import type { Brand } from "@/lib/brand";
+
 type Props = {
   /** ヘッダー内の余白に合わせて調整 */
   className?: string;
+  /** 店舗ブランドに応じてロゴを切り替え（FIT365 はテキストロゴで代替） */
+  brand?: Brand;
 };
 
-export function JoyfitHeaderLogo({ className }: Props) {
+export function JoyfitHeaderLogo({ className, brand = "joyfit" }: Props) {
+  if (brand === "fit365") {
+    return (
+      <div className={`relative z-[1] flex justify-center ${className ?? ""}`}>
+        <span className="inline-flex items-end gap-1 rounded-2xl bg-white/95 px-5 py-2 text-[1.6rem] font-extrabold leading-none tracking-tight text-[color:var(--joyfit-red)] shadow-[0_4px_14px_rgba(0,0,0,0.12)]">
+          <span>FIT</span>
+          <span className="text-[1.85rem] leading-none">365</span>
+        </span>
+      </div>
+    );
+  }
   return (
     <div className={`relative z-[1] flex justify-center ${className ?? ""}`}>
       <Image

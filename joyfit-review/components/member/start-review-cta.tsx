@@ -5,9 +5,14 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { Brand } from "@/lib/brand";
 import { REVIEW_GEO_STORAGE_KEY } from "@/lib/review-geo-storage";
 
-export function StartReviewCta() {
+type Props = {
+  brand: Brand;
+};
+
+export function StartReviewCta({ brand }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -31,12 +36,12 @@ export function StartReviewCta() {
             t: Date.now(),
           }),
         );
-        router.push("/select-store");
+        router.push(`/${brand}/select-store`);
       },
       () => {
         setBusy(false);
         setErr(
-          "口コミサポートのご利用には位置情報の許可が必要です。アドレスバー付近の鍵アイコン等から、当サイトへの位置情報の許可をオンにしてください。",
+          "ご利用には位置情報の許可が必要です。アドレスバー付近の鍵アイコン等から、当サイトへの位置情報の許可をオンにしてください。",
         );
       },
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 },

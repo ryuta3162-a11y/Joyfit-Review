@@ -1,0 +1,80 @@
+import type { CSSProperties } from "react";
+
+export type Brand = "joyfit" | "fit365";
+
+/** 店舗名からブランドを判定する */
+export function detectBrand(storeName: string): Brand {
+  return /^\s*fit365/i.test(storeName) ? "fit365" : "joyfit";
+}
+
+export type BrandTheme = {
+  brand: Brand;
+  /** ヘッダー帯やボタンに使う基調色 */
+  primary: string;
+  /** ホバー・濃色用 */
+  primaryDark: string;
+  /** ヘッダー背景の補色（グラデーション用） */
+  primarySoft: string;
+  /** ブランド表示名 */
+  label: string;
+  /** ブランドのフルネーム（タイトル等） */
+  fullLabel: string;
+  /** 特典で付与されるポイント名 */
+  rewardPointName: string;
+  /** バッジに表示する特典文言 */
+  rewardLabel: string;
+  /** 店舗ページ上部に表示するマスコット画像（任意） */
+  mascotSrc?: string;
+  mascotAlt?: string;
+};
+
+export const BRAND_THEMES: Record<Brand, BrandTheme> = {
+  joyfit: {
+    brand: "joyfit",
+    primary: "#a5354b",
+    primaryDark: "#862d3d",
+    primarySoft: "#bf4e64",
+    label: "JOYFIT24",
+    fullLabel: "JOYFIT24",
+    rewardPointName: "エンジョイポイント",
+    rewardLabel: "アンケート回答特典：エンジョイポイント500P付与",
+  },
+  fit365: {
+    brand: "fit365",
+    primary: "#e85a86",
+    primaryDark: "#c4406b",
+    primarySoft: "#f29bb4",
+    label: "FIT365",
+    fullLabel: "FIT365 24時間ジム",
+    rewardPointName: "ベアレージポイント",
+    rewardLabel: "アンケート回答特典：ベアレージポイント500P付与",
+    mascotSrc: "/fit365-bears.png",
+    mascotAlt: "FIT365 公式マスコット ベアクマ",
+  },
+};
+
+export function getBrandTheme(storeName: string): BrandTheme {
+  return BRAND_THEMES[detectBrand(storeName)];
+}
+
+export function isBrand(value: string | undefined | null): value is Brand {
+  return value === "joyfit" || value === "fit365";
+}
+
+/** URL パラメータからブランドを得る（不正値は null） */
+export function parseBrandParam(value: string | undefined | null): Brand | null {
+  return isBrand(value) ? value : null;
+}
+
+/** ページ全体に適用してブランドカラーを切り替えるための CSS 変数 */
+export function brandCssVars(theme: BrandTheme): CSSProperties {
+  return {
+    ["--joyfit-red" as string]: theme.primary,
+    ["--joyfit-red-dark" as string]: theme.primaryDark,
+    ["--brand-soft" as string]: theme.primarySoft,
+  } satisfies CSSProperties;
+}
+
+/** トップ・店舗選択など、店舗未確定のページで使う共通文言 */
+export const SHARED_REWARD_BADGE_LABEL =
+  "アンケート回答特典：エンジョイポイント / ベアレージポイント 500P付与";
