@@ -19,74 +19,82 @@ export default async function BrandHomePage({ params }: Props) {
 
   const theme = BRAND_THEMES[brand];
   const brandVars = brandCssVars(theme);
+  const hasMascot = Boolean(theme.mascotSrc);
 
   return (
     <MemberPageShell>
-      <div data-brand={brand} className={memberFormCardClass} style={brandVars}>
-        <div className="joyfit-brand-header px-6 pb-8 pt-8 text-center text-white">
-          {theme.mascotSrc ? (
-            <div className="pointer-events-none relative z-[1] -mx-6 -mt-8 mb-1 flex h-24 items-end justify-center md:h-28">
-              <Image
-                src={theme.mascotSrc}
-                alt={theme.mascotAlt ?? ""}
-                width={723}
-                height={210}
-                priority
-                className="h-full w-auto max-w-[min(100%,420px)] object-contain object-bottom drop-shadow-[0_3px_6px_rgba(0,0,0,0.18)]"
-              />
-            </div>
-          ) : null}
-          <JoyfitHeaderLogo className="mb-1" brand={brand} />
-          <p className="relative z-[1] mt-3 text-[11px] font-semibold tracking-[0.2em] text-white/85">
-            {theme.fullLabel}
-          </p>
-          <h1 className="relative z-[1] mt-1 text-2xl font-bold tracking-tight md:text-[1.65rem]">
-            アンケートページ
-          </h1>
-          <p className="relative z-[1] mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
-            アンケート・クチコミにご協力ください。
-          </p>
-          <div className="relative z-[1] mt-5 flex justify-center">
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/40 px-4 py-1.5 text-[11px] font-medium text-white">
-              <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
-              <span className="leading-tight">{theme.rewardLabel}</span>
+      <div className="relative">
+        {theme.mascotSrc ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
+            <Image
+              src={theme.mascotSrc}
+              alt={theme.mascotAlt ?? ""}
+              width={723}
+              height={210}
+              priority
+              className="h-16 w-auto object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+            />
+          </div>
+        ) : null}
+        <div
+          data-brand={brand}
+          className={`${memberFormCardClass} ${hasMascot ? "mt-8" : ""}`}
+          style={brandVars}
+        >
+          <div
+            className={`joyfit-brand-header px-6 pb-9 text-center text-white ${
+              hasMascot ? "pt-12 md:pt-14" : "pt-8 md:pt-10"
+            }`}
+          >
+            <JoyfitHeaderLogo brand={brand} />
+            <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
+              アンケートページ
+            </h1>
+            <p className="relative z-[1] mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
+              アンケート・クチコミにご協力ください。
+            </p>
+            <div className="relative z-[1] mt-6 flex justify-center">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-1.5 text-[11px] font-medium text-white">
+                <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                <span className="leading-tight">{theme.rewardLabel}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-5 px-6 py-8">
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            <li className="flex gap-2">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                1
-              </span>
-              <span>店舗を検索して選択</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                2
-              </span>
-              <span>アンケートに回答（評価とよかった点をタップ）</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
-                3
-              </span>
-              <span>必要に応じてGoogleクチコミ投稿へ</span>
-            </li>
-          </ul>
+          <div className="space-y-5 px-6 py-8">
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
+                  1
+                </span>
+                <span>店舗を検索して選択</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
+                  2
+                </span>
+                <span>アンケートに回答（評価とよかった点をタップ）</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)]/12 text-xs font-bold text-[color:var(--joyfit-red)]">
+                  3
+                </span>
+                <span>必要に応じてGoogleクチコミ投稿へ</span>
+              </li>
+            </ul>
 
-          <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white px-4 py-3 text-center shadow-sm">
-            <p className="inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)] ring-1 ring-[color:var(--joyfit-red)]/20">
-              <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
-              LOCATION
-            </p>
-            <p className="mt-2 text-lg font-extrabold tracking-tight text-[color:var(--joyfit-red)] md:text-xl">
-              位置情報の許可が必要です
-            </p>
+            <div className="rounded-2xl border border-[color:var(--joyfit-red)]/25 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white px-4 py-3 text-center shadow-sm">
+              <p className="inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[color:var(--joyfit-red)] ring-1 ring-[color:var(--joyfit-red)]/20">
+                <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
+                LOCATION
+              </p>
+              <p className="mt-2 text-lg font-extrabold tracking-tight text-[color:var(--joyfit-red)] md:text-xl">
+                位置情報の許可が必要です
+              </p>
+            </div>
+
+            <StartReviewCta brand={brand} />
           </div>
-
-          <StartReviewCta brand={brand} />
         </div>
       </div>
     </MemberPageShell>

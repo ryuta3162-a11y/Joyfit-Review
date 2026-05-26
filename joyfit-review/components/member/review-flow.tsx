@@ -267,40 +267,46 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     );
   }
 
+  const hasMascot = Boolean(brandTheme.mascotSrc);
+
   return (
-    <div
-      data-brand={brandTheme.brand}
-      className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
-      style={brandVars}
-    >
-      <div className="joyfit-brand-header px-5 pb-6 pt-6 text-center text-white md:px-6 md:pt-8">
-        {brandTheme.mascotSrc ? (
-          <div className="pointer-events-none relative z-[1] -mx-5 -mt-6 mb-1 flex h-20 items-end justify-center md:-mx-6 md:-mt-8 md:h-24">
-            <Image
-              src={brandTheme.mascotSrc}
-              alt={brandTheme.mascotAlt ?? ""}
-              width={723}
-              height={210}
-              priority
-              className="h-full w-auto max-w-[min(100%,420px)] object-contain object-bottom drop-shadow-[0_3px_6px_rgba(0,0,0,0.18)]"
-            />
-          </div>
-        ) : null}
-        <Link
-          href={`/${brandTheme.brand}/select-store`}
-          className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
+    <div className="relative">
+      {brandTheme.mascotSrc ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
+          <Image
+            src={brandTheme.mascotSrc}
+            alt={brandTheme.mascotAlt ?? ""}
+            width={723}
+            height={210}
+            priority
+            className="h-16 w-auto object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+          />
+        </div>
+      ) : null}
+      <div
+        data-brand={brandTheme.brand}
+        className={`${notoSansJp.className} ${memberFormCardClass} text-foreground ${
+          hasMascot ? "mt-8" : ""
+        }`}
+        style={brandVars}
+      >
+        <div
+          className={`joyfit-brand-header px-5 pb-7 text-center text-white md:px-6 ${
+            hasMascot ? "pt-12 md:pt-14" : "pt-6 md:pt-8"
+          }`}
         >
-          ← 店舗選択に戻る
-        </Link>
-        <JoyfitHeaderLogo className="mb-1" brand={brandTheme.brand} />
-        <p className="relative z-[1] mt-3 text-[11px] font-semibold tracking-[0.2em] text-white/85">
-          {brandTheme.fullLabel}
-        </p>
-        <h1 className="relative z-[1] mt-1 text-xl font-bold md:text-2xl">{storeName}</h1>
-        <p className="relative z-[1] mx-auto mt-4 inline-block max-w-full rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
-          {brandTheme.rewardLabel}
-        </p>
-      </div>
+          <Link
+            href={`/${brandTheme.brand}/select-store`}
+            className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
+          >
+            ← 店舗選択に戻る
+          </Link>
+          <JoyfitHeaderLogo brand={brandTheme.brand} />
+          <h1 className="relative z-[1] mt-4 text-xl font-bold md:text-2xl">{storeName}</h1>
+          <p className="relative z-[1] mx-auto mt-5 inline-block max-w-full rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
+            {brandTheme.rewardLabel}
+          </p>
+        </div>
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
         <div className={`space-y-5 ${memberFormPanelClass}`}>
@@ -668,6 +674,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         )}
 
+      </div>
       </div>
     </div>
   );
