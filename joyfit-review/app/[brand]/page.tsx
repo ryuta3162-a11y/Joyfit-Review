@@ -59,7 +59,7 @@ export default async function BrandHomePage({ params }: Props) {
         ) : null}
         <div
           data-brand={brand}
-          className={`${memberFormCardClass} ${hasMascot ? "mt-12" : ""}`}
+          className={`${memberFormCardClass} ${hasMascot ? "mt-14" : ""}`}
           style={brandVars}
         >
           <div
@@ -67,10 +67,18 @@ export default async function BrandHomePage({ params }: Props) {
               hasMascot ? "pt-10 md:pt-12" : "pt-8 md:pt-10"
             }`}
           >
-            <JoyfitHeaderLogo brand={brand} />
-            <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
-              アンケートページ
-            </h1>
+            {isFit365 ? (
+              <h1 className="relative z-[1] whitespace-nowrap text-[1.45rem] font-bold tracking-tight md:text-[1.7rem]">
+                FIT365 アンケートページ
+              </h1>
+            ) : (
+              <>
+                <JoyfitHeaderLogo brand={brand} />
+                <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
+                  アンケートページ
+                </h1>
+              </>
+            )}
             <p className="relative z-[1] mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
               アンケート・クチコミにご協力ください。
             </p>

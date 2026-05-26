@@ -286,7 +286,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       <div
         data-brand={brandTheme.brand}
         className={`${notoSansJp.className} ${memberFormCardClass} text-foreground ${
-          hasMascot ? "mt-12" : ""
+          hasMascot ? "mt-14" : ""
         }`}
         style={brandVars}
       >
