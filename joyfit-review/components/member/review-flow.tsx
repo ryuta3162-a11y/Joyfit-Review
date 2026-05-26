@@ -276,8 +276,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           <Image
             src={brandTheme.mascotSrc}
             alt={brandTheme.mascotAlt ?? ""}
-            width={723}
-            height={210}
+            width={694}
+            height={197}
             priority
             className="h-20 w-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.18)]"
           />
@@ -292,7 +292,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       >
         <div
           className={`joyfit-brand-header px-5 pb-7 text-center text-white md:px-6 ${
-            hasMascot ? "pt-10 md:pt-12" : "pt-6 md:pt-8"
+            hasMascot ? "pt-16 md:pt-20" : "pt-6 md:pt-8"
           }`}
         >
           <Link
