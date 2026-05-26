@@ -53,18 +53,18 @@ export default async function BrandHomePage({ params }: Props) {
               width={694}
               height={197}
               priority
-              className="h-20 w-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.18)]"
+              className="h-14 w-auto object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.16)]"
             />
           </div>
         ) : null}
         <div
           data-brand={brand}
-          className={`${memberFormCardClass} ${hasMascot ? "mt-14" : ""}`}
+          className={`${memberFormCardClass} ${hasMascot ? "mt-12" : ""}`}
           style={brandVars}
         >
           <div
             className={`joyfit-brand-header px-6 pb-9 text-center text-white ${
-              hasMascot ? "pt-16 md:pt-20" : "pt-8 md:pt-10"
+              hasMascot ? "pt-10 md:pt-12" : "pt-8 md:pt-10"
             }`}
           >
             <JoyfitHeaderLogo brand={brand} />
