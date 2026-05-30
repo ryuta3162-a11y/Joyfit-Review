@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
-import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
+import { Fit365Header } from "@/components/joyfit/fit365-header";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberFormField } from "@/components/member/member-form-field";
@@ -272,27 +272,32 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const isFit365 = brandTheme.brand === "fit365";
 
   return (
-    <div className="relative">
-      {brandTheme.mascotSrc ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center px-4">
-          <Fit365Mascot
-            priority
-            className="h-11 max-w-[min(100%,280px)] w-auto object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.14)]"
-          />
-        </div>
-      ) : null}
-      <div
-        data-brand={brandTheme.brand}
-        className={`${notoSansJp.className} ${memberFormCardClass} text-foreground ${
-          hasMascot ? "mt-10" : ""
-        }`}
-        style={brandVars}
-      >
-        <div
-          className={`joyfit-brand-header px-5 pb-7 text-center text-white md:px-6 ${
-            hasMascot ? "pt-8 md:pt-9" : "pt-6 md:pt-8"
-          }`}
+    <div
+      data-brand={brandTheme.brand}
+      className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
+      style={brandVars}
+    >
+      {isFit365 && hasMascot ? (
+        <Fit365Header
+          className="px-5 md:px-6"
+          title={
+            <>
+              <Link
+                href={`/${brandTheme.brand}/select-store`}
+                className="mb-4 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
+              >
+                ← 店舗選択に戻る
+              </Link>
+              <h1 className="text-xl font-bold md:text-2xl">{storeName}</h1>
+            </>
+          }
         >
+          <p className="relative z-[1] mx-auto mt-5 inline-block max-w-full rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
+            {brandTheme.rewardLabel}
+          </p>
+        </Fit365Header>
+      ) : (
+        <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
           <Link
             href={`/${brandTheme.brand}/select-store`}
             className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
@@ -305,6 +310,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             {brandTheme.rewardLabel}
           </p>
         </div>
+      )}
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
         <div className={`space-y-5 ${memberFormPanelClass}`}>
@@ -691,7 +697,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         )}
 
-      </div>
       </div>
     </div>
   );

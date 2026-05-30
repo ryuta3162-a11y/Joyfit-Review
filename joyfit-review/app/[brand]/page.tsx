@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Gift, MapPin } from "lucide-react";
 
-import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
+import { Fit365Header } from "@/components/joyfit/fit365-header";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { StartReviewCta } from "@/components/member/start-review-cta";
@@ -44,37 +44,35 @@ export default async function BrandHomePage({ params }: Props) {
 
   return (
     <MemberPageShell>
-      <div className="relative">
-        {theme.mascotSrc ? (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center px-4">
-            <Fit365Mascot
-              priority
-              className="h-11 max-w-[min(100%,280px)] w-auto object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.14)]"
-            />
-          </div>
-        ) : null}
-        <div
-          data-brand={brand}
-          className={`${memberFormCardClass} ${hasMascot ? "mt-10" : ""}`}
-          style={brandVars}
-        >
-          <div
-            className={`joyfit-brand-header px-6 pb-9 text-center text-white ${
-              hasMascot ? "pt-8 md:pt-9" : "pt-8 md:pt-10"
-            }`}
-          >
-            {isFit365 ? (
-              <h1 className="relative z-[1] whitespace-nowrap text-[1.45rem] font-bold tracking-tight md:text-[1.7rem]">
+      <div
+        data-brand={brand}
+        className={memberFormCardClass}
+        style={brandVars}
+      >
+        {isFit365 && hasMascot ? (
+          <Fit365Header
+            title={
+              <h1 className="whitespace-nowrap text-[1.45rem] font-bold tracking-tight md:text-[1.7rem]">
                 FIT365 アンケートページ
               </h1>
-            ) : (
-              <>
-                <JoyfitHeaderLogo brand={brand} />
-                <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
-                  アンケートページ
-                </h1>
-              </>
-            )}
+            }
+          >
+            <p className="relative z-[1] mx-auto mt-4 max-w-sm text-sm leading-relaxed text-white/95">
+              アンケート・クチコミにご協力ください。
+            </p>
+            <div className="relative z-[1] mt-6 flex justify-center">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
+                <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                <span className="leading-tight">{theme.rewardLabel}</span>
+              </div>
+            </div>
+          </Fit365Header>
+        ) : (
+          <div className="joyfit-brand-header px-6 pb-9 pt-8 text-center text-white md:pt-10">
+            <JoyfitHeaderLogo brand={brand} />
+            <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
+              アンケートページ
+            </h1>
             <p className="relative z-[1] mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
               アンケート・クチコミにご協力ください。
             </p>
@@ -85,6 +83,7 @@ export default async function BrandHomePage({ params }: Props) {
               </div>
             </div>
           </div>
+        )}
 
           <div className="space-y-5 px-6 py-8">
             <ul className={`space-y-3 text-sm ${stepTextClass}`}>
@@ -112,7 +111,6 @@ export default async function BrandHomePage({ params }: Props) {
 
             <StartReviewCta brand={brand} />
           </div>
-        </div>
       </div>
     </MemberPageShell>
   );
