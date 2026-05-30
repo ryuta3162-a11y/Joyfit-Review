@@ -22,21 +22,19 @@ export const memberFormHintClass = "mt-1.5 text-[11px] leading-relaxed text-zinc
 
 export const memberFormErrorClass = "mt-1.5 text-[11px] font-medium text-[color:var(--joyfit-red)]";
 
-/** テキスト・メール・セレクト・会員番号 */
+/** 会員が触れる入力欄（枠線はやや黒めで視認性を確保） */
 export const memberFormInputClass =
-  "h-11 w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-3.5 text-base text-zinc-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] outline-none transition placeholder:text-zinc-400 focus:border-[color:var(--joyfit-red)]/35 focus:bg-white focus:ring-2 focus:ring-[color:var(--joyfit-red)]/15 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[color:var(--joyfit-red)]/45 aria-invalid:ring-2 aria-invalid:ring-[color:var(--joyfit-red)]/12";
+  "h-11 w-full rounded-xl border border-zinc-800/75 bg-white px-3.5 text-base text-zinc-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] outline-none transition placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[color:var(--joyfit-red)] aria-invalid:ring-2 aria-invalid:ring-[color:var(--joyfit-red)]/12";
 
 export const memberFormTextareaClass =
-  "min-h-16 w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-3.5 py-2.5 text-base text-zinc-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] outline-none transition placeholder:text-zinc-400 focus:border-[color:var(--joyfit-red)]/35 focus:bg-white focus:ring-2 focus:ring-[color:var(--joyfit-red)]/15";
+  "min-h-16 w-full rounded-xl border border-zinc-800/75 bg-white px-3.5 py-2.5 text-base text-zinc-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] outline-none transition placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10";
 
 const memberFormChoiceBase =
   "rounded-xl border px-3 py-2.5 text-[11px] font-semibold leading-snug transition-all duration-200";
 
+/** 性別など、タップして選ぶボタン（未選択時） */
 const memberFormChoiceInactive =
-  "border-zinc-200/90 bg-white text-zinc-700 shadow-sm hover:border-zinc-300/90 hover:bg-zinc-50/80";
-
-const memberFormChoiceInactiveJoyfit =
-  "border-2 border-zinc-900/35 bg-white text-zinc-800 shadow-sm hover:border-zinc-900/55 hover:bg-zinc-50/80";
+  "border border-zinc-800/75 bg-white text-zinc-800 shadow-sm hover:border-zinc-900 hover:bg-zinc-50/80";
 
 const memberFormChoiceActive =
   "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-md shadow-[color:var(--joyfit-red)]/18";
@@ -54,14 +52,3 @@ export function memberFormTagClass(active: boolean) {
   );
 }
 
-/** JOYFIT 向け：黒枠で区切りを明確に */
-export function memberFormChoiceClassJoyfit(active: boolean) {
-  return cn(memberFormChoiceBase, active ? memberFormChoiceActive : memberFormChoiceInactiveJoyfit);
-}
-
-export function memberFormTagClassJoyfit(active: boolean) {
-  return cn(
-    "rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition-all duration-200",
-    active ? memberFormChoiceActive : memberFormChoiceInactiveJoyfit,
-  );
-}

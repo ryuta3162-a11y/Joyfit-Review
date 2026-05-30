@@ -12,14 +12,12 @@ import { MemberFormField } from "@/components/member/member-form-field";
 import {
   memberFormCardClass,
   memberFormChoiceClass,
-  memberFormChoiceClassJoyfit,
   memberFormGuideCardClass,
   memberFormInputClass,
   memberFormLabelClass,
   memberFormPanelClass,
   memberFormSectionTitleClass,
   memberFormTagClass,
-  memberFormTagClassJoyfit,
   memberFormTextareaClass,
 } from "@/components/member/member-form-styles";
 import { Button } from "@/components/ui/button";
@@ -269,16 +267,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   const isFit365 = brandTheme.brand === "fit365";
-  const reviewPanelClass = isFit365
-    ? memberFormPanelClass
-    : "rounded-2xl border-2 border-zinc-900 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] md:p-6";
-  const reviewGuideCardClass = isFit365
-    ? memberFormGuideCardClass
-    : "overflow-hidden rounded-2xl border-2 border-zinc-900 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
-  const choiceClass = (active: boolean) =>
-    isFit365 ? memberFormChoiceClass(active) : memberFormChoiceClassJoyfit(active);
-  const tagClass = (active: boolean) =>
-    isFit365 ? memberFormTagClass(active) : memberFormTagClassJoyfit(active);
 
   return (
     <div
@@ -300,10 +288,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       </div>
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
-        <div className={`space-y-5 ${reviewPanelClass}`}>
+        <div className={`space-y-5 ${memberFormPanelClass}`}>
           <p className={memberFormSectionTitleClass}>会員情報の入力</p>
 
-          <div className={reviewGuideCardClass}>
+          <div className={memberFormGuideCardClass}>
               <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-3">
                 <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
                   {isFit365 ? "FIT365 APP" : "JOYFIT APP"}
@@ -386,7 +374,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                         <br />
                         ③ OK表示で登録完了
                       </p>
-                      <div className="rounded-xl border-2 border-zinc-900 bg-orange-50/40 p-2">
+                      <div className="rounded-xl border border-orange-200/60 bg-orange-50/40 p-2">
                         <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3">
                           <AppGuideScreenshot
                             step="01"
@@ -454,7 +442,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   key={item}
                   type="button"
                   onClick={() => setGender(item)}
-                  className={choiceClass(gender === item)}
+                  className={memberFormChoiceClass(gender === item)}
                 >
                   {item}
                 </button>
@@ -489,7 +477,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         </div>
 
-        <div className={reviewPanelClass}>
+        <div className={memberFormPanelClass}>
           <p className={`mb-3 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
@@ -515,9 +503,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {canBuildGoogleDraft && (
           <div
-            className={`space-y-4 ${reviewPanelClass} ${
-              isFit365 ? "bg-gradient-to-b from-zinc-50/40 to-white" : ""
-            }`}
+            className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white`}
           >
             <p className={memberFormSectionTitleClass}>よかった点を教えてください（複数選択可）</p>
             <div>
@@ -530,7 +516,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     key={point}
                     type="button"
                     onClick={() => toggleList(point, setMenuPoints)}
-                    className={tagClass(menuPoints.includes(point))}
+                    className={memberFormTagClass(menuPoints.includes(point))}
                   >
                     {point}
                   </button>
@@ -545,7 +531,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     key={point}
                     type="button"
                     onClick={() => toggleList(point, setEnvPoints)}
-                    className={tagClass(envPoints.includes(point))}
+                    className={memberFormTagClass(envPoints.includes(point))}
                   >
                     {point}
                   </button>
@@ -562,7 +548,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     key={scene}
                     type="button"
                     onClick={() => toggleScene(scene)}
-                    className={tagClass(scenes.includes(scene))}
+                    className={memberFormTagClass(scenes.includes(scene))}
                   >
                     {scene}
                   </button>
@@ -626,7 +612,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {draft && isHigh && (
           <div className="space-y-5">
-            <section className={reviewPanelClass}>
+            <section className={memberFormPanelClass}>
               <div className="flex flex-col items-center gap-1 text-center">
                 <Image
                   src="/google-logo.png"
