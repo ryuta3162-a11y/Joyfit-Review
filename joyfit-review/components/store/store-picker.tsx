@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Search, Store } from "lucide-react";
 
-import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { memberFormCardClass, memberFormInputClass } from "@/components/member/member-form-styles";
 import { Input } from "@/components/ui/input";
 import { BRAND_THEMES, brandCssVars, type Brand } from "@/lib/brand";
@@ -168,30 +167,8 @@ export function StorePicker({ stores, brand }: Props) {
           >
             ← トップに戻る
           </Link>
-          {brand !== "fit365" ? (
-            <>
-              <JoyfitHeaderLogo className="mb-1" brand={brand} />
-              <p className="relative z-[1] mt-3 text-[11px] font-semibold tracking-[0.2em] text-white/85">
-                {theme.fullLabel}
-              </p>
-            </>
-          ) : null}
-          <h1
-            className={`relative z-[1] font-bold leading-snug md:text-xl ${
-              brand === "fit365"
-                ? "mt-2 text-lg whitespace-nowrap"
-                : "mt-2 text-lg"
-            }`}
-          >
-            {brand === "fit365" ? (
-              "対象店舗を選択してください"
-            ) : (
-              <>
-                アンケート対象店舗を
-                <br />
-                選択してください
-              </>
-            )}
+          <h1 className="relative z-[1] mt-2 text-lg font-bold leading-snug whitespace-nowrap md:text-xl">
+            対象店舗を選択してください
           </h1>
         </div>
 

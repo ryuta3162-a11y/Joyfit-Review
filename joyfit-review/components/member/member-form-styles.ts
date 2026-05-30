@@ -35,6 +35,9 @@ const memberFormChoiceBase =
 const memberFormChoiceInactive =
   "border-zinc-200/90 bg-white text-zinc-700 shadow-sm hover:border-zinc-300/90 hover:bg-zinc-50/80";
 
+const memberFormChoiceInactiveJoyfit =
+  "border-2 border-zinc-900/35 bg-white text-zinc-800 shadow-sm hover:border-zinc-900/55 hover:bg-zinc-50/80";
+
 const memberFormChoiceActive =
   "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-md shadow-[color:var(--joyfit-red)]/18";
 
@@ -48,5 +51,17 @@ export function memberFormTagClass(active: boolean) {
   return cn(
     "rounded-xl border px-3 py-3 text-[11px] font-semibold leading-snug transition-all duration-200",
     active ? memberFormChoiceActive : memberFormChoiceInactive,
+  );
+}
+
+/** JOYFIT 向け：黒枠で区切りを明確に */
+export function memberFormChoiceClassJoyfit(active: boolean) {
+  return cn(memberFormChoiceBase, active ? memberFormChoiceActive : memberFormChoiceInactiveJoyfit);
+}
+
+export function memberFormTagClassJoyfit(active: boolean) {
+  return cn(
+    "rounded-xl border-2 px-3 py-3 text-[11px] font-semibold leading-snug transition-all duration-200",
+    active ? memberFormChoiceActive : memberFormChoiceInactiveJoyfit,
   );
 }
