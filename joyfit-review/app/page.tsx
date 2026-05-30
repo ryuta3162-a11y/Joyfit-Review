@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
 import { BRAND_THEMES } from "@/lib/brand";
@@ -54,15 +55,7 @@ export default function BrandSelectorPage() {
                   style={{ background: theme.primary }}
                 >
                   {brand === "fit365" ? (
-                    <div className="relative h-16 w-24 shrink-0">
-                      <Image
-                        src="/fit365-bears.png"
-                        alt="FIT365 ベアクマ"
-                        fill
-                        sizes="96px"
-                        className="object-contain object-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)]"
-                      />
-                    </div>
+                    <Fit365Mascot className="h-10 w-auto max-w-[7.5rem] shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.12)]" />
                   ) : (
                     <div className="relative h-12 w-24 shrink-0">
                       <Image

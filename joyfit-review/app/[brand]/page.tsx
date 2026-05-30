@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import { Gift, MapPin } from "lucide-react";
 
+import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { StartReviewCta } from "@/components/member/start-review-cta";
@@ -46,25 +46,21 @@ export default async function BrandHomePage({ params }: Props) {
     <MemberPageShell>
       <div className="relative">
         {theme.mascotSrc ? (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
-            <Image
-              src={theme.mascotSrc}
-              alt={theme.mascotAlt ?? ""}
-              width={694}
-              height={197}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center px-4">
+            <Fit365Mascot
               priority
-              className="h-14 w-auto object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.16)]"
+              className="h-11 max-w-[min(100%,280px)] w-auto object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.14)]"
             />
           </div>
         ) : null}
         <div
           data-brand={brand}
-          className={`${memberFormCardClass} ${hasMascot ? "mt-14" : ""}`}
+          className={`${memberFormCardClass} ${hasMascot ? "mt-10" : ""}`}
           style={brandVars}
         >
           <div
             className={`joyfit-brand-header px-6 pb-9 text-center text-white ${
-              hasMascot ? "pt-10 md:pt-12" : "pt-8 md:pt-10"
+              hasMascot ? "pt-8 md:pt-9" : "pt-8 md:pt-10"
             }`}
           >
             {isFit365 ? (

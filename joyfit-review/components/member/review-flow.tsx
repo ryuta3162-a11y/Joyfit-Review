@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
+import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberFormField } from "@/components/member/member-form-field";
@@ -273,27 +274,23 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   return (
     <div className="relative">
       {brandTheme.mascotSrc ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
-          <Image
-            src={brandTheme.mascotSrc}
-            alt={brandTheme.mascotAlt ?? ""}
-            width={694}
-            height={197}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center px-4">
+          <Fit365Mascot
             priority
-            className="h-14 w-auto object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.16)]"
+            className="h-11 max-w-[min(100%,280px)] w-auto object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.14)]"
           />
         </div>
       ) : null}
       <div
         data-brand={brandTheme.brand}
         className={`${notoSansJp.className} ${memberFormCardClass} text-foreground ${
-          hasMascot ? "mt-14" : ""
+          hasMascot ? "mt-10" : ""
         }`}
         style={brandVars}
       >
         <div
           className={`joyfit-brand-header px-5 pb-7 text-center text-white md:px-6 ${
-            hasMascot ? "pt-10 md:pt-12" : "pt-6 md:pt-8"
+            hasMascot ? "pt-8 md:pt-9" : "pt-6 md:pt-8"
           }`}
         >
           <Link
