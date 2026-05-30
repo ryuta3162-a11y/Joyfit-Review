@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
-import { Fit365Header } from "@/components/joyfit/fit365-header";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberFormField } from "@/components/member/member-form-field";
@@ -268,7 +267,6 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     );
   }
 
-  const hasMascot = Boolean(brandTheme.mascotSrc);
   const isFit365 = brandTheme.brand === "fit365";
 
   return (
@@ -277,40 +275,21 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
-      {isFit365 && hasMascot ? (
-        <Fit365Header
-          className="px-5 md:px-6"
-          title={
-            <>
-              <Link
-                href={`/${brandTheme.brand}/select-store`}
-                className="mb-4 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
-              >
-                ← 店舗選択に戻る
-              </Link>
-              <h1 className="text-xl font-bold md:text-2xl">{storeName}</h1>
-            </>
-          }
+      <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
+        <Link
+          href={`/${brandTheme.brand}/select-store`}
+          className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
         >
-          <p className="relative z-[1] mx-auto mt-5 inline-block max-w-full rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
-            {brandTheme.rewardLabel}
-          </p>
-        </Fit365Header>
-      ) : (
-        <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
-          <Link
-            href={`/${brandTheme.brand}/select-store`}
-            className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
-          >
-            ← 店舗選択に戻る
-          </Link>
-          <JoyfitHeaderLogo brand={brandTheme.brand} />
-          <h1 className="relative z-[1] mt-4 text-xl font-bold md:text-2xl">{storeName}</h1>
-          <p className="relative z-[1] mx-auto mt-5 inline-block max-w-full rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
-            {brandTheme.rewardLabel}
-          </p>
-        </div>
-      )}
+          ← 店舗選択に戻る
+        </Link>
+        {!isFit365 ? <JoyfitHeaderLogo brand={brandTheme.brand} /> : null}
+        <h1 className={`relative z-[1] text-xl font-bold md:text-2xl ${isFit365 ? "mt-2" : "mt-4"}`}>
+          {storeName}
+        </h1>
+        <p className="relative z-[1] mx-auto mt-5 inline-block max-w-full rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
+          {brandTheme.rewardLabel}
+        </p>
+      </div>
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
         <div className={`space-y-5 ${memberFormPanelClass}`}>
@@ -349,7 +328,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     <AppGuideScreenshot
                       step="01"
                       caption={isFit365 ? "左上の三本線をタップ" : "「サービス」をタップ"}
-                      src={isFit365 ? "/fit365-app-member-1.png" : "/joyfit-app-member-1.png"}
+                      src={isFit365 ? "/fit365-app-member-2.png" : "/joyfit-app-member-1.png"}
                       alt={
                         isFit365
                           ? "FIT365アプリの左上メニューをタップする画面"
@@ -359,7 +338,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                     <AppGuideScreenshot
                       step="02"
                       caption={isFit365 ? "「契約情報」をタップ" : "「契約情報」で番号確認"}
-                      src={isFit365 ? "/fit365-app-member-2.png" : "/joyfit-app-member-2.png"}
+                      src={isFit365 ? "/fit365-app-member-1.png" : "/joyfit-app-member-2.png"}
                       alt={
                         isFit365
                           ? "FIT365アプリで契約情報を開く画面"
@@ -663,8 +642,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               <p className="mt-1.5 text-center text-xs text-zinc-500">
                 投稿時は同じ評価（星{rating}）を選択してください。
               </p>
-              <div className="mt-5 flex justify-center border-t border-zinc-100 pt-5">
-                <p className="inline-flex items-center rounded-full border border-[#fbbc04]/35 bg-[#fbbc04]/10 px-3 py-1 text-xs font-semibold text-[#6b5200]">
+              <div className="mt-5 border-t border-zinc-100 pt-5">
+                <p
+                  className="flex w-full items-center justify-center rounded-lg border-2 border-[color:var(--joyfit-red-dark)] bg-[color:var(--joyfit-red)] px-4 py-3.5 text-center text-sm font-bold leading-snug text-white shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_20px_rgba(0,0,0,0.12)] md:text-[15px]"
+                  role="status"
+                >
                   コピー用文面〔こちらで添削可能です〕
                 </p>
               </div>
