@@ -20,6 +20,27 @@ export type SubmitMemberSurveyInput = {
 
 export type SubmitMemberSurveyResult = { ok: true } | { ok: false; error: string };
 
+function mapGasSurveyError(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const msg = raw.trim();
+  if (msg === "invalid recipient") {
+    return "送信設定（GAS）が古い可能性があります。管理者に「ウェブアプリの再デプロイ」を依頼してください。";
+  }
+  if (msg === "memberCode must be 10-digit number") {
+    return "会員番号は半角数字10桁で入力してください。";
+  }
+  if (msg === "memberCode must not be placeholder") {
+    return "アプリに表示されている会員番号に置き換えてください。";
+  }
+  if (msg === "rating is required") {
+    return "評価（星）を選択してください。";
+  }
+  if (msg.includes("script.send_mail") || msg.includes("MailApp")) {
+    return "メール送信の権限が未設定です。GASで authorizeMailOnce を実行し、再デプロイしてください。";
+  }
+  return null;
+}
+
 function resolveRecipients(storeEmail: string, fallback: string): string {
   const a = storeEmail.trim();
   const b = fallback.trim();
@@ -76,11 +97,21 @@ export async function submitMemberSurvey(
     try {
       json = JSON.parse(text) as { ok?: boolean; error?: string };
     } catch {
-      return { ok: false, error: "送信に失敗しました。しばらくしてから再度お試しください。" };
+      return {
+        ok: false,
+        error:
+          "送信に失敗しました（サーバー応答が不正です）。GASの再デプロイと STORES_JSON_URL をご確認ください。",
+      };
     }
 
     if (!res.ok || !json.ok) {
-      return { ok: false, error: "送信に失敗しました。しばらくしてから再度お試しください。" };
+      const mapped = mapGasSurveyError(json.error);
+      return {
+        ok: false,
+        error:
+          mapped ??
+          `送信に失敗しました。${json.error ? `（${json.error}）` : ""} しばらくしてから再度お試しください。`,
+      };
     }
     return { ok: true };
   } catch {
