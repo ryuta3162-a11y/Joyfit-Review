@@ -43,10 +43,9 @@ function calcDistanceMeters(
 }
 
 function storeSubtitle(store: StoreMasterRow) {
-  if (/^row\d+$/i.test(store.id)) {
-    return "タップして口コミ文の作成へ";
-  }
-  return `店舗ID: ${store.id}`;
+  const address = store.address?.trim();
+  if (address) return address;
+  return "タップしてアンケートに進む";
 }
 
 type GeoPhase = "loading" | "ok" | "blocked" | "unsupported";
