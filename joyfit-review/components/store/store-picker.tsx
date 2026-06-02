@@ -42,12 +42,6 @@ function calcDistanceMeters(
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function storeSubtitle(store: StoreMasterRow) {
-  const address = store.address?.trim();
-  if (address) return address;
-  return "タップしてアンケートに進む";
-}
-
 type GeoPhase = "loading" | "ok" | "blocked" | "unsupported";
 
 export function StorePicker({ stores, brand }: Props) {
@@ -282,9 +276,6 @@ export function StorePicker({ stores, brand }: Props) {
                   </span>
                   <span className="min-w-0 flex-1 text-left">
                     <span className="block text-base font-bold text-foreground">{store.name}</span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {storeSubtitle(store)}
-                    </span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-[color:var(--joyfit-red)]" />
                 </Link>
