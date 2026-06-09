@@ -45,8 +45,9 @@ export async function checkSurveyRespondent(input: {
       return { ok: false, error: json.error ?? "確認に失敗しました。" };
     }
 
-    if (json.eligible === false && (json.matchedBy === "email" || json.matchedBy === "name")) {
-      return { ok: true, eligible: false, matchedBy: json.matchedBy };
+    if (json.eligible === false) {
+      const matchedBy = json.matchedBy === "email" ? "email" : "name";
+      return { ok: true, eligible: false, matchedBy };
     }
 
     return { ok: true, eligible: true };

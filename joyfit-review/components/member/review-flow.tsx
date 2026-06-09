@@ -115,12 +115,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const checkRequestIdRef = useRef(0);
 
   const alreadyAnswered = respondentCheck.status === "already";
-  const respondentCheckMessage =
-    respondentCheck.status === "already"
-      ? respondentCheck.matchedBy === "email"
-        ? "このメールアドレスでは、すでにご回答いただいています。ご協力ありがとうございました。"
-        : "このお名前では、すでにご回答いただいています。ご協力ありがとうございました。"
-      : null;
+  const respondentCheckMessage = alreadyAnswered ? "すでに回答済みです" : null;
+  const surveyLocked =
+    alreadyAnswered ||
+    (fullName.trim().length >= 2 && respondentCheck.status === "checking");
 
   function getSubmissionId(): string {
     if (!submissionIdRef.current) {
@@ -147,8 +145,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         const result = await checkSurveyRespondent({ fullName: name, email: mail });
         if (requestId !== checkRequestIdRef.current) return;
 
-        if (result.ok && !result.eligible) {
-          setRespondentCheck({ status: "already", matchedBy: result.matchedBy });
+        if (result.ok && result.eligible === false) {
+          setRespondentCheck({
+            status: "already",
+            matchedBy: result.matchedBy === "email" ? "email" : "name",
+          });
           return;
         }
         if (result.ok) {
@@ -167,6 +168,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const isLowSelected = rating !== null && !isHigh;
 
   function selectRating(value: number) {
+    if (surveyLocked) return;
     setRating(value);
     if (value < 4) {
       setDraft("");
@@ -341,6 +343,20 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     );
   }
 
+  if (alreadyAnswered) {
+    return (
+      <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
+        <div className="joyfit-brand-header px-6 py-10 text-center text-white">
+          <p className="text-4xl">✓</p>
+          <h2 className="mt-4 text-xl font-bold">すでに回答済みです</h2>
+          <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
+            ご協力ありがとうございました。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const isFit365 = brandTheme.brand === "fit365";
 
   return (
@@ -507,10 +523,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               aria-invalid={alreadyAnswered}
             />
             {respondentCheck.status === "checking" && fullName.trim().length >= 2 && (
-              <p className="mt-1.5 text-[11px] text-muted-foreground">回答状況を確認しています…</p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">情報を確認しています…</p>
             )}
             {respondentCheckMessage && (
-              <p className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+              <p className="mt-1.5 rounded-lg border border-red-300/80 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900">
                 {respondentCheckMessage}
               </p>
             )}
@@ -562,15 +578,19 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           </div>
         </div>
 
-        <div className={memberFormPanelClass}>
+        <div className={`${memberFormPanelClass} ${surveyLocked ? "pointer-events-none opacity-50" : ""}`}>
           <p className={`mb-3 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
+          {respondentCheck.status === "checking" && fullName.trim().length >= 2 && (
+            <p className="mb-2 text-xs text-muted-foreground">情報を確認しています…</p>
+          )}
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => selectRating(value)}
-                className="rounded-lg p-1.5 transition hover:bg-zinc-100"
+                disabled={surveyLocked}
+                className="rounded-lg p-1.5 transition hover:bg-zinc-100 disabled:cursor-not-allowed"
                 aria-label={`${value}つ星`}
               >
                 <Star
@@ -588,7 +608,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {canBuildGoogleDraft && (
           <div
-            className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white`}
+            className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white ${surveyLocked ? "pointer-events-none opacity-50" : ""}`}
           >
             <p className={memberFormSectionTitleClass}>よかった点を教えてください（複数選択可）</p>
             <div>
@@ -669,7 +689,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         )}
 
         {isLowSelected && (
-          <div className="space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6">
+          <div
+            className={`space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6 ${surveyLocked ? "pointer-events-none opacity-50" : ""}`}
+          >
             <p className="text-sm font-medium text-foreground">
               サービス向上のため、店舗スタッフへ直接お問い合わせください。
             </p>

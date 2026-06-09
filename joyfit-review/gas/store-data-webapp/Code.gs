@@ -418,10 +418,14 @@ function rebuildRespondentIndex() {
   }
 }
 
-function findRespondentMatch(emailNorm, nameNorm) {
+function findRespondentInIndex(emailNorm, nameNorm) {
   var sheet = getRespondentIndexSheet();
-  var values = sheet.getDataRange().getValues();
-  for (var i = 1; i < values.length; i++) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return null;
+  }
+  var values = sheet.getRange(2, 1, lastRow, 2).getValues();
+  for (var i = 0; i < values.length; i++) {
     var rowEmail = String(values[i][0] || "");
     var rowName = String(values[i][1] || "");
     if (emailNorm && rowEmail && rowEmail === emailNorm) {
@@ -432,6 +436,42 @@ function findRespondentMatch(emailNorm, nameNorm) {
     }
   }
   return null;
+}
+
+function findRespondentInAnswerSheets(emailNorm, nameNorm) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    if (String(sh.getName() || "").indexOf("回答_") !== 0) {
+      continue;
+    }
+    var lastRow = sh.getLastRow();
+    if (lastRow <= 1) {
+      continue;
+    }
+    var values = sh.getRange(2, 1, lastRow, 9).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var row = values[i];
+      var rowEmailNorm = normalizeSurveyEmail(row[8]);
+      var rowNameNorm = normalizeSurveyFullName(row[4]);
+      if (emailNorm && rowEmailNorm && rowEmailNorm === emailNorm) {
+        return { matchedBy: "email" };
+      }
+      if (nameNorm.length >= 2 && rowNameNorm && rowNameNorm === nameNorm) {
+        return { matchedBy: "name" };
+      }
+    }
+  }
+  return null;
+}
+
+function findRespondentMatch(emailNorm, nameNorm) {
+  var indexMatch = findRespondentInIndex(emailNorm, nameNorm);
+  if (indexMatch) {
+    return indexMatch;
+  }
+  return findRespondentInAnswerSheets(emailNorm, nameNorm);
 }
 
 function recordRespondent(emailNorm, nameNorm, fullName, email, storeId, memberCode) {

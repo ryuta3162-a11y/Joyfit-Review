@@ -38,7 +38,7 @@ function mapGasSurveyError(raw: string | undefined): string | null {
     return "評価（星）を選択してください。";
   }
   if (msg === "already_answered") {
-    return "このお名前またはメールアドレスでは、すでにご回答いただいています。";
+    return "すでに回答済みです";
   }
   if (msg.includes("script.send_mail") || msg.includes("MailApp")) {
     return "メール送信の権限が未設定です。GASで authorizeMailOnce を実行し、再デプロイしてください。";
