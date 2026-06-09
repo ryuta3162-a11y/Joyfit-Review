@@ -16,6 +16,8 @@ export type SubmitMemberSurveyInput = {
   generatedReview: string;
   storeFeedbackEmail: string;
   skipAutoMail?: boolean;
+  /** 同一操作の再送・二重タップで重複保存しないためのID */
+  submissionId: string;
 };
 
 export type SubmitMemberSurveyResult = { ok: true } | { ok: false; error: string };
@@ -34,6 +36,9 @@ function mapGasSurveyError(raw: string | undefined): string | null {
   }
   if (msg === "rating is required") {
     return "評価（星）を選択してください。";
+  }
+  if (msg === "already_answered") {
+    return "このお名前またはメールアドレスでは、すでにご回答いただいています。";
   }
   if (msg.includes("script.send_mail") || msg.includes("MailApp")) {
     return "メール送信の権限が未設定です。GASで authorizeMailOnce を実行し、再デプロイしてください。";
@@ -89,6 +94,7 @@ export async function submitMemberSurvey(
         freeComment: input.freeComment.trim(),
         generatedReview: input.generatedReview.trim(),
         skipAutoMail: Boolean(input.skipAutoMail),
+        submissionId: input.submissionId.trim(),
       }),
     });
 

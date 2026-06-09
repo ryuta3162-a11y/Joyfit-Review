@@ -57,6 +57,10 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var action = String(data.action || "").trim();
 
+    if (action === "checkRespondent") {
+      return outputJson(checkSurveyRespondent(data));
+    }
+
     if (action === "survey") {
       var result = saveSurveyResponse(data);
       if (!result.ok) {
@@ -65,7 +69,7 @@ function doPost(e) {
       if (result.shouldNotify) {
         sendLowRatingMail(data, result.to);
       }
-      return outputJson({ ok: true, savedSheet: result.sheetName });
+      return outputJson({ ok: true, savedSheet: result.sheetName, duplicate: !!result.duplicate });
     }
 
     // 旧互換: メール送信だけのPOST
@@ -196,6 +200,33 @@ function parseCoordinate(raw) {
   return n;
 }
 
+function normalizeSurveyEmail(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeSurveyFullName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[\s\u3000]+/g, "")
+    .toLowerCase();
+}
+
+function checkSurveyRespondent(data) {
+  ensureRespondentIndex();
+  var emailNorm = normalizeSurveyEmail(data.email);
+  var nameNorm = normalizeSurveyFullName(data.fullName);
+  if (!emailNorm && nameNorm.length < 2) {
+    return { ok: true, eligible: true };
+  }
+  var match = findRespondentMatch(emailNorm, nameNorm);
+  if (match) {
+    return { ok: true, eligible: false, matchedBy: match.matchedBy };
+  }
+  return { ok: true, eligible: true };
+}
+
 function saveSurveyResponse(data) {
   var storeId = String(data.storeId || "").trim() || "unknown";
   var storeName = String(data.storeName || "").trim() || "unknown";
@@ -212,33 +243,210 @@ function saveSurveyResponse(data) {
   }
 
   var to = String(data.to || "").trim();
+  var submissionId = String(data.submissionId || "").trim();
   var sheet = getOrCreateSurveySheet(storeId, storeName);
-  sheet.appendRow([
-    new Date(),
-    storeId,
-    storeName,
-    rating,
-    String(data.fullName || "").trim(),
-    memberCode,
-    String(data.gender || "").trim(),
-    String(data.ageRange || "").trim(),
-    String(data.email || "").trim(),
-    String(data.visitDate || "").trim(),
-    to,
-    toArray(data.positives).join(" / "),
-    toArray(data.useScenes).join(" / "),
-    String(data.freeComment || "").trim(),
-    String(data.generatedReview || "").trim(),
-  ]);
-
   var skipAutoMail = String(data.skipAutoMail || "").toLowerCase() === "true" || data.skipAutoMail === true;
 
-  return {
-    ok: true,
-    to: to,
-    shouldNotify: rating <= 3 && to.indexOf("@") >= 0 && !skipAutoMail,
-    sheetName: sheet.getName(),
-  };
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(15000)) {
+    return { ok: false, error: "server busy" };
+  }
+
+  var email = String(data.email || "").trim();
+  var respondentFullName = String(data.fullName || "").trim();
+  var emailNorm = normalizeSurveyEmail(email);
+  var nameNorm = normalizeSurveyFullName(respondentFullName);
+
+  try {
+    if (submissionId && isSubmissionIdRecorded(submissionId)) {
+      return {
+        ok: true,
+        duplicate: true,
+        to: to,
+        shouldNotify: false,
+        sheetName: sheet.getName(),
+      };
+    }
+
+    ensureRespondentIndex();
+    var existing = findRespondentMatch(emailNorm, nameNorm);
+    if (existing) {
+      return { ok: false, error: "already_answered", matchedBy: existing.matchedBy };
+    }
+
+    sheet.appendRow([
+      new Date(),
+      storeId,
+      storeName,
+      rating,
+      respondentFullName,
+      memberCode,
+      String(data.gender || "").trim(),
+      String(data.ageRange || "").trim(),
+      email,
+      String(data.visitDate || "").trim(),
+      to,
+      toArray(data.positives).join(" / "),
+      toArray(data.useScenes).join(" / "),
+      String(data.freeComment || "").trim(),
+      String(data.generatedReview || "").trim(),
+      submissionId,
+    ]);
+
+    if (submissionId) {
+      recordSurveySubmissionId(submissionId, storeId, memberCode);
+    }
+    recordRespondent(emailNorm, nameNorm, respondentFullName, email, storeId, memberCode);
+
+    return {
+      ok: true,
+      to: to,
+      shouldNotify: rating <= 3 && to.indexOf("@") >= 0 && !skipAutoMail,
+      sheetName: sheet.getName(),
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getSurveyDedupSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("_survey_dedup");
+  if (!sheet) {
+    sheet = ss.insertSheet("_survey_dedup");
+    sheet.hideSheet();
+    sheet.appendRow(["submissionId", "timestamp", "storeId", "memberCode"]);
+  }
+  return sheet;
+}
+
+function isSubmissionIdRecorded(submissionId) {
+  if (!submissionId) {
+    return false;
+  }
+  var sheet = getSurveyDedupSheet();
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0] || "") === submissionId) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function recordSurveySubmissionId(submissionId, storeId, memberCode) {
+  if (!submissionId) {
+    return;
+  }
+  getSurveyDedupSheet().appendRow([submissionId, new Date(), storeId, memberCode]);
+}
+
+function getRespondentIndexSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("_survey_respondents");
+  if (!sheet) {
+    sheet = ss.insertSheet("_survey_respondents");
+    sheet.hideSheet();
+    sheet.appendRow([
+      "emailNorm",
+      "fullNameNorm",
+      "fullName",
+      "email",
+      "storeId",
+      "timestamp",
+      "memberCode",
+    ]);
+  }
+  return sheet;
+}
+
+function ensureRespondentIndex() {
+  var sheet = getRespondentIndexSheet();
+  if (sheet.getLastRow() <= 1) {
+    rebuildRespondentIndex();
+  }
+}
+
+/**
+ * 既存の「回答_*」シートから回答者インデックスを再構築（初回・手動実行用）。
+ */
+function rebuildRespondentIndex() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var indexSheet = getRespondentIndexSheet();
+  var lastRow = indexSheet.getLastRow();
+  if (lastRow > 1) {
+    indexSheet.getRange(2, 1, lastRow, 7).clearContent();
+  }
+
+  var seen = {};
+  var rows = [];
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    if (String(sh.getName() || "").indexOf("回答_") !== 0) {
+      continue;
+    }
+    var values = sh.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      var row = values[i];
+      var fn = String(row[4] || "").trim();
+      var em = String(row[8] || "").trim();
+      var emailNorm = normalizeSurveyEmail(em);
+      var nameNorm = normalizeSurveyFullName(fn);
+      if (!emailNorm && nameNorm.length < 2) {
+        continue;
+      }
+      var dedupeKey = (emailNorm ? "e:" + emailNorm : "") + "|" + (nameNorm ? "n:" + nameNorm : "");
+      if (seen[dedupeKey]) {
+        continue;
+      }
+      seen[dedupeKey] = true;
+      rows.push([
+        emailNorm,
+        nameNorm,
+        fn,
+        em,
+        String(row[1] || ""),
+        row[0] instanceof Date ? row[0] : new Date(),
+        String(row[5] || ""),
+      ]);
+    }
+  }
+
+  if (rows.length) {
+    indexSheet.getRange(2, 1, 1 + rows.length, 7).setValues(rows);
+  }
+}
+
+function findRespondentMatch(emailNorm, nameNorm) {
+  var sheet = getRespondentIndexSheet();
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var rowEmail = String(values[i][0] || "");
+    var rowName = String(values[i][1] || "");
+    if (emailNorm && rowEmail && rowEmail === emailNorm) {
+      return { matchedBy: "email" };
+    }
+    if (nameNorm.length >= 2 && rowName && rowName === nameNorm) {
+      return { matchedBy: "name" };
+    }
+  }
+  return null;
+}
+
+function recordRespondent(emailNorm, nameNorm, fullName, email, storeId, memberCode) {
+  if (!emailNorm && nameNorm.length < 2) {
+    return;
+  }
+  getRespondentIndexSheet().appendRow([
+    emailNorm,
+    nameNorm,
+    fullName,
+    email,
+    storeId,
+    new Date(),
+    memberCode,
+  ]);
 }
 
 function getOrCreateSurveySheet(storeId, storeName) {
@@ -264,6 +472,7 @@ function getOrCreateSurveySheet(storeId, storeName) {
     "useScenes",
     "freeComment",
     "generatedReview",
+    "submissionId",
   ]);
   return sheet;
 }

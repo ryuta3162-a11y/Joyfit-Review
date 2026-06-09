@@ -1,11 +1,12 @@
 "use client";
 
-import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
+import { checkSurveyRespondent } from "@/app/actions/check-survey-respondent";
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberFormField } from "@/components/member/member-form-field";
@@ -102,8 +103,64 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState(false);
+  const [sentKind, setSentKind] = useState<"high" | "low">("high");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [respondentCheck, setRespondentCheck] = useState<{
+    status: "idle" | "checking" | "eligible" | "already";
+    matchedBy?: "email" | "name";
+  }>({ status: "idle" });
+  /** 送信ボタン1回分のID。エラー時の再送は同じIDで冪等に処理する */
+  const submissionIdRef = useRef<string | null>(null);
+  const checkRequestIdRef = useRef(0);
+
+  const alreadyAnswered = respondentCheck.status === "already";
+  const respondentCheckMessage =
+    respondentCheck.status === "already"
+      ? respondentCheck.matchedBy === "email"
+        ? "このメールアドレスでは、すでにご回答いただいています。ご協力ありがとうございました。"
+        : "このお名前では、すでにご回答いただいています。ご協力ありがとうございました。"
+      : null;
+
+  function getSubmissionId(): string {
+    if (!submissionIdRef.current) {
+      submissionIdRef.current =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+    return submissionIdRef.current;
+  }
+
+  useEffect(() => {
+    const name = fullName.trim();
+    const mail = email.trim();
+    if (name.length < 2 && !/^\S+@\S+\.\S+$/.test(mail)) {
+      setRespondentCheck({ status: "idle" });
+      return;
+    }
+
+    setRespondentCheck({ status: "checking" });
+    const requestId = ++checkRequestIdRef.current;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const result = await checkSurveyRespondent({ fullName: name, email: mail });
+        if (requestId !== checkRequestIdRef.current) return;
+
+        if (result.ok && !result.eligible) {
+          setRespondentCheck({ status: "already", matchedBy: result.matchedBy });
+          return;
+        }
+        if (result.ok) {
+          setRespondentCheck({ status: "eligible" });
+          return;
+        }
+        setRespondentCheck({ status: "idle" });
+      })();
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [fullName, email]);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
@@ -141,7 +198,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     memberCodeOk;
 
   function buildDraft() {
-    if (!rating || !profileComplete) return;
+    if (!rating || !profileComplete || alreadyAnswered) return;
 
     const picked = allPositives.slice(0, 3);
     const sceneLine = scenes.length ? `おすすめの利用シーン: ${scenes.join("、")}` : "";
@@ -165,6 +222,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
   async function submitSurvey(payloadReview: string) {
     if (!rating || !profileComplete) return { ok: false as const, error: "必須項目を入力してください。" };
+    if (alreadyAnswered) {
+      return {
+        ok: false as const,
+        error: respondentCheckMessage ?? "すでにご回答いただいています。",
+      };
+    }
     return submitMemberSurvey({
       storeId,
       storeName,
@@ -181,16 +244,17 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
       generatedReview: payloadReview,
       storeFeedbackEmail: feedbackEmail,
       skipAutoMail: payloadReview === "" && rating <= 3,
+      submissionId: getSubmissionId(),
     });
   }
 
   async function copyDraftAndOpen() {
-    if (!draft) return;
+    if (!draft || submitting || sent) return;
     setSubmitting(true);
     setSubmitError(null);
     const result = await submitSurvey(draft);
-    setSubmitting(false);
     if (!result.ok) {
+      setSubmitting(false);
       setSubmitError(result.error);
       return;
     }
@@ -200,6 +264,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     } catch {
       // クリップボード制限のある環境でも、投稿導線は止めない
     }
+    setSentKind("high");
+    setSent(true);
+    setSubmitting(false);
     window.open(reviewUrl, "_blank", "noopener,noreferrer");
   }
 
@@ -238,17 +305,23 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   async function handleLowRatingSubmit() {
-    if (!rating || rating >= 4) return;
+    if (!rating || rating >= 4 || submitting || sent) return;
     setSubmitting(true);
     setSubmitError(null);
     const result = await submitSurvey("");
-    setSubmitting(false);
     if (!result.ok) {
+      setSubmitting(false);
       setSubmitError(result.error);
       return;
     }
     const draft = getLowRatingContactDraft();
-    if (!draft) return;
+    if (!draft) {
+      setSubmitting(false);
+      return;
+    }
+    setSentKind("low");
+    setSent(true);
+    setSubmitting(false);
     window.open(draft.gmailWebUrl, "_blank", "noopener,noreferrer");
   }
 
@@ -259,7 +332,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           <p className="text-4xl">🙏</p>
           <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
           <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
-            ご意見を担当者へお送りしました。
+            {sentKind === "high"
+              ? "回答を保存しました。Google口コミページで投稿をお願いします。"
+              : "回答を保存しました。Gmailで店舗へお問い合わせください。"}
           </p>
         </div>
       </div>
@@ -429,7 +504,16 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               onChange={(event) => setFullName(event.target.value)}
               placeholder="山田 太郎"
               autoComplete="name"
+              aria-invalid={alreadyAnswered}
             />
+            {respondentCheck.status === "checking" && fullName.trim().length >= 2 && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">回答状況を確認しています…</p>
+            )}
+            {respondentCheckMessage && (
+              <p className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+                {respondentCheckMessage}
+              </p>
+            )}
           </MemberFormField>
 
           <div>
@@ -472,6 +556,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="sample@example.com"
                 autoComplete="email"
+                aria-invalid={alreadyAnswered && respondentCheck.matchedBy === "email"}
               />
             </MemberFormField>
           </div>
@@ -572,7 +657,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
             <Button
               onClick={buildDraft}
-              disabled={!profileComplete || submitting}
+              disabled={!profileComplete || submitting || alreadyAnswered || respondentCheck.status === "checking"}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               口コミ用に文章を作成する
@@ -601,11 +686,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             )}
             <Button
               onClick={() => void handleLowRatingSubmit()}
-              disabled={!profileComplete || submitting}
+              disabled={!profileComplete || submitting || sent || alreadyAnswered || respondentCheck.status === "checking"}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Mail className="h-4 w-4" />
-              {submitting ? "保存中…" : "Gmailで問い合わせる"}
+              {submitting ? "保存中…" : sent ? "送信済み" : alreadyAnswered ? "回答済み" : "Gmailで問い合わせる"}
             </Button>
           </div>
         )}
@@ -669,10 +754,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             )}
             <Button
               onClick={() => void copyDraftAndOpen()}
-              disabled={submitting}
+              disabled={submitting || sent || alreadyAnswered || respondentCheck.status === "checking"}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30"
             >
-              {submitting ? "保存中…" : "口コミを投稿する"}
+              {submitting ? "保存中…" : sent ? "送信済み" : alreadyAnswered ? "回答済み" : "口コミを投稿する"}
             </Button>
           </div>
         )}
