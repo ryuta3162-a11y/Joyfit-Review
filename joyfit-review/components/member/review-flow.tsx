@@ -86,6 +86,58 @@ function localDateIsoForRecord(): string {
   return `${y}-${m}-${d}`;
 }
 
+function highRatingThankYouMessage(rating: number): string {
+  return `星${rating}の高評価ありがとうございます。`;
+}
+
+type RatingStarsProps = {
+  rating: number;
+  interactive?: boolean;
+  disabled?: boolean;
+  onSelect?: (value: number) => void;
+  emptyStarClass?: string;
+};
+
+function RatingStars({
+  rating,
+  interactive = false,
+  disabled = false,
+  onSelect,
+  emptyStarClass = "text-zinc-300",
+}: RatingStarsProps) {
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+      {stars.map((value) => {
+        const filled = value <= rating;
+        const star = (
+          <Star
+            className={`h-9 w-9 sm:h-10 sm:w-10 ${filled ? "fill-[#fbbc04] text-[#fbbc04]" : emptyStarClass}`}
+          />
+        );
+        if (interactive && onSelect) {
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onSelect(value)}
+              disabled={disabled}
+              className="rounded-lg p-1.5 transition hover:bg-zinc-100 disabled:cursor-not-allowed"
+              aria-label={`${value}つ星`}
+            >
+              {star}
+            </button>
+          );
+        }
+        return (
+          <span key={value} className="p-1.5" aria-hidden>
+            {star}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
@@ -377,9 +429,21 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
           ← 店舗選択に戻る
         </Link>
         <h1 className="relative z-[1] mt-2 text-xl font-bold md:text-2xl">{storeName}</h1>
-        <p className="relative z-[1] mx-auto mt-5 inline-block max-w-full rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
-          {brandTheme.rewardLabel}
-        </p>
+        <div className="relative z-[1] mx-auto mt-5 max-w-full text-center">
+          <p className="inline-block rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
+            {brandTheme.rewardLabel}
+          </p>
+          {brandTheme.rewardPointLearnMoreUrl && brandTheme.rewardPointLearnMoreLabel ? (
+            <a
+              href={brandTheme.rewardPointLearnMoreUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block text-[11px] font-medium text-white/90 underline underline-offset-2 transition hover:text-white"
+            >
+              {brandTheme.rewardPointLearnMoreLabel}
+            </a>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
@@ -600,32 +664,27 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         </div>
         </div>
 
-        <div
-          className={`${memberFormPanelClass} ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+        <section
+          className={`${memberFormPanelClass} text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
         >
-          <p className={`mb-3 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
-          <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
-            {stars.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => selectRating(value)}
-                disabled={formFieldsLocked}
-                className="rounded-lg p-1.5 transition hover:bg-zinc-100 disabled:cursor-not-allowed"
-                aria-label={`${value}つ星`}
-              >
-                <Star
-                  className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300"}`}
-                />
-              </button>
-            ))}
-          </div>
-          {rating && (
-            <p className="mt-2 text-xs font-semibold text-zinc-700">
-              選択中の評価: 星{rating}
-            </p>
+          <p className={`mb-4 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
+          <RatingStars
+            rating={rating ?? 0}
+            interactive
+            disabled={formFieldsLocked}
+            onSelect={selectRating}
+          />
+          {rating !== null && rating >= 4 && (
+            <>
+              <p className="mt-4 text-sm font-semibold text-zinc-900">
+                {highRatingThankYouMessage(rating)}
+              </p>
+              <p className="mt-1.5 text-xs text-zinc-500">
+                投稿時は同じ評価（星{rating}）を選択してください。
+              </p>
+            </>
           )}
-        </div>
+        </section>
 
         {canBuildGoogleDraft && (
           <div
@@ -713,14 +772,17 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         )}
 
         {isLowSelected && (
-          <div
-            className={`space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6 ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+          <section
+            className={`${memberFormPanelClass} space-y-4 text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
           >
-            <p className="text-sm font-medium text-foreground">
+            <p className={memberFormSectionTitleClass}>ご意見をお聞かせください</p>
+            <RatingStars rating={rating ?? 0} emptyStarClass="text-zinc-400" />
+            <p className="text-sm leading-relaxed text-zinc-700">
               サービス向上のため、店舗スタッフへ直接お問い合わせください。
             </p>
-            <div className="rounded-xl border border-amber-300/80 bg-white px-3 py-2 text-sm text-zinc-800">
-              現在の選択評価: <span className="font-bold text-[color:var(--joyfit-red)]">星{rating}</span>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-sm text-zinc-800">
+              現在の選択評価:{" "}
+              <span className="font-bold text-[color:var(--joyfit-red)]">星{rating}</span>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
               下記ボタンから、店舗宛のGmailへお問い合わせが可能です。
@@ -738,13 +800,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               <Mail className="h-4 w-4" />
               {submitting ? "保存中…" : sent ? "送信済み" : alreadyAnswered ? "回答済み" : "Gmailで問い合わせる"}
             </Button>
-          </div>
+          </section>
         )}
 
         {draft && isHigh && (
           <div className="space-y-5">
-            <section className={memberFormPanelClass}>
-              <div className="flex flex-col items-center gap-1 text-center">
+            <section className={`${memberFormPanelClass} text-center`}>
+              <div className="flex flex-col items-center gap-1">
                 <Image
                   src="/google-logo.png"
                   alt="Google ロゴ"
@@ -753,22 +815,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                   className="h-auto w-[140px]"
                 />
               </div>
-              <div className="mt-4 flex items-center justify-center gap-1.5">
-                {stars.map((value) => (
-                  <Star
-                    key={`preview-${value}`}
-                    className={`h-9 w-9 sm:h-10 sm:w-10 ${value <= (rating ?? 0) ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-400"}`}
-                  />
-                ))}
+              <div className="mt-4">
+                <RatingStars rating={rating ?? 0} emptyStarClass="text-zinc-400" />
               </div>
-              <p className="mt-4 text-center text-sm font-semibold text-zinc-900">
-                {rating === 5
-                  ? "星5の高評価ありがとうございます。"
-                  : rating === 4
-                    ? "星4の高評価ありがとうございます。"
-                    : `星${rating}の高評価ありがとうございます。`}
+              <p className="mt-4 text-sm font-semibold text-zinc-900">
+                {highRatingThankYouMessage(rating ?? 0)}
               </p>
-              <p className="mt-1.5 text-center text-xs text-zinc-500">
+              <p className="mt-1.5 text-xs text-zinc-500">
                 投稿時は同じ評価（星{rating}）を選択してください。
               </p>
               <div className="mt-5 border-t border-zinc-100 pt-5">

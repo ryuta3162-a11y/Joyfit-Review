@@ -23,6 +23,9 @@ export type BrandTheme = {
   rewardPointName: string;
   /** バッジに表示する特典文言 */
   rewardLabel: string;
+  /** ポイント制度の説明ページ（任意） */
+  rewardPointLearnMoreUrl?: string;
+  rewardPointLearnMoreLabel?: string;
   /** 店舗ページ上部に表示するマスコット画像（任意） */
   mascotSrc?: string;
   mascotAlt?: string;
@@ -38,6 +41,8 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     fullLabel: "JOYFIT24",
     rewardPointName: "エンジョイポイント",
     rewardLabel: "アンケート回答特典：エンジョイポイント500P付与",
+    rewardPointLearnMoreUrl: "https://joyfit.jp/pr_enjoypoint/",
+    rewardPointLearnMoreLabel: "EnjoyPointについてはこちらから",
   },
   fit365: {
     brand: "fit365",
