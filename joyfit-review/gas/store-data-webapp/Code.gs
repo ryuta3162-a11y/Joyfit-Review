@@ -36,6 +36,14 @@ function authorizeMailOnce() {
 
 function doGet(e) {
   var format = e && e.parameter ? String(e.parameter.format || "").toLowerCase() : "";
+  var action = e && e.parameter ? String(e.parameter.action || "").trim() : "";
+  if (format === "json" && action === "checkRespondent") {
+    return outputJson(
+      checkSurveyRespondent({
+        memberCode: e.parameter.memberCode,
+      }),
+    );
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
@@ -200,29 +208,25 @@ function parseCoordinate(raw) {
   return n;
 }
 
-function normalizeSurveyEmail(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
+/** 回答シートの会員番号列（1始まり・標準レイアウトではF列=6） */
+var SURVEY_MEMBER_CODE_COL = 6;
 
-function normalizeSurveyFullName(value) {
-  return String(value || "")
-    .trim()
-    .replace(/[\s\u3000]+/g, "")
-    .toLowerCase();
+function normalizeMemberCode(value) {
+  var mc = String(value || "").trim().replace(/\D/g, "");
+  if (!/^\d{10}$/.test(mc) || /^0{10}$/.test(mc)) {
+    return "";
+  }
+  return mc;
 }
 
 function checkSurveyRespondent(data) {
-  ensureRespondentIndex();
-  var emailNorm = normalizeSurveyEmail(data.email);
-  var nameNorm = normalizeSurveyFullName(data.fullName);
-  if (!emailNorm && nameNorm.length < 2) {
+  var memberCodeNorm = normalizeMemberCode(data.memberCode);
+  if (!memberCodeNorm) {
     return { ok: true, eligible: true };
   }
-  var match = findRespondentMatch(emailNorm, nameNorm);
-  if (match) {
-    return { ok: true, eligible: false, matchedBy: match.matchedBy };
+  ensureMemberCodeIndex();
+  if (isMemberCodeRecorded(memberCodeNorm)) {
+    return { ok: true, eligible: false, matchedBy: "memberCode" };
   }
   return { ok: true, eligible: true };
 }
@@ -254,8 +258,6 @@ function saveSurveyResponse(data) {
 
   var email = String(data.email || "").trim();
   var respondentFullName = String(data.fullName || "").trim();
-  var emailNorm = normalizeSurveyEmail(email);
-  var nameNorm = normalizeSurveyFullName(respondentFullName);
 
   try {
     if (submissionId && isSubmissionIdRecorded(submissionId)) {
@@ -268,10 +270,9 @@ function saveSurveyResponse(data) {
       };
     }
 
-    ensureRespondentIndex();
-    var existing = findRespondentMatch(emailNorm, nameNorm);
-    if (existing) {
-      return { ok: false, error: "already_answered", matchedBy: existing.matchedBy };
+    ensureMemberCodeIndex();
+    if (isMemberCodeRecorded(memberCode)) {
+      return { ok: false, error: "already_answered", matchedBy: "memberCode" };
     }
 
     sheet.appendRow([
@@ -296,7 +297,7 @@ function saveSurveyResponse(data) {
     if (submissionId) {
       recordSurveySubmissionId(submissionId, storeId, memberCode);
     }
-    recordRespondent(emailNorm, nameNorm, respondentFullName, email, storeId, memberCode);
+    recordMemberCode(memberCode);
 
     return {
       ok: true,
@@ -341,41 +342,67 @@ function recordSurveySubmissionId(submissionId, storeId, memberCode) {
   getSurveyDedupSheet().appendRow([submissionId, new Date(), storeId, memberCode]);
 }
 
-function getRespondentIndexSheet() {
+function getMemberCodeIndexSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("_survey_respondents");
+  var sheet = ss.getSheetByName("_survey_member_codes");
   if (!sheet) {
-    sheet = ss.insertSheet("_survey_respondents");
+    sheet = ss.insertSheet("_survey_member_codes");
     sheet.hideSheet();
-    sheet.appendRow([
-      "emailNorm",
-      "fullNameNorm",
-      "fullName",
-      "email",
-      "storeId",
-      "timestamp",
-      "memberCode",
-    ]);
+    sheet.appendRow(["memberCode"]);
   }
   return sheet;
 }
 
-function ensureRespondentIndex() {
-  var sheet = getRespondentIndexSheet();
+function ensureMemberCodeIndex() {
+  var sheet = getMemberCodeIndexSheet();
   if (sheet.getLastRow() <= 1) {
-    rebuildRespondentIndex();
+    rebuildMemberCodeIndex();
   }
 }
 
+function getMemberCodeColumnIndex(sheet) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return SURVEY_MEMBER_CODE_COL;
+  }
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < header.length; i++) {
+    var label = String(header[i] || "").trim().toLowerCase();
+    if (label === "membercode" || label.indexOf("会員") >= 0) {
+      return i + 1;
+    }
+  }
+  return SURVEY_MEMBER_CODE_COL;
+}
+
+function readMemberCodesFromAnswerSheet(sh) {
+  var lastRow = sh.getLastRow();
+  if (lastRow <= 1) {
+    return [];
+  }
+  var col = getMemberCodeColumnIndex(sh);
+  var numRows = lastRow - 1;
+  var values = sh.getRange(2, col, numRows, 1).getValues();
+  var out = [];
+  for (var i = 0; i < values.length; i++) {
+    var mc = normalizeMemberCode(values[i][0]);
+    if (mc) {
+      out.push(mc);
+    }
+  }
+  return out;
+}
+
 /**
- * 既存の「回答_*」シートから回答者インデックスを再構築（初回・手動実行用）。
+ * 既存の「回答_*」シートF列（会員番号）だけからインデックスを再構築。
+ * 初回・手動実行: rebuildMemberCodeIndex()
  */
-function rebuildRespondentIndex() {
+function rebuildMemberCodeIndex() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var indexSheet = getRespondentIndexSheet();
+  var indexSheet = getMemberCodeIndexSheet();
   var lastRow = indexSheet.getLastRow();
   if (lastRow > 1) {
-    indexSheet.getRange(2, 1, lastRow, 7).clearContent();
+    indexSheet.getRange(2, 1, lastRow - 1, 1).clearContent();
   }
 
   var seen = {};
@@ -386,59 +413,38 @@ function rebuildRespondentIndex() {
     if (String(sh.getName() || "").indexOf("回答_") !== 0) {
       continue;
     }
-    var values = sh.getDataRange().getValues();
-    for (var i = 1; i < values.length; i++) {
-      var row = values[i];
-      var fn = String(row[4] || "").trim();
-      var em = String(row[8] || "").trim();
-      var emailNorm = normalizeSurveyEmail(em);
-      var nameNorm = normalizeSurveyFullName(fn);
-      if (!emailNorm && nameNorm.length < 2) {
+    var codes = readMemberCodesFromAnswerSheet(sh);
+    for (var i = 0; i < codes.length; i++) {
+      var mc = codes[i];
+      if (seen[mc]) {
         continue;
       }
-      var dedupeKey = (emailNorm ? "e:" + emailNorm : "") + "|" + (nameNorm ? "n:" + nameNorm : "");
-      if (seen[dedupeKey]) {
-        continue;
-      }
-      seen[dedupeKey] = true;
-      rows.push([
-        emailNorm,
-        nameNorm,
-        fn,
-        em,
-        String(row[1] || ""),
-        row[0] instanceof Date ? row[0] : new Date(),
-        String(row[5] || ""),
-      ]);
+      seen[mc] = true;
+      rows.push([mc]);
     }
   }
 
   if (rows.length) {
-    indexSheet.getRange(2, 1, 1 + rows.length, 7).setValues(rows);
+    indexSheet.getRange(2, 1, rows.length, 1).setValues(rows);
   }
 }
 
-function findRespondentInIndex(emailNorm, nameNorm) {
-  var sheet = getRespondentIndexSheet();
+function isMemberCodeInIndex(memberCodeNorm) {
+  var sheet = getMemberCodeIndexSheet();
   var lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
-    return null;
+    return false;
   }
-  var values = sheet.getRange(2, 1, lastRow, 2).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   for (var i = 0; i < values.length; i++) {
-    var rowEmail = String(values[i][0] || "");
-    var rowName = String(values[i][1] || "");
-    if (emailNorm && rowEmail && rowEmail === emailNorm) {
-      return { matchedBy: "email" };
-    }
-    if (nameNorm.length >= 2 && rowName && rowName === nameNorm) {
-      return { matchedBy: "name" };
+    if (normalizeMemberCode(values[i][0]) === memberCodeNorm) {
+      return true;
     }
   }
-  return null;
+  return false;
 }
 
-function findRespondentInAnswerSheets(emailNorm, nameNorm) {
+function isMemberCodeInAnswerSheets(memberCodeNorm) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
@@ -446,47 +452,40 @@ function findRespondentInAnswerSheets(emailNorm, nameNorm) {
     if (String(sh.getName() || "").indexOf("回答_") !== 0) {
       continue;
     }
-    var lastRow = sh.getLastRow();
-    if (lastRow <= 1) {
-      continue;
-    }
-    var values = sh.getRange(2, 1, lastRow, 9).getValues();
-    for (var i = 0; i < values.length; i++) {
-      var row = values[i];
-      var rowEmailNorm = normalizeSurveyEmail(row[8]);
-      var rowNameNorm = normalizeSurveyFullName(row[4]);
-      if (emailNorm && rowEmailNorm && rowEmailNorm === emailNorm) {
-        return { matchedBy: "email" };
-      }
-      if (nameNorm.length >= 2 && rowNameNorm && rowNameNorm === nameNorm) {
-        return { matchedBy: "name" };
+    var codes = readMemberCodesFromAnswerSheet(sh);
+    for (var i = 0; i < codes.length; i++) {
+      if (codes[i] === memberCodeNorm) {
+        return true;
       }
     }
   }
-  return null;
+  return false;
 }
 
-function findRespondentMatch(emailNorm, nameNorm) {
-  var indexMatch = findRespondentInIndex(emailNorm, nameNorm);
-  if (indexMatch) {
-    return indexMatch;
+function isMemberCodeRecorded(memberCode) {
+  var memberCodeNorm = normalizeMemberCode(memberCode);
+  if (!memberCodeNorm) {
+    return false;
   }
-  return findRespondentInAnswerSheets(emailNorm, nameNorm);
+  if (isMemberCodeInIndex(memberCodeNorm)) {
+    return true;
+  }
+  return isMemberCodeInAnswerSheets(memberCodeNorm);
 }
 
-function recordRespondent(emailNorm, nameNorm, fullName, email, storeId, memberCode) {
-  if (!emailNorm && nameNorm.length < 2) {
+function recordMemberCode(memberCode) {
+  var memberCodeNorm = normalizeMemberCode(memberCode);
+  if (!memberCodeNorm || isMemberCodeInIndex(memberCodeNorm)) {
     return;
   }
-  getRespondentIndexSheet().appendRow([
-    emailNorm,
-    nameNorm,
-    fullName,
-    email,
-    storeId,
-    new Date(),
-    memberCode,
-  ]);
+  getMemberCodeIndexSheet().appendRow([memberCodeNorm]);
+}
+
+/** エディタから実行: testCheckRespondentByMemberCode("1304002222") */
+function testCheckRespondentByMemberCode(memberCode) {
+  var result = checkSurveyRespondent({ memberCode: memberCode });
+  Logger.log(JSON.stringify(result));
+  return result;
 }
 
 function getOrCreateSurveySheet(storeId, storeName) {

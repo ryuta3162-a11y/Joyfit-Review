@@ -107,18 +107,20 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [respondentCheck, setRespondentCheck] = useState<{
-    status: "idle" | "checking" | "eligible" | "already";
-    matchedBy?: "email" | "name";
+    status: "idle" | "checking" | "eligible" | "already" | "error";
+    errorMessage?: string;
   }>({ status: "idle" });
   /** 送信ボタン1回分のID。エラー時の再送は同じIDで冪等に処理する */
   const submissionIdRef = useRef<string | null>(null);
   const checkRequestIdRef = useRef(0);
 
+  const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const alreadyAnswered = respondentCheck.status === "already";
-  const respondentCheckMessage = alreadyAnswered ? "すでに回答済みです" : null;
-  const surveyLocked =
-    alreadyAnswered ||
-    (fullName.trim().length >= 2 && respondentCheck.status === "checking");
+  const respondentCheckFailed = respondentCheck.status === "error";
+  const respondentCheckPending = respondentCheck.status === "checking";
+  /** 会員番号の重複確認が通ったら、下の項目を入力可能にする */
+  const memberVerified = memberCodeOk && respondentCheck.status === "eligible";
+  const formFieldsLocked = !memberVerified && !alreadyAnswered;
 
   function getSubmissionId(): string {
     if (!submissionIdRef.current) {
@@ -131,9 +133,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   useEffect(() => {
-    const name = fullName.trim();
-    const mail = email.trim();
-    if (name.length < 2 && !/^\S+@\S+\.\S+$/.test(mail)) {
+    const code = memberCode.trim();
+    const codeReady = /^\d{10}$/.test(code) && !/^0{10}$/.test(code);
+    if (!codeReady) {
       setRespondentCheck({ status: "idle" });
       return;
     }
@@ -142,33 +144,35 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
     const requestId = ++checkRequestIdRef.current;
     const timer = window.setTimeout(() => {
       void (async () => {
-        const result = await checkSurveyRespondent({ fullName: name, email: mail });
+        const result = await checkSurveyRespondent({ memberCode: code });
         if (requestId !== checkRequestIdRef.current) return;
 
         if (result.ok && result.eligible === false) {
-          setRespondentCheck({
-            status: "already",
-            matchedBy: result.matchedBy === "email" ? "email" : "name",
-          });
+          setRespondentCheck({ status: "already" });
           return;
         }
         if (result.ok) {
           setRespondentCheck({ status: "eligible" });
           return;
         }
-        setRespondentCheck({ status: "idle" });
+        setRespondentCheck({
+          status: "error",
+          errorMessage: result.gasOutdated
+            ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
+            : result.error || "回答状況を確認できませんでした。",
+        });
       })();
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [fullName, email]);
+  }, [memberCode]);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
 
   function selectRating(value: number) {
-    if (surveyLocked) return;
+    if (formFieldsLocked || alreadyAnswered || respondentCheckPending) return;
     setRating(value);
     if (value < 4) {
       setDraft("");
@@ -190,8 +194,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   }
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
-  const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const profileComplete =
+    memberVerified &&
     fullName.trim() &&
     gender &&
     ageRange &&
@@ -225,10 +229,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
   async function submitSurvey(payloadReview: string) {
     if (!rating || !profileComplete) return { ok: false as const, error: "必須項目を入力してください。" };
     if (alreadyAnswered) {
-      return {
-        ok: false as const,
-        error: respondentCheckMessage ?? "すでにご回答いただいています。",
-      };
+      return { ok: false as const, error: "すでに回答済みです" };
+    }
+    if (!memberVerified) {
+      return { ok: false as const, error: "会員番号の確認が完了していません。" };
     }
     return submitMemberSurvey({
       storeId,
@@ -511,7 +515,30 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
               }
             />
+            {respondentCheckPending && memberCodeOk && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">情報を確認しています…</p>
+            )}
+            {memberVerified && (
+              <p className="mt-1.5 text-[11px] font-medium text-emerald-800">
+                会員番号を確認しました。以下の項目に進めます。
+              </p>
+            )}
+            {respondentCheckFailed && respondentCheck.errorMessage && (
+              <p className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+                {respondentCheck.errorMessage}
+              </p>
+            )}
           </MemberFormField>
+
+          <div
+            className={`space-y-5 transition-opacity ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+            aria-disabled={formFieldsLocked}
+          >
+            {!memberVerified && memberCodeOk && !respondentCheckPending && !alreadyAnswered && (
+              <p className="text-xs text-muted-foreground">
+                会員番号の確認が完了すると、名前・評価などの入力欄が使えるようになります。
+              </p>
+            )}
 
           <MemberFormField label="名前（フルネーム）" required>
             <Input
@@ -520,16 +547,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
               onChange={(event) => setFullName(event.target.value)}
               placeholder="山田 太郎"
               autoComplete="name"
-              aria-invalid={alreadyAnswered}
+              disabled={formFieldsLocked}
             />
-            {respondentCheck.status === "checking" && fullName.trim().length >= 2 && (
-              <p className="mt-1.5 text-[11px] text-muted-foreground">情報を確認しています…</p>
-            )}
-            {respondentCheckMessage && (
-              <p className="mt-1.5 rounded-lg border border-red-300/80 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900">
-                {respondentCheckMessage}
-              </p>
-            )}
           </MemberFormField>
 
           <div>
@@ -541,7 +560,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 <button
                   key={item}
                   type="button"
-                  onClick={() => setGender(item)}
+                  onClick={() => memberVerified && setGender(item)}
+                  disabled={formFieldsLocked}
                   className={memberFormChoiceClass(gender === item)}
                 >
                   {item}
@@ -555,6 +575,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 value={ageRange}
                 onChange={(event) => setAgeRange(event.target.value)}
                 className={memberFormInputClass}
+                disabled={formFieldsLocked}
               >
                 <option value="">年齢を選択</option>
                 {ageOptions.map((item) => (
@@ -572,24 +593,24 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="sample@example.com"
                 autoComplete="email"
-                aria-invalid={alreadyAnswered && respondentCheck.matchedBy === "email"}
+                disabled={formFieldsLocked}
               />
             </MemberFormField>
           </div>
         </div>
+        </div>
 
-        <div className={`${memberFormPanelClass} ${surveyLocked ? "pointer-events-none opacity-50" : ""}`}>
+        <div
+          className={`${memberFormPanelClass} ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+        >
           <p className={`mb-3 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
-          {respondentCheck.status === "checking" && fullName.trim().length >= 2 && (
-            <p className="mb-2 text-xs text-muted-foreground">情報を確認しています…</p>
-          )}
           <div className="flex flex-wrap justify-center gap-1 sm:justify-start">
             {stars.map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => selectRating(value)}
-                disabled={surveyLocked}
+                disabled={formFieldsLocked}
                 className="rounded-lg p-1.5 transition hover:bg-zinc-100 disabled:cursor-not-allowed"
                 aria-label={`${value}つ星`}
               >
@@ -608,7 +629,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
         {canBuildGoogleDraft && (
           <div
-            className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white ${surveyLocked ? "pointer-events-none opacity-50" : ""}`}
+            className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
           >
             <p className={memberFormSectionTitleClass}>よかった点を教えてください（複数選択可）</p>
             <div>
@@ -677,20 +698,23 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
 
             <Button
               onClick={buildDraft}
-              disabled={!profileComplete || submitting || alreadyAnswered || respondentCheck.status === "checking"}
+              disabled={!profileComplete || submitting || alreadyAnswered}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               口コミ用に文章を作成する
             </Button>
-            {!profileComplete && (
-              <p className="text-xs text-muted-foreground">※ 先に会員情報の必須項目を入力してください。</p>
+            {!memberVerified && (
+              <p className="text-xs text-muted-foreground">※ 先に会員番号の確認を完了してください。</p>
+            )}
+            {memberVerified && !profileComplete && (
+              <p className="text-xs text-muted-foreground">※ 会員情報の必須項目を入力してください。</p>
             )}
           </div>
         )}
 
         {isLowSelected && (
           <div
-            className={`space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6 ${surveyLocked ? "pointer-events-none opacity-50" : ""}`}
+            className={`space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6 ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
           >
             <p className="text-sm font-medium text-foreground">
               サービス向上のため、店舗スタッフへ直接お問い合わせください。
@@ -708,7 +732,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             )}
             <Button
               onClick={() => void handleLowRatingSubmit()}
-              disabled={!profileComplete || submitting || sent || alreadyAnswered || respondentCheck.status === "checking"}
+              disabled={!profileComplete || submitting || sent || alreadyAnswered}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Mail className="h-4 w-4" />
@@ -776,7 +800,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
             )}
             <Button
               onClick={() => void copyDraftAndOpen()}
-              disabled={submitting || sent || alreadyAnswered || respondentCheck.status === "checking"}
+              disabled={submitting || sent || alreadyAnswered || !memberVerified}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30"
             >
               {submitting ? "保存中…" : sent ? "送信済み" : alreadyAnswered ? "回答済み" : "口コミを投稿する"}
