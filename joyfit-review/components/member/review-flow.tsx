@@ -734,12 +734,14 @@ export function ReviewFlow({
           className={`${memberFormPanelClass} text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
         >
           <p className={`mb-4 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
-          <RatingStars
-            rating={rating ?? 0}
-            interactive
-            disabled={formFieldsLocked}
-            onSelect={selectRating}
-          />
+          {!isLowSelected ? (
+            <RatingStars
+              rating={rating ?? 0}
+              interactive
+              disabled={formFieldsLocked}
+              onSelect={selectRating}
+            />
+          ) : null}
           {rating !== null && rating >= 4 && (
             <>
               <p className="mt-4 text-sm font-semibold text-zinc-900">
@@ -751,12 +753,24 @@ export function ReviewFlow({
             </>
           )}
           {isLowSelected && (
-            <div className="mt-4 space-y-4">
+            <div className="mt-2 space-y-4">
               <p className="text-[15px] font-semibold leading-relaxed text-zinc-900">
-                今後のサービス向上のため
+                ご期待に沿えず申し訳ございません
                 <br />
-                店舗へお問い合わせください
+                Gmailで店舗担当へご意見をお聞かせください。
               </p>
+              <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-[15px] text-zinc-800">
+                現在の選択評価{" "}
+                <span className="font-bold text-[color:var(--joyfit-red)]">星{rating}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setRating(null)}
+                disabled={formFieldsLocked || submitting || sent}
+                className="text-[13px] font-medium text-zinc-500 underline underline-offset-2 transition hover:text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                評価を選び直す
+              </button>
               {submitError && (
                 <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
                   {submitError}
