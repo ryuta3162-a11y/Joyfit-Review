@@ -6,8 +6,8 @@ import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
-import { checkSurveyRespondent } from "@/app/actions/check-survey-respondent";
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
+import { fetchCheckRespondent, type CheckSurveyRespondentResult } from "@/lib/survey-respondent-check";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
@@ -34,6 +34,8 @@ type Props = {
   /** 店舗マスタの通知先。空のときは DEFAULT_LOW_RATING_EMAIL を使用 */
   feedbackEmail: string;
   reward: StoreRewardDisplay;
+  /** 会員番号重複確認用 GAS URL（クライアントから直接照会して応答を短縮） */
+  respondentCheckGasUrl?: string;
 };
 
 const stars = [1, 2, 3, 4, 5];
@@ -165,7 +167,16 @@ function RatingStars({
   );
 }
 
-export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, reward }: Props) {
+const respondentCheckCache = new Map<string, CheckSurveyRespondentResult>();
+
+export function ReviewFlow({
+  storeId,
+  storeName,
+  reviewUrl,
+  feedbackEmail,
+  reward,
+  respondentCheckGasUrl,
+}: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
   const [rating, setRating] = useState<number | null>(null);
@@ -220,12 +231,33 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
       return;
     }
 
+    const cached = respondentCheckCache.get(code);
+    if (cached) {
+      if (cached.ok && cached.eligible === false) {
+        setRespondentCheck({ status: "already" });
+      } else if (cached.ok) {
+        setRespondentCheck({ status: "eligible" });
+      } else {
+        setRespondentCheck({
+          status: "error",
+          errorMessage: cached.gasOutdated
+            ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
+            : cached.error || "回答状況を確認できませんでした。",
+        });
+      }
+      return;
+    }
+
     setRespondentCheck({ status: "checking" });
     const requestId = ++checkRequestIdRef.current;
     const timer = window.setTimeout(() => {
       void (async () => {
-        const result = await checkSurveyRespondent({ memberCode: code });
+        const result = respondentCheckGasUrl
+          ? await fetchCheckRespondent(respondentCheckGasUrl, code)
+          : ({ ok: false, error: "ただいま確認をお受けできません。" } as const);
         if (requestId !== checkRequestIdRef.current) return;
+
+        respondentCheckCache.set(code, result);
 
         if (result.ok && result.eligible === false) {
           setRespondentCheck({ status: "already" });
@@ -242,10 +274,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
             : result.error || "回答状況を確認できませんでした。",
         });
       })();
-    }, 350);
+    }, 100);
 
     return () => window.clearTimeout(timer);
-  }, [memberCode]);
+  }, [memberCode, respondentCheckGasUrl]);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
@@ -379,6 +411,9 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
 
   async function handleLowRatingSubmit() {
     if (!rating || rating >= 4 || submitting || sent) return;
+    const mailDraft = getLowRatingContactDraft();
+    if (!mailDraft) return;
+
     setSubmitting(true);
     setSubmitError(null);
     const result = await submitSurvey("");
@@ -387,12 +422,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
       setSubmitError(result.error);
       return;
     }
-    const draft = getLowRatingContactDraft();
-    if (!draft) {
-      setSubmitting(false);
-      return;
-    }
-    setLowRatingMailtoUrl(draft.mailtoUrl);
+    setLowRatingMailtoUrl(mailDraft.mailtoUrl);
     setSentKind("low");
     setSent(true);
     setSubmitting(false);
@@ -402,31 +432,31 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
-          <p className="text-4xl">🙏</p>
-          <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
           {sentKind === "high" ? (
-            <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
-              回答を保存しました。Google口コミページで投稿をお願いします。
-            </p>
+            <>
+              <p className="text-4xl">🙏</p>
+              <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
+              <p className="mx-auto mt-3 max-w-xs text-[15px] text-white/95">
+                回答を保存しました。Google口コミページで投稿をお願いします。
+              </p>
+            </>
           ) : (
-            <div className="mx-auto mt-4 max-w-sm space-y-4">
-              <p className="text-sm leading-relaxed text-white/95">
-                回答を保存しました。
+            <div className="mx-auto max-w-sm space-y-4">
+              <h2 className="text-xl font-bold">回答を保存しました</h2>
+              <p className="text-[15px] leading-relaxed text-white/95">
+                下記お問い合わせバナーから
                 <br />
-                下のボタンからメールアプリを開き、本文にご意見をご記入のうえ送信してください。
+                ご意見を送信してください。
               </p>
               {lowRatingMailtoUrl ? (
                 <a
                   href={lowRatingMailtoUrl}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-sm font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
                 >
                   <Mail className="h-4 w-4 shrink-0" />
                   メールアプリで問い合わせる
                 </a>
               ) : null}
-              <p className="text-[11px] leading-relaxed text-white/75">
-                Gmail をお使いの場合は、Gmail アプリが開きます。
-              </p>
             </div>
           )}
         </div>
@@ -440,7 +470,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
           <p className="text-4xl">✓</p>
           <h2 className="mt-4 text-xl font-bold">すでに回答済みです</h2>
-          <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
+          <p className="mx-auto mt-3 max-w-xs text-[15px] text-white/95">
             ご協力ありがとうございました。
           </p>
         </div>
@@ -459,13 +489,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
       <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
           href={`/${brandTheme.brand}/select-store`}
-          className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
+          className="relative z-[1] mb-3 inline-block text-[13px] font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
         >
           ← 店舗選択に戻る
         </Link>
         <h1 className="relative z-[1] mt-2 text-xl font-bold md:text-2xl">{storeName}</h1>
         <div className="relative z-[1] mx-auto mt-5 max-w-full text-center">
-          <p className="inline-block rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
+          <p className="inline-block rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[13px] font-semibold leading-tight text-white">
             {reward.rewardLabel}
           </p>
           {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel ? (
@@ -473,12 +503,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               href={reward.rewardPointLearnMoreUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 block text-[11px] font-medium text-white/90 underline underline-offset-2 transition hover:text-white"
+              className="mt-2 block text-[13px] font-medium text-white/90 underline underline-offset-2 transition hover:text-white"
             >
               {reward.rewardPointLearnMoreLabel}
             </a>
           ) : null}
-          <p className="mt-2 text-[10px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
+          <p className="mt-2 text-[12px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
         </div>
       </div>
 
@@ -488,10 +518,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
 
           <div className={memberFormGuideCardClass}>
               <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-3">
-                <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
+                <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[12px] font-bold tracking-wide text-white">
                   {isFit365 ? "FIT365 APP" : "JOYFIT APP"}
                 </span>
-                <p className="text-[13px] font-semibold tracking-tight text-zinc-900">会員番号の確認・アプリ登録</p>
+                <p className="text-[15px] font-semibold tracking-tight text-zinc-900">会員番号の確認・アプリ登録</p>
               </div>
 
               <div className="divide-y divide-zinc-100">
@@ -500,16 +530,16 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
                     className="absolute left-0 top-4 h-[calc(100%-2rem)] w-1 rounded-full bg-[color:var(--joyfit-red)]/85"
                     aria-hidden
                   />
-                  <h3 className="pl-3 text-xs font-bold text-zinc-900">会員番号の確認（必須）</h3>
+                  <h3 className="pl-3 text-[13px] font-bold text-zinc-900">会員番号の確認（必須）</h3>
                   {isFit365 ? (
-                    <p className="mt-2 pl-3 text-[11px] leading-relaxed text-zinc-600">
+                    <p className="mt-2 pl-3 text-[13px] leading-relaxed text-zinc-600">
                       左上の<strong className="font-semibold text-zinc-800">三本線メニュー</strong>
                       をタップし、<strong className="font-semibold text-zinc-800">「契約情報」</strong>で
                       <strong className="text-[color:var(--joyfit-red)]">10桁の会員番号</strong>
                       をご確認ください。
                     </p>
                   ) : (
-                    <p className="mt-2 pl-3 text-[11px] leading-relaxed text-zinc-600">
+                    <p className="mt-2 pl-3 text-[13px] leading-relaxed text-zinc-600">
                       アプリ右上の<strong className="font-semibold text-zinc-800">「サービス」</strong>
                       →<strong className="font-semibold text-zinc-800">「契約情報」</strong>で、
                       <strong className="text-[color:var(--joyfit-red)]">10桁の会員番号</strong>をご確認ください。
@@ -545,8 +575,8 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
                       className="absolute left-0 top-4 h-[calc(100%-2rem)] w-1 rounded-full bg-orange-500/90"
                       aria-hidden
                     />
-                    <h3 className="pl-3 text-xs font-bold text-zinc-900">JOYFITアプリ未登録の方</h3>
-                    <p className="mt-2 pl-3 text-[11px] leading-relaxed text-zinc-600">
+                    <h3 className="pl-3 text-[13px] font-bold text-zinc-900">JOYFITアプリ未登録の方</h3>
+                    <p className="mt-2 pl-3 text-[13px] leading-relaxed text-zinc-600">
                       下記バナーから登録が可能です
                     </p>
                     <div className="mt-3 space-y-3 pl-3">
@@ -554,11 +584,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
                         href="https://procedure.joyfit.jp/qrcode2/index.html"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex h-11 w-full items-center justify-center rounded-xl bg-orange-500 text-[12px] font-semibold text-white shadow-sm transition hover:bg-orange-600"
+                        className="flex h-11 w-full items-center justify-center rounded-xl bg-orange-500 text-[14px] font-semibold text-white shadow-sm transition hover:bg-orange-600"
                       >
                         アプリ登録ページを開く
                       </a>
-                      <p className="text-[11px] leading-relaxed text-zinc-600">
+                      <p className="text-[13px] leading-relaxed text-zinc-600">
                         ① お名前・生年月日・電話番号を入力
                         <br />
                         ②{" "}
@@ -616,15 +646,15 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               }
             />
             {respondentCheckPending && memberCodeOk && (
-              <p className="mt-1.5 text-[11px] text-muted-foreground">情報を確認しています…</p>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">情報を確認しています…</p>
             )}
             {memberVerified && (
-              <p className="mt-1.5 text-[11px] font-medium text-emerald-800">
+              <p className="mt-1.5 text-[13px] font-medium text-emerald-800">
                 会員番号を確認しました。以下の項目に進めます。
               </p>
             )}
             {respondentCheckFailed && respondentCheck.errorMessage && (
-              <p className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+              <p className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-950">
                 {respondentCheck.errorMessage}
               </p>
             )}
@@ -635,7 +665,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
             aria-disabled={formFieldsLocked}
           >
             {!memberVerified && memberCodeOk && !respondentCheckPending && !alreadyAnswered && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[13px] text-muted-foreground">
                 会員番号の確認が完了すると、名前・評価などの入力欄が使えるようになります。
               </p>
             )}
@@ -715,10 +745,38 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               <p className="mt-4 text-sm font-semibold text-zinc-900">
                 {highRatingThankYouMessage(rating)}
               </p>
-              <p className="mt-1.5 text-xs text-zinc-500">
+              <p className="mt-1.5 text-[13px] text-zinc-500">
                 投稿時は同じ評価（星{rating}）を選択してください。
               </p>
             </>
+          )}
+          {isLowSelected && (
+            <div className="mt-4 space-y-4">
+              <p className="text-[15px] font-semibold leading-relaxed text-zinc-900">
+                今後のサービス向上のため
+                <br />
+                店舗へお問い合わせください
+              </p>
+              {submitError && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+                  {submitError}
+                </p>
+              )}
+              <Button
+                onClick={() => void handleLowRatingSubmit()}
+                disabled={!profileComplete || submitting || sent || alreadyAnswered}
+                className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
+              >
+                <Mail className="h-4 w-4" />
+                {submitting
+                  ? "保存中…"
+                  : sent
+                    ? "送信済み"
+                    : alreadyAnswered
+                      ? "回答済み"
+                      : "Gmailでお問い合わせ"}
+              </Button>
+            </div>
           )}
         </section>
 
@@ -728,7 +786,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
           >
             <p className={memberFormSectionTitleClass}>よかった点を教えてください（複数選択可）</p>
             <div>
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">
+              <p className="mb-2 text-[13px] font-semibold text-muted-foreground">
                 1. メニュー・サービスで良かった点
               </p>
               <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
@@ -745,7 +803,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">2. 環境・設備で良かった点</p>
+              <p className="mb-2 text-[13px] font-semibold text-muted-foreground">2. 環境・設備で良かった点</p>
               <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {environmentOptions.map((point) => (
                   <button
@@ -760,7 +818,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">
+              <p className="mb-2 text-[13px] font-semibold text-muted-foreground">
                 3. おすすめの利用シーン（最大3つ）
               </p>
               <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
@@ -775,11 +833,11 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
                   </button>
                 ))}
               </div>
-              <p className="mt-1 text-[11px] text-muted-foreground">選択中: {scenes.length} / 3</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">選択中: {scenes.length} / 3</p>
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
+              <p className="mb-1.5 text-[13px] font-semibold text-muted-foreground">
                 その他、気に入っている点など（任意）
               </p>
               <Textarea
@@ -799,50 +857,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               口コミ用に文章を作成する
             </Button>
             {!memberVerified && (
-              <p className="text-xs text-muted-foreground">※ 先に会員番号の確認を完了してください。</p>
+              <p className="text-[13px] text-muted-foreground">※ 先に会員番号の確認を完了してください。</p>
             )}
             {memberVerified && !profileComplete && (
-              <p className="text-xs text-muted-foreground">※ 会員情報の必須項目を入力してください。</p>
+              <p className="text-[13px] text-muted-foreground">※ 会員情報の必須項目を入力してください。</p>
             )}
           </div>
-        )}
-
-        {isLowSelected && (
-          <section
-            className={`${memberFormPanelClass} space-y-4 text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
-          >
-            <p className={memberFormSectionTitleClass}>ご意見をお聞かせください</p>
-            <RatingStars rating={rating ?? 0} emptyStarClass="text-zinc-400" />
-            <p className="text-sm leading-relaxed text-zinc-700">
-              サービス向上のため、店舗スタッフへ直接お問い合わせください。
-            </p>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-sm text-zinc-800">
-              現在の選択評価:{" "}
-              <span className="font-bold text-[color:var(--joyfit-red)]">星{rating}</span>
-            </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              下記ボタンで回答を保存後、メールアプリに下書きが開きます。本文にご意見をご記入ください。
-            </p>
-            {submitError && (
-              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {submitError}
-              </p>
-            )}
-            <Button
-              onClick={() => void handleLowRatingSubmit()}
-              disabled={!profileComplete || submitting || sent || alreadyAnswered}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
-            >
-              <Mail className="h-4 w-4" />
-              {submitting
-                ? "保存中…"
-                : sent
-                  ? "送信済み"
-                  : alreadyAnswered
-                    ? "回答済み"
-                    : "回答を保存してメールを作成"}
-            </Button>
-          </section>
         )}
 
         {draft && isHigh && (
@@ -863,7 +883,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               <p className="mt-4 text-sm font-semibold text-zinc-900">
                 {highRatingThankYouMessage(rating ?? 0)}
               </p>
-              <p className="mt-1.5 text-xs text-zinc-500">
+              <p className="mt-1.5 text-[13px] text-zinc-500">
                 投稿時は同じ評価（星{rating}）を選択してください。
               </p>
               <div className="mt-5 border-t border-zinc-100 pt-5">
@@ -889,7 +909,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
             </p>
 
             {submitError && (
-              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
                 {submitError}
               </p>
             )}

@@ -328,13 +328,17 @@ function isSubmissionIdRecorded(submissionId) {
     return false;
   }
   var sheet = getSurveyDedupSheet();
-  var values = sheet.getDataRange().getValues();
-  for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0] || "") === submissionId) {
-      return true;
-    }
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return false;
   }
-  return false;
+  return (
+    sheet
+      .getRange(2, 1, lastRow - 1, 1)
+      .createTextFinder(submissionId)
+      .matchEntireCell(true)
+      .findNext() !== null
+  );
 }
 
 function recordSurveySubmissionId(submissionId, storeId, memberCode) {
@@ -437,13 +441,13 @@ function isMemberCodeInIndex(memberCodeNorm) {
   if (lastRow <= 1) {
     return false;
   }
-  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  for (var i = 0; i < values.length; i++) {
-    if (normalizeMemberCode(values[i][0]) === memberCodeNorm) {
-      return true;
-    }
-  }
-  return false;
+  return (
+    sheet
+      .getRange(2, 1, lastRow - 1, 1)
+      .createTextFinder(memberCodeNorm)
+      .matchEntireCell(true)
+      .findNext() !== null
+  );
 }
 
 function isMemberCodeInAnswerSheets(memberCodeNorm) {

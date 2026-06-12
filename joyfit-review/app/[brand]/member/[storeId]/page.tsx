@@ -47,6 +47,7 @@ export default async function BrandMemberStorePage({ params }: Props) {
         reviewUrl={store.googleReviewUrl}
         feedbackEmail={store.feedbackEmail}
         reward={reward}
+        respondentCheckGasUrl={process.env.STORES_JSON_URL?.trim() || undefined}
       />
     </MemberPageShell>
   );
