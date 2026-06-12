@@ -2,7 +2,7 @@ import { type Brand, BRAND_THEMES, detectBrand } from "@/lib/brand";
 
 /** 店舗ごとに特典が異なる場合の共通注記 */
 export const STORE_REWARD_VARIES_NOTE =
-  "※ 紹介特典は店舗によって異なる場合がございます";
+  "※ 特典内容は店舗によって異なる場合がございます";
 
 export type StoreRewardDisplay = {
   rewardLabel: string;

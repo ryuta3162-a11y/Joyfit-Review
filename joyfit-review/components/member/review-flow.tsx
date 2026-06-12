@@ -92,6 +92,31 @@ function highRatingThankYouMessage(rating: number): string {
   return `星${rating}の高評価ありがとうございます。`;
 }
 
+function buildLowRatingMailBody(storeName: string): string {
+  return [
+    `店舗名: ${storeName}`,
+    "",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "▼ この枠内にお問い合わせ内容をご記入ください ▼",
+    "（気になった点 / ご要望 / 改善してほしい点 など）",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
+  ].join("\n");
+}
+
+/** スマホのメールアプリ（Gmail含む）で下書きを開く mailto リンク */
+function buildLowRatingMailtoUrl(to: string, subject: string, body: string): string {
+  const params = new URLSearchParams();
+  params.set("subject", subject);
+  params.set("body", body);
+  return `mailto:${to}?${params.toString()}`;
+}
+
 type RatingStarsProps = {
   rating: number;
   interactive?: boolean;
@@ -158,6 +183,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState(false);
   const [sentKind, setSentKind] = useState<"high" | "low">("high");
+  const [lowRatingMailtoUrl, setLowRatingMailtoUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [respondentCheck, setRespondentCheck] = useState<{
@@ -342,25 +368,12 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
     }
     const to = recipients.join(",");
     const subject = `【${storeName}】お客様のお声`;
-    const body = [
-      `店舗名: ${storeName}`,
-      "",
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "▼ この枠内にお問い合わせ内容をご記入ください ▼",
-      "（気になった点 / ご要望 / 改善してほしい点 など）",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
-    ].join("\n");
+    const body = buildLowRatingMailBody(storeName);
     return {
       to,
       subject,
       body,
-      gmailWebUrl: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      mailtoUrl: buildLowRatingMailtoUrl(to, subject, body),
     };
   }
 
@@ -379,10 +392,10 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
       setSubmitting(false);
       return;
     }
+    setLowRatingMailtoUrl(draft.mailtoUrl);
     setSentKind("low");
     setSent(true);
     setSubmitting(false);
-    window.open(draft.gmailWebUrl, "_blank", "noopener,noreferrer");
   }
 
   if (sent) {
@@ -391,11 +404,31 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
           <p className="text-4xl">🙏</p>
           <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
-          <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
-            {sentKind === "high"
-              ? "回答を保存しました。Google口コミページで投稿をお願いします。"
-              : "回答を保存しました。Gmailで店舗へお問い合わせください。"}
-          </p>
+          {sentKind === "high" ? (
+            <p className="mx-auto mt-3 max-w-xs text-sm text-white/95">
+              回答を保存しました。Google口コミページで投稿をお願いします。
+            </p>
+          ) : (
+            <div className="mx-auto mt-4 max-w-sm space-y-4">
+              <p className="text-sm leading-relaxed text-white/95">
+                回答を保存しました。
+                <br />
+                下のボタンからメールアプリを開き、本文にご意見をご記入のうえ送信してください。
+              </p>
+              {lowRatingMailtoUrl ? (
+                <a
+                  href={lowRatingMailtoUrl}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-sm font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  メールアプリで問い合わせる
+                </a>
+              ) : null}
+              <p className="text-[11px] leading-relaxed text-white/75">
+                Gmail をお使いの場合は、Gmail アプリが開きます。
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -788,7 +821,7 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               <span className="font-bold text-[color:var(--joyfit-red)]">星{rating}</span>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              下記ボタンから、店舗宛のGmailへお問い合わせが可能です。
+              下記ボタンで回答を保存後、メールアプリに下書きが開きます。本文にご意見をご記入ください。
             </p>
             {submitError && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -801,7 +834,13 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, rewar
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               <Mail className="h-4 w-4" />
-              {submitting ? "保存中…" : sent ? "送信済み" : alreadyAnswered ? "回答済み" : "Gmailで問い合わせる"}
+              {submitting
+                ? "保存中…"
+                : sent
+                  ? "送信済み"
+                  : alreadyAnswered
+                    ? "回答済み"
+                    : "回答を保存してメールを作成"}
             </Button>
           </section>
         )}
