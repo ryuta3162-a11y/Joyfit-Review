@@ -35,8 +35,6 @@ export default function BrandSelectorPage() {
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-zinc-600">
             ご利用ブランドを選択してください。
-            <br />
-            アンケート・クチコミにご協力ください。
           </p>
           <p className="mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-zinc-500">
             {STORE_REWARD_VARIES_NOTE}

@@ -59,9 +59,6 @@ export default async function BrandHomePage({ params }: Props) {
               </h1>
             }
           >
-            <p className="relative z-[1] mx-auto mt-4 max-w-sm text-sm leading-relaxed text-white/95">
-              アンケート・クチコミにご協力ください。
-            </p>
             <div className="relative z-[1] mt-6 text-center">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
                 <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
@@ -76,9 +73,6 @@ export default async function BrandHomePage({ params }: Props) {
             <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
               アンケートページ
             </h1>
-            <p className="relative z-[1] mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
-              アンケート・クチコミにご協力ください。
-            </p>
             <div className="relative z-[1] mt-6 text-center">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
                 <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
@@ -107,11 +101,11 @@ export default async function BrandHomePage({ params }: Props) {
               </li>
               <li className="flex gap-2">
                 <span className={stepBadgeClass}>2</span>
-                <span>アンケートに回答（評価とよかった点をタップ）</span>
+                <span>お客様情報・評価をタップ→口コミを自動生成</span>
               </li>
               <li className="flex gap-2">
                 <span className={stepBadgeClass}>3</span>
-                <span>必要に応じてGoogleクチコミ投稿へ</span>
+                <span>Google口コミ投稿で特典付与</span>
               </li>
             </ul>
 
