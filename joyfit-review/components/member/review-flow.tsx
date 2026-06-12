@@ -252,9 +252,9 @@ export function ReviewFlow({
     const requestId = ++checkRequestIdRef.current;
     const timer = window.setTimeout(() => {
       void (async () => {
-        const result = respondentCheckGasUrl
+        const result: CheckSurveyRespondentResult = respondentCheckGasUrl
           ? await fetchCheckRespondent(respondentCheckGasUrl, code)
-          : ({ ok: false, error: "ただいま確認をお受けできません。" } as const);
+          : { ok: false, error: "ただいま確認をお受けできません。" };
         if (requestId !== checkRequestIdRef.current) return;
 
         respondentCheckCache.set(code, result);
@@ -269,9 +269,10 @@ export function ReviewFlow({
         }
         setRespondentCheck({
           status: "error",
-          errorMessage: result.gasOutdated
-            ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
-            : result.error || "回答状況を確認できませんでした。",
+          errorMessage:
+            "gasOutdated" in result && result.gasOutdated
+              ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
+              : result.error || "回答状況を確認できませんでした。",
         });
       })();
     }, 100);
