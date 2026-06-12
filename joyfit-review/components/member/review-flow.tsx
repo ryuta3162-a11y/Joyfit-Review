@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
+import { STORE_REWARD_VARIES_NOTE, type StoreRewardDisplay } from "@/lib/store-reward";
 import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
@@ -32,6 +33,7 @@ type Props = {
   reviewUrl: string;
   /** 店舗マスタの通知先。空のときは DEFAULT_LOW_RATING_EMAIL を使用 */
   feedbackEmail: string;
+  reward: StoreRewardDisplay;
 };
 
 const stars = [1, 2, 3, 4, 5];
@@ -138,7 +140,7 @@ function RatingStars({
   );
 }
 
-export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Props) {
+export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail, reward }: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
   const [rating, setRating] = useState<number | null>(null);
@@ -431,18 +433,19 @@ export function ReviewFlow({ storeId, storeName, reviewUrl, feedbackEmail }: Pro
         <h1 className="relative z-[1] mt-2 text-xl font-bold md:text-2xl">{storeName}</h1>
         <div className="relative z-[1] mx-auto mt-5 max-w-full text-center">
           <p className="inline-block rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-semibold leading-tight text-white">
-            {brandTheme.rewardLabel}
+            {reward.rewardLabel}
           </p>
-          {brandTheme.rewardPointLearnMoreUrl && brandTheme.rewardPointLearnMoreLabel ? (
+          {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel ? (
             <a
-              href={brandTheme.rewardPointLearnMoreUrl}
+              href={reward.rewardPointLearnMoreUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 block text-[11px] font-medium text-white/90 underline underline-offset-2 transition hover:text-white"
             >
-              {brandTheme.rewardPointLearnMoreLabel}
+              {reward.rewardPointLearnMoreLabel}
             </a>
           ) : null}
+          <p className="mt-2 text-[10px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
         </div>
       </div>
 

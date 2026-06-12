@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { ReviewFlow } from "@/components/member/review-flow";
 import { detectBrand, parseBrandParam } from "@/lib/brand";
+import { getStoreRewardDisplay } from "@/lib/store-reward";
 import { fetchStoresRemote, getStoreByIdRemote } from "@/lib/stores-remote";
 
 type Props = {
@@ -32,6 +33,12 @@ export default async function BrandMemberStorePage({ params }: Props) {
     redirect(`/${storeBrand}/member/${store.id}`);
   }
 
+  const reward = getStoreRewardDisplay({
+    storeId: store.id,
+    storeName: store.name,
+    rewardLabelFromSheet: store.rewardLabel,
+  });
+
   return (
     <MemberPageShell>
       <ReviewFlow
@@ -39,6 +46,7 @@ export default async function BrandMemberStorePage({ params }: Props) {
         storeName={store.name}
         reviewUrl={store.googleReviewUrl}
         feedbackEmail={store.feedbackEmail}
+        reward={reward}
       />
     </MemberPageShell>
   );

@@ -4,3 +4,5 @@ export const ENJOY_POINT_REWARD_LABEL = "エンジョイポイント500ポイン
 /** トップ・店舗選択ページなど店舗未確定の画面で出すバッジ文言 */
 export const SHARED_REWARD_BADGE_LABEL =
   "アンケート回答特典：エンジョイポイント / ベアレージポイント 500P付与";
+
+export { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";

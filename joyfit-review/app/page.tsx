@@ -6,6 +6,7 @@ import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
 import { BRAND_THEMES } from "@/lib/brand";
+import { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
 const cards: Array<{
   brand: "joyfit" | "fit365";
@@ -36,6 +37,9 @@ export default function BrandSelectorPage() {
             ご利用ブランドを選択してください。
             <br />
             アンケート・クチコミにご協力ください。
+          </p>
+          <p className="mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-zinc-500">
+            {STORE_REWARD_VARIES_NOTE}
           </p>
         </div>
 

@@ -51,6 +51,12 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
   const address = pickString(r, ["address", "住所", "storeAddress"]);
   const latitude = pickNumber(r, ["latitude", "lat", "緯度"]);
   const longitude = pickNumber(r, ["longitude", "lng", "lon", "経度"]);
+  const rewardLabel = pickString(r, [
+    "rewardLabel",
+    "reward_label",
+    "特典文言",
+    "特典",
+  ]);
 
   if (!name || !googleReviewUrl || !id) return null;
 
@@ -63,6 +69,7 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
     address,
     latitude,
     longitude,
+    rewardLabel,
   };
 }
 

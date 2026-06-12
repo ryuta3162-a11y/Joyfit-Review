@@ -9,7 +9,7 @@
  * シート名: 店舗データ
  *
  * 【推奨レイアウト】1行目ヘッダー例:
- *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用
+ *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用 | I 特典文言（任意）
  *
  * 【互換】C列にメールが無い旧データ:
  *   A 店舗名 | B URL | C 店舗ID | D 検索用
@@ -152,6 +152,7 @@ function readStoreRows() {
     var f = String(row[5] || "").trim();
     var g = String(row[6] || "").trim();
     var h = String(row[7] || "").trim();
+    var rewardLabel = String(row[8] || "").trim();
 
     var feedbackEmail = "";
     var id = "";
@@ -181,6 +182,7 @@ function readStoreRows() {
       address: address,
       latitude: latitude,
       longitude: longitude,
+      rewardLabel: rewardLabel,
     });
   }
 

@@ -7,6 +7,7 @@ import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { StartReviewCta } from "@/components/member/start-review-cta";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
 import { BRAND_THEMES, brandCssVars, parseBrandParam } from "@/lib/brand";
+import { getBrandTopRewardDisplay, STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
 type Props = {
   params: Promise<{ brand: string }>;
@@ -18,6 +19,7 @@ export default async function BrandHomePage({ params }: Props) {
   if (!brand) notFound();
 
   const theme = BRAND_THEMES[brand];
+  const reward = getBrandTopRewardDisplay(brand);
   const brandVars = brandCssVars(theme);
   const hasMascot = Boolean(theme.mascotSrc);
   const isFit365 = brand === "fit365";
@@ -60,11 +62,12 @@ export default async function BrandHomePage({ params }: Props) {
             <p className="relative z-[1] mx-auto mt-4 max-w-sm text-sm leading-relaxed text-white/95">
               アンケート・クチコミにご協力ください。
             </p>
-            <div className="relative z-[1] mt-6 flex justify-center">
+            <div className="relative z-[1] mt-6 text-center">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
                 <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                <span className="leading-tight">{theme.rewardLabel}</span>
+                <span className="leading-tight">{reward.rewardLabel}</span>
               </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
             </div>
           </Fit365Header>
         ) : (
@@ -76,11 +79,22 @@ export default async function BrandHomePage({ params }: Props) {
             <p className="relative z-[1] mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/95">
               アンケート・クチコミにご協力ください。
             </p>
-            <div className="relative z-[1] mt-6 flex justify-center">
+            <div className="relative z-[1] mt-6 text-center">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
                 <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                <span className="leading-tight">{theme.rewardLabel}</span>
+                <span className="leading-tight">{reward.rewardLabel}</span>
               </div>
+              {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel ? (
+                <a
+                  href={reward.rewardPointLearnMoreUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block text-[11px] font-medium text-white/90 underline underline-offset-2 hover:text-white"
+                >
+                  {reward.rewardPointLearnMoreLabel}
+                </a>
+              ) : null}
+              <p className="mt-2 text-[10px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
             </div>
           </div>
         )}

@@ -11,6 +11,8 @@ export type StoreMasterRow = {
   latitude?: number;
   /** 店舗経度（任意） */
   longitude?: number;
+  /** 店舗別特典文言（任意・未設定時はブランド既定） */
+  rewardLabel?: string;
 };
 
 /** GAS未設定・取得失敗時に使うバックアップ */
