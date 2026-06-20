@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ポイント付与管理</title>
+    <style>
+      :root {
+        --brand: #a5354b;
+        --brand-dark: #862d3d;
+        --ink: #1e293b;
+        --muted: #64748b;
+        --line: #d1d5db;
+        --surface: #ffffff;
+        --bg: #e8ecf1;
+        --shadow: 0 2px 0 rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+        --shadow-inset: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .page {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 20px 16px 48px;
+      }
+      .hero {
+        background: linear-gradient(145deg, var(--brand) 0%, var(--brand-dark) 100%);
+        color: #fff;
+        border-radius: 14px;
+        padding: 22px 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .hero h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+      .hero p {
+        margin: 10px 0 0;
+        font-size: 0.95rem;
+        opacity: 0.92;
+        line-height: 1.55;
+      }
+      .panel {
+        margin-top: 18px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+      label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      select {
+        width: 100%;
+        height: 50px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0 14px;
+        font-size: 1rem;
+        font-weight: 600;
+        background: var(--surface);
+        box-shadow: var(--shadow-inset);
+        color: var(--ink);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .stat {
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow-inset);
+      }
+      .stat b {
+        display: block;
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--ink);
+        margin-top: 4px;
+        line-height: 1.1;
+      }
+      .stat.highlight b {
+        color: var(--brand);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-top: 16px;
+      }
+      .filter-btn {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--ink);
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.05);
+      }
+      .filter-btn.active {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: var(--surface);
+        box-shadow: inset 0 0 0 1px var(--brand);
+      }
+      .status {
+        margin-top: 14px;
+        font-size: 0.95rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .status.error {
+        color: var(--brand-dark);
+      }
+      .list {
+        margin-top: 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: var(--shadow-inset);
+      }
+      .list-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .list-table th,
+      .list-table td {
+        padding: 12px 10px;
+        vertical-align: middle;
+        text-align: left;
+      }
+      .list-table th {
+        background: #f3f4f6;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--muted);
+        border-bottom: 2px solid var(--line);
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+      .list-table th.col-name,
+      .list-table th.col-code,
+      .list-table td.name-cell,
+      .list-table td.code {
+        text-align: left;
+      }
+      .list-table td.cell-center {
+        text-align: center;
+      }
+      .list-table .col-grant {
+        width: 17%;
+      }
+      .list-table .col-detail {
+        width: 11%;
+      }
+      .list-table .col-name {
+        width: 26%;
+      }
+      .list-table .col-code {
+        width: 32%;
+      }
+      .list-table .col-rating {
+        width: 14%;
+      }
+      .list-table tbody tr {
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .list-table tbody tr:last-child {
+        border-bottom: none;
+      }
+      .list-table tbody tr.granted {
+        background: #fafafa;
+      }
+      .list-table tbody tr.granted td:first-child {
+        box-shadow: inset 4px 0 0 var(--brand);
+      }
+      .name-cell .name {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--ink);
+        word-break: break-word;
+        line-height: 1.35;
+      }
+      .name-cell .date {
+        margin-top: 3px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .code {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        color: var(--ink);
+      }
+      .rating {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--brand);
+        text-align: center;
+      }
+      .grant-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        width: 100%;
+        min-width: 0;
+      }
+      .grant-cell input {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        cursor: pointer;
+        accent-color: var(--brand);
+      }
+      .grant-at {
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--muted);
+        line-height: 1.2;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .detail-cell {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+      }
+      .detail-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 52px;
+        height: 32px;
+        padding: 0 8px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--brand);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+        cursor: pointer;
+        letter-spacing: 0.02em;
+      }
+      .detail-btn:hover {
+        border-color: var(--brand);
+        background: #fafafa;
+      }
+      .detail-btn:active {
+        transform: translateY(1px);
+        box-shadow: none;
+      }
+      .empty {
+        padding: 40px 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .list-table td.empty {
+        padding: 40px 16px;
+      }
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(30, 41, 59, 0.5);
+        z-index: 50;
+        padding: 16px;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .modal-backdrop.open {
+        display: flex;
+      }
+      .modal {
+        width: min(540px, 100%);
+        max-height: 85vh;
+        overflow: auto;
+        background: var(--surface);
+        border-radius: 14px 14px 0 0;
+        padding: 22px 20px 28px;
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+      @media (min-width: 640px) {
+        .modal-backdrop {
+          align-items: center;
+        }
+        .modal {
+          border-radius: 14px;
+        }
+      }
+      .modal h2 {
+        margin: 0 0 6px;
+        font-size: 1.25rem;
+        font-weight: 800;
+      }
+      .modal .sub {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-bottom: 16px;
+        font-weight: 600;
+      }
+      .detail-grid {
+        display: grid;
+        gap: 10px;
+      }
+      .detail-item {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 0.95rem;
+        background: #fafafa;
+        box-shadow: var(--shadow-inset);
+      }
+      .detail-item dt {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--muted);
+        margin-bottom: 4px;
+        letter-spacing: 0.03em;
+      }
+      .detail-item dd {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        line-height: 1.5;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .btn {
+        flex: 1;
+        height: 48px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--brand);
+        color: #fff;
+        box-shadow: 0 2px 0 var(--brand-dark);
+      }
+      .btn-secondary {
+        background: #f3f4f6;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        border: 1px solid var(--line);
+        background: #f3f4f6;
+        color: var(--muted);
+      }
+      .badge.granted {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: var(--surface);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <h1>ポイント付与管理</h1>
+        <p>
+          店舗を選ぶと回答一覧（名前・会員番号）が日付順に表示されます。<br />
+          V列チェック = 付与済み。行をタップすると回答詳細（分析用）を表示します。
+        </p>
+      </header>
+
+      <section class="panel">
+        <label for="storeSelect">店舗を選択</label>
+        <select id="storeSelect">
+          <option value="">— 店舗を選んでください —</option>
+        </select>
+
+        <div class="stats" id="stats" hidden>
+          <div class="stat">合計 <b id="statTotal">0</b></div>
+          <div class="stat highlight">付与済 <b id="statGranted">0</b></div>
+          <div class="stat">未付与 <b id="statPending">0</b></div>
+        </div>
+
+        <div class="toolbar" id="toolbar" hidden>
+          <button type="button" class="filter-btn active" data-filter="all">すべて</button>
+          <button type="button" class="filter-btn" data-filter="pending">未付与のみ</button>
+          <button type="button" class="filter-btn" data-filter="granted">付与済のみ</button>
+        </div>
+
+        <p class="status" id="statusMsg">店舗を選択してください。</p>
+
+        <div class="list" id="listWrap" hidden>
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th class="col-grant">付与</th>
+                <th class="col-detail">詳細</th>
+                <th class="col-name">名前</th>
+                <th class="col-code">会員番号</th>
+                <th class="col-rating">星</th>
+              </tr>
+            </thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h2 id="modalTitle">回答詳細</h2>
+        <p class="sub" id="modalSub"></p>
+        <div class="detail-grid" id="detailGrid"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="modalClose">閉じる</button>
+          <button type="button" class="btn btn-primary" id="modalToggleGrant">付与済にする</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var state = {
+        stores: [],
+        sheetName: "",
+        rows: [],
+        filter: "all",
+        modalRow: null,
+      };
+
+      var els = {
+        storeSelect: document.getElementById("storeSelect"),
+        stats: document.getElementById("stats"),
+        statTotal: document.getElementById("statTotal"),
+        statGranted: document.getElementById("statGranted"),
+        statPending: document.getElementById("statPending"),
+        toolbar: document.getElementById("toolbar"),
+        statusMsg: document.getElementById("statusMsg"),
+        listWrap: document.getElementById("listWrap"),
+        listBody: document.getElementById("listBody"),
+        modalBackdrop: document.getElementById("modalBackdrop"),
+        modalTitle: document.getElementById("modalTitle"),
+        modalSub: document.getElementById("modalSub"),
+        detailGrid: document.getElementById("detailGrid"),
+        modalClose: document.getElementById("modalClose"),
+        modalToggleGrant: document.getElementById("modalToggleGrant"),
+      };
+
+      init();
+
+      function init() {
+        setStatus("店舗一覧を読み込み中…");
+        google.script.run
+          .withSuccessHandler(onStoresLoaded)
+          .withFailureHandler(onError)
+          .getPointGrantStoresForWeb();
+
+        els.storeSelect.addEventListener("change", onStoreChange);
+        els.modalClose.addEventListener("click", closeModal);
+        els.modalBackdrop.addEventListener("click", function (e) {
+          if (e.target === els.modalBackdrop) closeModal();
+        });
+        els.modalToggleGrant.addEventListener("click", toggleGrantFromModal);
+
+        document.querySelectorAll(".filter-btn").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            document.querySelectorAll(".filter-btn").forEach(function (b) {
+              b.classList.remove("active");
+            });
+            btn.classList.add("active");
+            state.filter = btn.dataset.filter || "all";
+            renderList();
+          });
+        });
+      }
+
+      function onStoresLoaded(stores) {
+        state.stores = stores || [];
+        els.storeSelect.innerHTML = '<option value="">— 店舗を選んでください —</option>';
+        state.stores.forEach(function (s) {
+          var opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = s.name + (s.hasSheet ? "" : "（回答シート未作成）");
+          opt.disabled = !s.hasSheet;
+          els.storeSelect.appendChild(opt);
+        });
+        setStatus("店舗を選択してください。");
+      }
+
+      function onStoreChange() {
+        var storeId = els.storeSelect.value;
+        if (!storeId) {
+          state.rows = [];
+          state.sheetName = "";
+          els.stats.hidden = true;
+          els.toolbar.hidden = true;
+          els.listWrap.hidden = true;
+          setStatus("店舗を選択してください。");
+          return;
+        }
+        setStatus("回答を読み込み中…");
+        els.listWrap.hidden = true;
+        google.script.run
+          .withSuccessHandler(onRowsLoaded)
+          .withFailureHandler(onError)
+          .getPointGrantRowsForWeb(storeId);
+      }
+
+      function onRowsLoaded(result) {
+        if (!result || !result.ok) {
+          setStatus(result && result.error ? result.error : "読み込みに失敗しました。", true);
+          return;
+        }
+        state.sheetName = result.sheetName;
+        state.rows = result.rows || [];
+        updateStats(result.stats);
+        els.stats.hidden = false;
+        els.toolbar.hidden = false;
+        els.listWrap.hidden = false;
+        setStatus(state.rows.length ? "計 " + state.rows.length + " 件（新しい順）" : "回答データはまだありません。");
+        renderList();
+      }
+
+      function updateStats(stats) {
+        stats = stats || { total: 0, granted: 0, pending: 0 };
+        els.statTotal.textContent = stats.total;
+        els.statGranted.textContent = stats.granted;
+        els.statPending.textContent = stats.pending;
+      }
+
+      function renderList() {
+        var filtered = state.rows.filter(function (row) {
+          if (state.filter === "pending") return !row.granted;
+          if (state.filter === "granted") return row.granted;
+          return true;
+        });
+
+        if (!filtered.length) {
+          els.listBody.innerHTML =
+            '<tr><td class="empty" colspan="5">表示するデータがありません。</td></tr>';
+          return;
+        }
+
+        els.listBody.innerHTML = "";
+        filtered.forEach(function (row) {
+          var tr = document.createElement("tr");
+          tr.className = row.granted ? "granted" : "";
+          tr.dataset.rowIndex = String(row.rowIndex);
+
+          var tdGrant = document.createElement("td");
+          tdGrant.className = "cell-center";
+          var grantCell = document.createElement("div");
+          grantCell.className = "grant-cell";
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !!row.granted;
+          cb.title = "ポイント付与済";
+          cb.addEventListener("click", function (e) {
+            e.stopPropagation();
+            setGranted(row.rowIndex, cb.checked);
+          });
+          grantCell.appendChild(cb);
+          if (row.granted && row.grantedAt) {
+            var grantAt = document.createElement("span");
+            grantAt.className = "grant-at";
+            grantAt.textContent = row.grantedAt;
+            grantCell.appendChild(grantAt);
+          }
+          tdGrant.appendChild(grantCell);
+
+          var tdDetail = document.createElement("td");
+          tdDetail.className = "cell-center";
+          var detailCell = document.createElement("div");
+          detailCell.className = "detail-cell";
+          var detailBtn = document.createElement("button");
+          detailBtn.type = "button";
+          detailBtn.className = "detail-btn";
+          detailBtn.textContent = "詳細";
+          detailBtn.title = "回答の詳細を見る";
+          detailBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            openDetail(row.rowIndex);
+          });
+          detailCell.appendChild(detailBtn);
+          tdDetail.appendChild(detailCell);
+
+          var tdName = document.createElement("td");
+          tdName.className = "name-cell";
+          var name = document.createElement("div");
+          name.className = "name";
+          name.textContent = row.fullName || "（名前なし）";
+          var date = document.createElement("div");
+          date.className = "date";
+          date.textContent = row.timestamp || "";
+          tdName.appendChild(name);
+          tdName.appendChild(date);
+
+          var tdCode = document.createElement("td");
+          tdCode.className = "code";
+          tdCode.textContent = row.memberCode || "—";
+
+          var tdRating = document.createElement("td");
+          tdRating.className = "rating cell-center";
+          tdRating.textContent = row.rating ? "★" + row.rating : "—";
+
+          tr.appendChild(tdGrant);
+          tr.appendChild(tdDetail);
+          tr.appendChild(tdName);
+          tr.appendChild(tdCode);
+          tr.appendChild(tdRating);
+
+          els.listBody.appendChild(tr);
+        });
+      }
+
+      function setGranted(rowIndex, granted) {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) {
+              alert(res && res.error ? res.error : "更新に失敗しました。");
+              onStoreChange();
+              return;
+            }
+            var row = state.rows.find(function (r) {
+              return r.rowIndex === rowIndex;
+            });
+            if (row) {
+              row.granted = granted;
+              row.grantedAt = res.grantedAt || "";
+            }
+            if (state.modalRow && state.modalRow.rowIndex === rowIndex) {
+              state.modalRow.granted = granted;
+              state.modalRow.grantedAt = res.grantedAt || "";
+            }
+            var stats = {
+              total: state.rows.length,
+              granted: state.rows.filter(function (r) {
+                return r.granted;
+              }).length,
+              pending: 0,
+            };
+            stats.pending = stats.total - stats.granted;
+            updateStats(stats);
+            renderList();
+          })
+          .withFailureHandler(onError)
+          .setPointGrantedForWeb(state.sheetName, rowIndex, granted);
+      }
+
+      function openDetail(rowIndex) {
+        setStatus("詳細を読み込み中…");
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) {
+              setStatus(res && res.error ? res.error : "詳細の取得に失敗しました。", true);
+              return;
+            }
+            showModal(res.detail);
+            var storeId = els.storeSelect.value;
+            if (storeId) {
+              setStatus("計 " + state.rows.length + " 件（新しい順）");
+            }
+          })
+          .withFailureHandler(onError)
+          .getPointGrantRowDetailForWeb(state.sheetName, rowIndex);
+      }
+
+      function showModal(detail) {
+        state.modalRow = detail;
+        els.modalTitle.textContent = detail.fullName || "回答詳細";
+        els.modalSub.innerHTML =
+          (detail.timestamp || "") +
+          ' <span class="badge' +
+          (detail.granted ? " granted" : "") +
+          '">' +
+          (detail.granted ? "付与済" : "未付与") +
+          "</span>";
+
+        var fields = [
+          ["会員番号", detail.memberCode],
+          ["付与日時", detail.grantedAt],
+          ["評価（星）", detail.rating],
+          ["性別", detail.gender],
+          ["年齢", detail.ageRange],
+          ["メール", detail.email],
+          ["来店日", detail.visitDate],
+          ["良かった点", detail.positives],
+          ["利用シーン", detail.useScenes],
+          ["自由記述", detail.freeComment],
+          ["生成口コミ文", detail.generatedReview],
+          ["送信ID", detail.submissionId],
+        ];
+
+        els.detailGrid.innerHTML = "";
+        fields.forEach(function (pair) {
+          if (!pair[1]) return;
+          var item = document.createElement("dl");
+          item.className = "detail-item";
+          item.innerHTML = "<dt>" + pair[0] + "</dt><dd>" + escapeHtml(String(pair[1])) + "</dd>";
+          els.detailGrid.appendChild(item);
+        });
+
+        els.modalToggleGrant.textContent = detail.granted ? "未付与に戻す" : "付与済にする";
+        els.modalBackdrop.classList.add("open");
+        els.modalBackdrop.setAttribute("aria-hidden", "false");
+      }
+
+      function closeModal() {
+        els.modalBackdrop.classList.remove("open");
+        els.modalBackdrop.setAttribute("aria-hidden", "true");
+        state.modalRow = null;
+      }
+
+      function toggleGrantFromModal() {
+        if (!state.modalRow) return;
+        var next = !state.modalRow.granted;
+        setGranted(state.modalRow.rowIndex, next);
+        state.modalRow.granted = next;
+        state.modalRow.grantedAt = next ? state.modalRow.grantedAt : "";
+        els.modalToggleGrant.textContent = next ? "未付与に戻す" : "付与済にする";
+        var badge = els.modalSub.querySelector(".badge");
+        if (badge) {
+          badge.textContent = next ? "付与済" : "未付与";
+          badge.className = "badge" + (next ? " granted" : "");
+        }
+      }
+
+      function setStatus(msg, isError) {
+        els.statusMsg.textContent = msg;
+        els.statusMsg.className = isError ? "status error" : "status";
+      }
+
+      function onError(err) {
+        setStatus(String(err && err.message ? err.message : err), true);
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+    </script>
+  </body>
+</html>

@@ -64,3 +64,5 @@ npm run build
 - `lib/brand.ts` … ブランド判定・カラー・特典文言
 - `lib/stores-remote.ts` … 店舗 JSON の取得
 - `gas/store-data-webapp/` … スプレッドシート連携用 GAS（エディタにコピーしてデプロイ）
+  - `index.html` … 会員向け口コミフロー（GAS単体版）
+  - `points.html` … **ポイント付与管理**（`?page=points` で表示）
