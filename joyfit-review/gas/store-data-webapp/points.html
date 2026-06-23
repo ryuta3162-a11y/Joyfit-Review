@@ -171,8 +171,16 @@
       .list-table th.col-name,
       .list-table th.col-code,
       .list-table td.name-cell,
-      .list-table td.code {
+      .list-table td.code-cell {
         text-align: left;
+      }
+      .list-table th.col-code .col-hint {
+        display: block;
+        margin-top: 2px;
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0;
       }
       .list-table td.cell-center {
         text-align: center;
@@ -201,7 +209,7 @@
       .list-table tbody tr.granted {
         background: #fafafa;
       }
-      .list-table tbody tr.granted td:first-child {
+      .list-table tbody tr.granted td.cell-grant {
         box-shadow: inset 4px 0 0 var(--brand);
       }
       .name-cell .name {
@@ -217,12 +225,37 @@
         font-weight: 600;
         color: var(--muted);
       }
-      .code {
+      .code-copy {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 11.5rem;
+        min-height: 38px;
+        padding: 7px 12px;
         font-family: ui-monospace, "SF Mono", Consolas, monospace;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.04em;
         color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+        cursor: pointer;
+        transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+      }
+      .code-copy:hover {
+        border-color: var(--brand);
+        background: #fafafa;
+      }
+      .code-copy:active {
+        transform: translateY(1px);
+        box-shadow: none;
+      }
+      .code-copy:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       .rating {
         font-size: 1rem;
@@ -439,11 +472,14 @@
           <table class="list-table">
             <thead>
               <tr>
+                <th class="col-rating">星</th>
                 <th class="col-grant">付与</th>
                 <th class="col-detail">詳細</th>
                 <th class="col-name">名前</th>
-                <th class="col-code">会員番号</th>
-                <th class="col-rating">星</th>
+                <th class="col-code">
+                  会員番号
+                  <span class="col-hint">（タップでコピー・付与）</span>
+                </th>
               </tr>
             </thead>
             <tbody id="listBody"></tbody>
@@ -593,7 +629,7 @@
           tr.dataset.rowIndex = String(row.rowIndex);
 
           var tdGrant = document.createElement("td");
-          tdGrant.className = "cell-center";
+          tdGrant.className = "cell-center cell-grant";
           var grantCell = document.createElement("div");
           grantCell.className = "grant-cell";
           var cb = document.createElement("input");
@@ -641,18 +677,32 @@
           tdName.appendChild(date);
 
           var tdCode = document.createElement("td");
-          tdCode.className = "code";
-          tdCode.textContent = row.memberCode || "—";
+          tdCode.className = "code-cell";
+          var memberCode = row.memberCode || "";
+          var codeBtn = document.createElement("button");
+          codeBtn.type = "button";
+          codeBtn.className = "code-copy";
+          codeBtn.textContent = memberCode || "—";
+          codeBtn.title = memberCode ? "会員番号をコピー" : "";
+          if (!memberCode) {
+            codeBtn.disabled = true;
+          } else {
+            codeBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              copyMemberCode(memberCode, row.rowIndex, !!row.granted);
+            });
+          }
+          tdCode.appendChild(codeBtn);
 
           var tdRating = document.createElement("td");
           tdRating.className = "rating cell-center";
           tdRating.textContent = row.rating ? "★" + row.rating : "—";
 
+          tr.appendChild(tdRating);
           tr.appendChild(tdGrant);
           tr.appendChild(tdDetail);
           tr.appendChild(tdName);
           tr.appendChild(tdCode);
-          tr.appendChild(tdRating);
 
           els.listBody.appendChild(tr);
         });
@@ -768,6 +818,44 @@
           badge.textContent = next ? "付与済" : "未付与";
           badge.className = "badge" + (next ? " granted" : "");
         }
+      }
+
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            var ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+            if (ok) resolve();
+            else reject(new Error("copy failed"));
+          } catch (err) {
+            document.body.removeChild(ta);
+            reject(err);
+          }
+        });
+      }
+
+      function copyMemberCode(code, rowIndex, alreadyGranted) {
+        var text = String(code || "").trim();
+        if (!text) return;
+        copyText(text)
+          .then(function () {
+            if (!alreadyGranted && rowIndex) {
+              setGranted(rowIndex, true);
+            }
+          })
+          .catch(function () {
+            alert("コピーできませんでした。会員番号: " + text);
+          });
       }
 
       function setStatus(msg, isError) {
