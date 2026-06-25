@@ -66,66 +66,77 @@ type ReviewPattern = {
   lines: Array<(input: ReviewDraftInput) => string | "">;
 };
 
-/** 口コミ生成：3パターンからランダムに1つ採用 */
-const reviewDraftPatterns: ReviewPattern[] = [
-  {
-  lines: [
-    (i) =>
-      i.service.length
-        ? `サービス面では${formatPhraseList(i.service)}が特に気に入りました。`
-        : "",
-    (i) =>
-      i.environment.length
-        ? `環境・設備は${formatPhraseList(i.environment)}が魅力です。`
-        : "",
-    (i) =>
-      i.audience.length
-        ? `おすすめ：${i.audience.join("、")}`
-        : "",
-    () => "今後も通い続けたいジムだと感じました。",
-  ],
-  },
-  {
-  lines: [
-    (i) => {
-      const service = formatPhraseList(i.service);
-      const env = formatPhraseList(i.environment);
-      if (!service && !env) return "";
-      if (service && env) return `${service}の点が印象的で、${env}も気に入っています。`;
-      if (service) return `${service}の点がとても印象的でした。`;
-      return `${env}の点がとても気に入りました。`;
-    },
-    (i) =>
-      i.audience.length
-        ? `${i.audience.join("、")}といった方にぴったりだと思います。`
-        : "",
-    () => "また利用したいと思えるジムです。",
-  ],
-  },
-  {
-  lines: [
-    (i) => {
-      const service = formatPhraseList(i.service);
-      const env = formatPhraseList(i.environment);
-      if (!service && !env) return "館内が使いやすく、通いやすいと感じました。";
-      const parts: string[] = [];
-      if (service) parts.push(`利用してみて${service}を実感しました`);
-      if (env) parts.push(`施設は${env}も魅力です`);
-      return parts.join("。") + "。";
-    },
-    (i) =>
-      i.audience.length ? `特におすすめなのは、${i.audience.join("、")}です。` : "",
-    () => "これからも続けて通いたいです。",
-  ],
-  },
-];
-
-/** 選択肢を自然な日本語でつなぐ（最大2つ想定） */
-export function formatPhraseList(items: string[]): string {
+/** 口コミ文用：選択肢を読点・「や」で列挙（「AとBが」にならない） */
+export function formatEnumPhrases(items: string[]): string {
   const list = items.filter(Boolean);
   if (list.length === 0) return "";
   if (list.length === 1) return list[0];
-  return `${list[0]}と${list[1]}`;
+  return `${list.slice(0, -1).join("、")}や${list[list.length - 1]}`;
+}
+
+/** 口コミ生成：3パターンからランダムに1つ採用 */
+const reviewDraftPatterns: ReviewPattern[] = [
+  {
+    lines: [
+      (i) =>
+        i.service.length
+          ? `サービス面は、${formatEnumPhrases(i.service)}などが特に気に入りました。`
+          : "",
+      (i) =>
+        i.environment.length
+          ? `環境・設備は、${formatEnumPhrases(i.environment)}などが魅力です。`
+          : "",
+      (i) =>
+        i.audience.length
+          ? `こんな方におすすめです：${i.audience.join("、")}`
+          : "",
+      () => "今後も通い続けたいジムだと感じました。",
+    ],
+  },
+  {
+    lines: [
+      (i) => {
+        const parts: string[] = [];
+        if (i.service.length) {
+          parts.push(`${formatEnumPhrases(i.service)}など、サービス面が印象的でした`);
+        }
+        if (i.environment.length) {
+          parts.push(`${formatEnumPhrases(i.environment)}など、設備面も気に入っています`);
+        }
+        return parts.join("。") + (parts.length ? "。" : "");
+      },
+      (i) =>
+        i.audience.length
+          ? `${formatEnumPhrases(i.audience)}といった方にぴったりだと思います。`
+          : "",
+      () => "また利用したいと思えるジムです。",
+    ],
+  },
+  {
+    lines: [
+      (i) => {
+        const parts: string[] = [];
+        if (i.service.length) {
+          parts.push(`利用してみて、${formatEnumPhrases(i.service)}などが良いと感じました`);
+        }
+        if (i.environment.length) {
+          parts.push(`施設は${formatEnumPhrases(i.environment)}なども魅力です`);
+        }
+        if (!parts.length) return "館内が使いやすく、通いやすいと感じました。";
+        return parts.join("。") + "。";
+      },
+      (i) =>
+        i.audience.length
+          ? `こんな方におすすめです：${i.audience.join("、")}`
+          : "",
+      () => "これからも続けて通いたいです。",
+    ],
+  },
+];
+
+/** @deprecated 口コミ生成では formatEnumPhrases を使用 */
+export function formatPhraseList(items: string[]): string {
+  return formatEnumPhrases(items);
 }
 
 export function buildReviewDraft(input: ReviewDraftInput): string {
