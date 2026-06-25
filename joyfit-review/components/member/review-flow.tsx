@@ -1,6 +1,6 @@
 "use client";
 
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
@@ -25,6 +25,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { STORE_REWARD_VARIES_NOTE, type StoreRewardDisplay } from "@/lib/store-reward";
+import {
+  buildReviewDraft,
+  environmentOptions,
+  MAX_PICKS_PER_SECTION,
+  menuServiceOptions,
+  reviewSectionLabels,
+  sceneOptions,
+  shuffleOptions,
+  toggleLimitedPick,
+} from "@/lib/review-survey-options";
 import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
@@ -41,42 +51,6 @@ type Props = {
 const stars = [1, 2, 3, 4, 5];
 const genderOptions = ["男性", "女性", "その他"] as const;
 const ageOptions = ["10代", "20代", "30代", "40代", "50代", "60代以上"] as const;
-const menuServiceOptions = [
-  "24時間いつでも通える",
-  "年中無休で利用しやすい",
-  "全国のJOYFITを相互利用可能",
-  "初心者向けのオリエンテーション",
-  "マシンの使い方を丁寧にサポート",
-  "スタッフによる丁寧なサポート",
-  "パーソナルトレーニング対応",
-  "目的別のトレーニング相談が可能",
-  "本格的なフリーウエイト設備",
-  "使いやすいスミスマシン",
-  "有酸素マシンが豊富で使いやすい",
-] as const;
-const environmentOptions = [
-  "駅・周辺から通いやすい立地",
-  "24時間安心のセキュリティ",
-  "清掃が行き届いた清潔な館内",
-  "落ち着いて集中できる環境",
-  "整理整頓されたマシンエリア",
-  "無料の鍵付きロッカー設置",
-  "全館フリーWi-Fi完備",
-  "土足利用可能で手間なく通える",
-  "広々としたストレッチエリア",
-] as const;
-const sceneOptions = [
-  "24時間ジムを探している方に",
-  "自分のペースでトレーニング",
-  "仕事帰りにサクッと筋トレ",
-  "運動不足にお悩みの方に",
-  "スキマ時間に体を動かしたい",
-  "運動でストレス発散したい方に",
-  "安心安全に夜間利用したい",
-  "理想の体型を目指したい方に",
-  "健康維持にジムを使いたい",
-  "全国のJOYFITを活用したい方に",
-] as const;
 const notoSansJp = Noto_Sans_JP({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
@@ -179,6 +153,9 @@ export function ReviewFlow({
 }: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
+  const shuffledMenuOptions = useMemo(() => shuffleOptions(menuServiceOptions), []);
+  const shuffledEnvOptions = useMemo(() => shuffleOptions(environmentOptions), []);
+  const shuffledSceneOptions = useMemo(() => shuffleOptions(sceneOptions), []);
   const [rating, setRating] = useState<number | null>(null);
   const [menuPoints, setMenuPoints] = useState<string[]>([]);
   const [envPoints, setEnvPoints] = useState<string[]>([]);
@@ -292,19 +269,22 @@ export function ReviewFlow({
     }
   }
 
-  function toggleList(point: string, setter: Dispatch<SetStateAction<string[]>>) {
-    setter((current) =>
-      current.includes(point) ? current.filter((item) => item !== point) : [...current, point],
-    );
+  function toggleMenuPoint(point: string) {
+    setMenuPoints((current) => toggleLimitedPick(current, point));
+  }
+
+  function toggleEnvPoint(point: string) {
+    setEnvPoints((current) => toggleLimitedPick(current, point));
   }
 
   function toggleScene(scene: string) {
-    setScenes((current) => {
-      if (current.includes(scene)) return current.filter((item) => item !== scene);
-      if (current.length >= 3) return current;
-      return [...current, scene];
-    });
+    setScenes((current) => toggleLimitedPick(current, scene));
   }
+
+  const showReviewStep2 = menuPoints.length > 0;
+  const showReviewStep3 = envPoints.length > 0;
+  const reviewPicksReady =
+    menuPoints.length > 0 && envPoints.length > 0 && scenes.length > 0;
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
   const profileComplete =
@@ -319,22 +299,12 @@ export function ReviewFlow({
   function buildDraft() {
     if (!rating || !profileComplete || alreadyAnswered) return;
 
-    const picked = allPositives.slice(0, 3);
-    const sceneLine = scenes.length ? `おすすめの利用シーン: ${scenes.join("、")}` : "";
-    const goodPoints =
-      picked.length > 0
-        ? `良かった点は、${picked.join("、")}です。`
-        : "館内が使いやすく、継続して通いやすいと感じました。";
-    const extra = feedback.trim();
-
-    const body = [
-      goodPoints,
-      sceneLine,
-      extra,
-      "今後も継続して利用したいと思います。",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const body = buildReviewDraft({
+      service: menuPoints,
+      environment: envPoints,
+      audience: scenes,
+      freeComment: feedback,
+    });
 
     setDraft(body);
   }
@@ -797,58 +767,125 @@ export function ReviewFlow({
 
         {canBuildGoogleDraft && (
           <div
-            className={`space-y-4 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+            className={`space-y-5 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
           >
-            <p className={memberFormSectionTitleClass}>よかった点を教えてください（複数選択可）</p>
             <div>
-              <p className="mb-2 text-[13px] font-semibold text-muted-foreground">
-                1. メニュー・サービスで良かった点
+              <p className={memberFormSectionTitleClass}>口コミの材料を選んでください</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                ①②③の順に、それぞれ最大{MAX_PICKS_PER_SECTION}つずつタップしてください。
               </p>
-              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-                {menuServiceOptions.map((point) => (
-                  <button
-                    key={point}
-                    type="button"
-                    onClick={() => toggleList(point, setMenuPoints)}
-                    className={memberFormTagClass(menuPoints.includes(point))}
-                  >
-                    {point}
-                  </button>
-                ))}
-              </div>
             </div>
-            <div>
-              <p className="mb-2 text-[13px] font-semibold text-muted-foreground">2. 環境・設備で良かった点</p>
-              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-                {environmentOptions.map((point) => (
-                  <button
-                    key={point}
-                    type="button"
-                    onClick={() => toggleList(point, setEnvPoints)}
-                    className={memberFormTagClass(envPoints.includes(point))}
-                  >
-                    {point}
-                  </button>
-                ))}
+
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)] text-sm font-bold text-white">
+                    1
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold text-zinc-900">
+                      {reviewSectionLabels.service}
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-muted-foreground">
+                      最大{MAX_PICKS_PER_SECTION}つまで選べます（{menuPoints.length} /{" "}
+                      {MAX_PICKS_PER_SECTION}）
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {shuffledMenuOptions.map((point) => (
+                    <button
+                      key={point}
+                      type="button"
+                      onClick={() => toggleMenuPoint(point)}
+                      disabled={
+                        !menuPoints.includes(point) &&
+                        menuPoints.length >= MAX_PICKS_PER_SECTION
+                      }
+                      className={memberFormTagClass(menuPoints.includes(point))}
+                    >
+                      {point}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <p className="mb-2 text-[13px] font-semibold text-muted-foreground">
-                3. おすすめの利用シーン（最大3つ）
-              </p>
-              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-                {sceneOptions.map((scene) => (
-                  <button
-                    key={scene}
-                    type="button"
-                    onClick={() => toggleScene(scene)}
-                    className={memberFormTagClass(scenes.includes(scene))}
-                  >
-                    {scene}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1 text-[13px] text-muted-foreground">選択中: {scenes.length} / 3</p>
+
+              {showReviewStep2 ? (
+                <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)] text-sm font-bold text-white">
+                      2
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-semibold text-zinc-900">
+                        {reviewSectionLabels.environment}
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-muted-foreground">
+                        最大{MAX_PICKS_PER_SECTION}つまで選べます（{envPoints.length} /{" "}
+                        {MAX_PICKS_PER_SECTION}）
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                    {shuffledEnvOptions.map((point) => (
+                      <button
+                        key={point}
+                        type="button"
+                        onClick={() => toggleEnvPoint(point)}
+                        disabled={
+                          !envPoints.includes(point) &&
+                          envPoints.length >= MAX_PICKS_PER_SECTION
+                        }
+                        className={memberFormTagClass(envPoints.includes(point))}
+                      >
+                        {point}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-3 text-[13px] text-muted-foreground">
+                  ①を選ぶと、②{reviewSectionLabels.environment}が表示されます。
+                </p>
+              )}
+
+              {showReviewStep3 ? (
+                <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--joyfit-red)] text-sm font-bold text-white">
+                      3
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-semibold text-zinc-900">
+                        {reviewSectionLabels.audience}
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-muted-foreground">
+                        最大{MAX_PICKS_PER_SECTION}つまで選べます（{scenes.length} /{" "}
+                        {MAX_PICKS_PER_SECTION}）
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                    {shuffledSceneOptions.map((scene) => (
+                      <button
+                        key={scene}
+                        type="button"
+                        onClick={() => toggleScene(scene)}
+                        disabled={
+                          !scenes.includes(scene) && scenes.length >= MAX_PICKS_PER_SECTION
+                        }
+                        className={memberFormTagClass(scenes.includes(scene))}
+                      >
+                        {scene}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : showReviewStep2 ? (
+                <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-3 text-[13px] text-muted-foreground">
+                  ②を選ぶと、③{reviewSectionLabels.audience}が表示されます。
+                </p>
+              ) : null}
             </div>
 
             <div>
@@ -866,11 +903,16 @@ export function ReviewFlow({
 
             <Button
               onClick={buildDraft}
-              disabled={!profileComplete || submitting || alreadyAnswered}
+              disabled={!profileComplete || !reviewPicksReady || submitting || alreadyAnswered}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
               口コミ用に文章を作成する
             </Button>
+            {!reviewPicksReady && memberVerified && profileComplete && (
+              <p className="text-[13px] text-muted-foreground">
+                ※ ①②③それぞれ1つ以上選ぶと、文章を作成できます。
+              </p>
+            )}
             {!memberVerified && (
               <p className="text-[13px] text-muted-foreground">※ 先に会員番号の確認を完了してください。</p>
             )}
