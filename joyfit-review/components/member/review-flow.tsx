@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
-import { fetchCheckRespondent, type CheckSurveyRespondentResult } from "@/lib/survey-respondent-check";
+import { fetchCheckRespondent, type CheckSurveyRespondentResult, warmupRespondentCheckGas } from "@/lib/survey-respondent-check";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
@@ -25,6 +25,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { STORE_REWARD_VARIES_NOTE, type StoreRewardDisplay } from "@/lib/store-reward";
+import {
+  REVIEW_GOOGLE_POST_FLOW_NOTE,
+  REVIEW_REWARD_ON_GOOGLE_POST_NOTE,
+} from "@/lib/member-reward-copy";
 import {
   buildReviewDraft,
   environmentOptions,
@@ -200,6 +204,14 @@ export function ReviewFlow({
     return submissionIdRef.current;
   }
 
+  const checkAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (respondentCheckGasUrl) {
+      warmupRespondentCheckGas(respondentCheckGasUrl);
+    }
+  }, [respondentCheckGasUrl]);
+
   useEffect(() => {
     const code = memberCode.trim();
     const codeReady = /^\d{10}$/.test(code) && !/^0{10}$/.test(code);
@@ -227,34 +239,41 @@ export function ReviewFlow({
 
     setRespondentCheck({ status: "checking" });
     const requestId = ++checkRequestIdRef.current;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const result: CheckSurveyRespondentResult = respondentCheckGasUrl
-          ? await fetchCheckRespondent(respondentCheckGasUrl, code)
-          : { ok: false, error: "ただいま確認をお受けできません。" };
-        if (requestId !== checkRequestIdRef.current) return;
+    checkAbortRef.current?.abort();
+    const controller = new AbortController();
+    checkAbortRef.current = controller;
 
-        respondentCheckCache.set(code, result);
+    void (async () => {
+      const result: CheckSurveyRespondentResult = respondentCheckGasUrl
+        ? await fetchCheckRespondent(respondentCheckGasUrl, code, controller.signal)
+        : { ok: false, error: "ただいま確認をお受けできません。" };
+      if (requestId !== checkRequestIdRef.current) return;
 
-        if (result.ok && result.eligible === false) {
-          setRespondentCheck({ status: "already" });
-          return;
-        }
-        if (result.ok) {
-          setRespondentCheck({ status: "eligible" });
-          return;
-        }
-        setRespondentCheck({
-          status: "error",
-          errorMessage:
-            "gasOutdated" in result && result.gasOutdated
-              ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
-              : result.error || "回答状況を確認できませんでした。",
-        });
-      })();
-    }, 100);
+      respondentCheckCache.set(code, result);
 
-    return () => window.clearTimeout(timer);
+      if (result.ok && result.eligible === false) {
+        setRespondentCheck({ status: "already" });
+        return;
+      }
+      if (result.ok) {
+        setRespondentCheck({ status: "eligible" });
+        return;
+      }
+      if (result.error === "確認を中断しました。") {
+        return;
+      }
+      setRespondentCheck({
+        status: "error",
+        errorMessage:
+          "gasOutdated" in result && result.gasOutdated
+            ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
+            : result.error || "回答状況を確認できませんでした。",
+      });
+    })();
+
+    return () => {
+      controller.abort();
+    };
   }, [memberCode, respondentCheckGasUrl]);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
@@ -410,6 +429,9 @@ export function ReviewFlow({
               <p className="mx-auto mt-3 max-w-xs text-[15px] text-white/95">
                 回答を保存しました。Google口コミページで投稿をお願いします。
               </p>
+              <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/85">
+                {REVIEW_REWARD_ON_GOOGLE_POST_NOTE}
+              </p>
             </>
           ) : (
             <div className="mx-auto max-w-sm space-y-4">
@@ -480,6 +502,9 @@ export function ReviewFlow({
             </a>
           ) : null}
           <p className="mt-2 text-[12px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
+          <p className="mx-auto mt-1.5 max-w-md text-[12px] leading-relaxed text-white/90">
+            {REVIEW_REWARD_ON_GOOGLE_POST_NOTE}
+          </p>
         </div>
       </div>
 
@@ -617,7 +642,9 @@ export function ReviewFlow({
               }
             />
             {respondentCheckPending && memberCodeOk && (
-              <p className="mt-1.5 text-[13px] text-muted-foreground">情報を確認しています…</p>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">
+                確認しています。少々お待ちください。
+              </p>
             )}
             {memberVerified && (
               <p className="mt-1.5 text-[13px] font-medium text-emerald-800">
@@ -959,11 +986,11 @@ export function ReviewFlow({
               />
             </section>
 
-            <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm leading-relaxed text-zinc-700">
-              コピー用文面は口コミページ移動時、自動でコピーされます。
-              <br />
-              そのまま貼り付けてください。
-            </p>
+            <div className="space-y-1.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm leading-relaxed text-zinc-700">
+              {REVIEW_GOOGLE_POST_FLOW_NOTE.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
 
             {submitError && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">

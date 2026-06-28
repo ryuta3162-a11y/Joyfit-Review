@@ -13,6 +13,18 @@ export function buildCheckRespondentUrl(gasUrl: string, memberCode: string): str
   return `${base}?${params.toString()}`;
 }
 
+/** GASウェブアプリのコールドスタートを先に済ませる（本番チェックのロジックは変えない） */
+export function warmupRespondentCheckGas(gasUrl: string): void {
+  const base = gasUrl.replace(/\/$/, "");
+  void fetch(`${base}?format=json`, {
+    method: "GET",
+    redirect: "follow",
+    cache: "no-store",
+  }).catch(() => {
+    // ウォームアップ失敗は本番チェックに影響させない
+  });
+}
+
 export function parseCheckRespondentResponse(json: unknown): CheckSurveyRespondentResult | null {
   if (Array.isArray(json)) {
     return { ok: false, error: "GASが古いバージョンです", gasOutdated: true };
@@ -37,6 +49,7 @@ export function parseCheckRespondentResponse(json: unknown): CheckSurveyResponde
 export async function fetchCheckRespondent(
   gasUrl: string,
   memberCode: string,
+  signal?: AbortSignal,
 ): Promise<CheckSurveyRespondentResult> {
   const code = memberCode.trim().replace(/\D/g, "").slice(0, 10);
   if (!/^\d{10}$/.test(code) || /^0{10}$/.test(code)) {
@@ -48,6 +61,7 @@ export async function fetchCheckRespondent(
       method: "GET",
       redirect: "follow",
       cache: "no-store",
+      signal,
     });
     const getText = await getRes.text();
     let getJson: unknown = null;
@@ -71,6 +85,7 @@ export async function fetchCheckRespondent(
         memberCode: code,
       }),
       cache: "no-store",
+      signal,
     });
 
     const postText = await postRes.text();
@@ -87,7 +102,10 @@ export async function fetchCheckRespondent(
     }
 
     return { ok: false, error: "GASが古いバージョンです", gasOutdated: true };
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return { ok: false, error: "確認を中断しました。" };
+    }
     return { ok: false, error: "確認に失敗しました。" };
   }
 }
