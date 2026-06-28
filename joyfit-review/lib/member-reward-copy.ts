@@ -53,7 +53,7 @@ export function getGooglePostConsentSteps(input: {
       key: "draft",
       stepNumber: 2,
       question: "以下の文面で投稿します。お間違いないですか？",
-      hint: `「${REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}」をタップすると、この文面が自動でコピーされます。`,
+      hint: "必要に応じて、上の編集欄で文面を変更できます。",
       affirmLabel: "はい、この文面で投稿します",
     },
     {
@@ -61,7 +61,7 @@ export function getGooglePostConsentSteps(input: {
       stepNumber: 3,
       question: rewardLines.join(""),
       questionLines: rewardLines,
-      hint: `同じ星評価（星${input.rating}）を選び、コピーした文章を貼り付けて投稿すれば完了です。`,
+      hint: "投稿が完了すると、特典が付与されます。",
       affirmLabel: "はい、内容を確認しました",
     },
   ];
@@ -69,6 +69,6 @@ export function getGooglePostConsentSteps(input: {
 
 export const GOOGLE_POST_CONSENT_PANEL_TITLE = "投稿前の確認";
 export const GOOGLE_POST_CONSENT_PANEL_SUBTITLE =
-  "3項目すべてにチェックを入れてから、ページ移動ボタンをタップしてください。";
+  "以下の3項目を確認し、チェックを入れてください。";
 export const GOOGLE_POST_CONSENT_PROGRESS_HINT =
   "すべての項目にチェックを入れると、ボタンが使えるようになります。";

@@ -128,7 +128,7 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
                 "overflow-hidden rounded-xl border transition-all duration-300",
                 locked && "opacity-45",
                 checked
-                  ? "border-[color:var(--joyfit-red)]/28 bg-gradient-to-br from-[color:var(--joyfit-red)]/[0.07] via-white to-white shadow-[0_3px_12px_rgba(165,53,75,0.1)]"
+                  ? "border-[color:var(--joyfit-red)]/35 bg-gradient-to-br from-[color:var(--brand-soft)]/22 via-[color:var(--joyfit-red)]/10 to-white shadow-[0_0_0_1px_rgba(255,255,255,0.8),0_4px_18px_rgba(165,53,75,0.14)] ring-1 ring-[color:var(--brand-soft)]/40"
                   : unlocked
                     ? "border-zinc-200/90 bg-white shadow-[0_2px_8px_rgba(24,24,27,0.04)]"
                     : "border-zinc-100 bg-zinc-50/80",
@@ -137,7 +137,7 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
               <div
                 className={cn(
                   "flex items-center gap-2.5 border-b px-4 py-2.5",
-                  checked ? "border-[color:var(--joyfit-red)]/12 bg-[color:var(--joyfit-red)]/[0.03]" : "border-zinc-100/80",
+                  checked ? "border-[color:var(--brand-soft)]/25 bg-[color:var(--brand-soft)]/10" : "border-zinc-100/80",
                 )}
               >
                 <span
@@ -191,7 +191,7 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
                     "group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all duration-300",
                     locked && "cursor-not-allowed",
                     checked
-                      ? "border-[color:var(--joyfit-red)]/35 bg-gradient-to-b from-[color:var(--joyfit-red)]/10 to-[color:var(--joyfit-red)]/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_2px_6px_rgba(165,53,75,0.1)]"
+                      ? "border-[color:var(--joyfit-red)]/40 bg-gradient-to-b from-[color:var(--brand-soft)]/28 to-[color:var(--joyfit-red)]/14 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_2px_8px_rgba(165,53,75,0.12)] ring-1 ring-[color:var(--brand-soft)]/35"
                       : unlocked
                         ? "border-zinc-200/90 bg-gradient-to-b from-white to-zinc-50/80 shadow-[0_1px_0_rgba(255,255,255,0.9),inset_0_1px_2px_rgba(0,0,0,0.03)] hover:border-[color:var(--joyfit-red)]/30 hover:from-white hover:to-[color:var(--joyfit-red)]/[0.04]"
                         : "border-zinc-100 bg-zinc-50",

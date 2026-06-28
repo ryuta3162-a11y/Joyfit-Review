@@ -650,7 +650,7 @@ export function ReviewFlow({
               </p>
             )}
             {memberVerified && (
-              <p className="mt-1.5 text-[13px] font-medium text-emerald-800">
+              <p className="mt-1.5 text-[13px] font-medium text-[color:var(--joyfit-red-dark)]">
                 会員番号を確認しました。以下の項目に進めます。
               </p>
             )}
