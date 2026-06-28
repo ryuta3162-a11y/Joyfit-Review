@@ -4,9 +4,20 @@ import { cn } from "@/lib/utils";
 export const memberFormCardClass =
   "overflow-hidden rounded-2xl border border-zinc-100/90 bg-white shadow-[0_2px_12px_rgba(24,24,27,0.05),0_1px_3px_rgba(165,53,75,0.08)]";
 
-/** フォーム内の白パネル */
+/** フォーム内の白パネル（店舗選択など、カード内でさらに区切りたい画面用） */
 export const memberFormPanelClass =
   "rounded-2xl border border-zinc-100/90 bg-white p-5 shadow-[0_1px_6px_rgba(24,24,27,0.04)] md:p-6";
+
+/** 外枠カード内ボディ（口コミフローなど） */
+export const memberFormBodyClass =
+  "space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-4 md:p-6";
+
+/** 外枠カード内のセクション（内側の白パネルなし） */
+export const memberFormSectionClass = "space-y-5";
+
+/** 2つ目以降のセクション */
+export const memberFormSectionDividerClass =
+  "space-y-5 border-t border-zinc-200/80 pt-8";
 
 /** アプリ案内の入れ子カード */
 export const memberFormGuideCardClass =

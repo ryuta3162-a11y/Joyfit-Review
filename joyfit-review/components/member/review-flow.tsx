@@ -19,10 +19,12 @@ import { MemberFormField } from "@/components/member/member-form-field";
 import {
   memberFormCardClass,
   memberFormChoiceClass,
+  memberFormBodyClass,
   memberFormGuideCardClass,
   memberFormInputClass,
   memberFormLabelClass,
-  memberFormPanelClass,
+  memberFormSectionClass,
+  memberFormSectionDividerClass,
   memberFormSectionTitleClass,
   memberFormTagClass,
   memberFormTextareaClass,
@@ -511,8 +513,8 @@ export function ReviewFlow({
         </div>
       </div>
 
-      <div className="space-y-8 border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white p-5 md:p-8">
-        <div className={`space-y-5 ${memberFormPanelClass}`}>
+      <div className={memberFormBodyClass}>
+        <section className={memberFormSectionClass}>
           <p className={memberFormSectionTitleClass}>会員情報の入力</p>
 
           <div className={memberFormGuideCardClass}>
@@ -728,11 +730,10 @@ export function ReviewFlow({
               />
             </MemberFormField>
           </div>
-        </div>
-        </div>
+        </section>
 
         <section
-          className={`${memberFormPanelClass} text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+          className={`${memberFormSectionDividerClass} text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
         >
           <p className={`mb-4 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
           {!isLowSelected ? (
@@ -796,8 +797,8 @@ export function ReviewFlow({
         </section>
 
         {canBuildGoogleDraft && (
-          <div
-            className={`space-y-5 ${memberFormPanelClass} bg-gradient-to-b from-zinc-50/40 to-white ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
+          <section
+            className={`${memberFormSectionDividerClass} ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
           >
             <div>
               <p className={memberFormSectionTitleClass}>口コミの材料を選んでください</p>
@@ -949,12 +950,12 @@ export function ReviewFlow({
             {memberVerified && !profileComplete && (
               <p className="text-[13px] text-muted-foreground">※ 会員情報の必須項目を入力してください。</p>
             )}
-          </div>
+          </section>
         )}
 
         {draft && isHigh && (
-          <div className="space-y-5">
-            <section className={`${memberFormPanelClass} text-center`}>
+          <>
+            <section className={`${memberFormSectionDividerClass} text-center`}>
               <div className="flex flex-col items-center gap-1">
                 <Image
                   src="/google-logo.png"
@@ -989,7 +990,7 @@ export function ReviewFlow({
               />
             </section>
 
-            <section className={`${memberFormPanelClass} space-y-4`}>
+            <section className={`${memberFormSectionDividerClass} space-y-4`}>
               <GooglePostConsentPanel
                 rating={rating ?? 0}
                 draft={draft}
@@ -1021,7 +1022,7 @@ export function ReviewFlow({
                       : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
               </Button>
             </section>
-          </div>
+          </>
         )}
 
       </div>
