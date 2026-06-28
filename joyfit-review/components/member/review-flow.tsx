@@ -32,9 +32,8 @@ import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
-  getReviewGooglePostInstructions,
+  getGooglePostRewardLines,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
-  REVIEW_REWARD_ON_GOOGLE_POST_NOTE,
 } from "@/lib/member-reward-copy";
 import {
   buildReviewDraft,
@@ -434,6 +433,7 @@ export function ReviewFlow({
   }
 
   if (sent) {
+    const rewardLines = getGooglePostRewardLines(reward.rewardLabel);
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
@@ -445,7 +445,9 @@ export function ReviewFlow({
                 回答を保存しました。Google口コミページで投稿をお願いします。
               </p>
               <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/85">
-                {REVIEW_REWARD_ON_GOOGLE_POST_NOTE}
+                {rewardLines[0]}
+                <br />
+                {rewardLines[1]}
               </p>
             </>
           ) : (
@@ -505,19 +507,6 @@ export function ReviewFlow({
         <div className="relative z-[1] mx-auto mt-5 max-w-full text-center">
           <p className="inline-block rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[13px] font-semibold leading-tight text-white">
             {reward.rewardLabel}
-          </p>
-          {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel ? (
-            <a
-              href={reward.rewardPointLearnMoreUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block text-[13px] font-medium text-white/90 underline underline-offset-2 transition hover:text-white"
-            >
-              {reward.rewardPointLearnMoreLabel}
-            </a>
-          ) : null}
-          <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-white/90">
-            {REVIEW_REWARD_ON_GOOGLE_POST_NOTE}
           </p>
         </div>
       </div>
@@ -1001,14 +990,6 @@ export function ReviewFlow({
             </section>
 
             <section className={`${memberFormPanelClass} space-y-4`}>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-4 text-left text-[14px] leading-relaxed text-zinc-800">
-                {getReviewGooglePostInstructions(rating ?? 0).map((line) => (
-                  <p key={line} className={line === getReviewGooglePostInstructions(rating ?? 0)[0] ? "" : "mt-2"}>
-                    {line}
-                  </p>
-                ))}
-              </div>
-
               <GooglePostConsentPanel
                 rating={rating ?? 0}
                 draft={draft}
