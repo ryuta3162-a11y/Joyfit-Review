@@ -44,6 +44,7 @@ export function getGooglePostConsentSteps(input: {
   rewardLabel: string;
 }): GooglePostConsentStep[] {
   const benefit = getReviewRewardBenefitText(input.rewardLabel);
+  const rewardMessage = `Google口コミページで投稿することで、${benefit}が付与されます`;
 
   return [
     {
@@ -63,9 +64,9 @@ export function getGooglePostConsentSteps(input: {
     {
       key: "reward",
       stepNumber: 3,
-      question: `口コミページへ移動し投稿すると、${benefit}が付与されます。理解しましたか？`,
-      hint: REVIEW_REWARD_ON_GOOGLE_POST_NOTE,
-      affirmLabel: "はい、理解しました",
+      question: rewardMessage,
+      hint: "特典は投稿完了後に付与されます。",
+      affirmLabel: "はい、内容を確認しました",
     },
   ];
 }

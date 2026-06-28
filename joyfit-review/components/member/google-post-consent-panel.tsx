@@ -140,7 +140,14 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
                 >
                   {checked ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : step.stepNumber}
                 </span>
-                <p className="text-[13px] font-semibold leading-snug text-zinc-800">{step.question}</p>
+                <p
+                  className={cn(
+                    "text-[13px] font-semibold leading-snug text-zinc-800",
+                    step.key === "reward" && "leading-relaxed",
+                  )}
+                >
+                  {step.question}
+                </p>
               </div>
 
               <div className="px-4 py-3">
@@ -158,19 +165,6 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
                     <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-zinc-700">
                       {draft.trim() || "（文面が空です）"}
                     </p>
-                  </div>
-                )}
-
-                {step.key === "reward" && (
-                  <div className="mb-3 rounded-lg border border-[color:var(--joyfit-red)]/20 bg-[color:var(--joyfit-red)]/5 px-3.5 py-3">
-                    <p className="text-center text-sm font-bold leading-snug text-[color:var(--joyfit-red-dark)]">
-                      {reward.rewardLabel}
-                    </p>
-                    {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel && (
-                      <p className="mt-1.5 text-center text-xs text-zinc-500">
-                        {reward.rewardPointLearnMoreLabel}
-                      </p>
-                    )}
                   </div>
                 )}
 
