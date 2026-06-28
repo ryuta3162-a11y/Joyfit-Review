@@ -47,23 +47,25 @@ function ConsentStars({ rating }: { rating: number }) {
   );
 }
 
-/** 非常ボタン風のシンプルな確認マーク */
-function ConsentEmergencyMark({ checked }: { checked: boolean }) {
+/** 四角いチェックボックス（タップ位置が分かりやすい） */
+function ConsentCheckbox({ checked }: { checked: boolean }) {
   return (
     <span
       className={cn(
-        "relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors duration-200",
         checked
-          ? "bg-[color:var(--joyfit-red)] shadow-[0_2px_8px_rgba(165,53,75,0.28)]"
-          : "bg-white shadow-[inset_0_0_0_3px_var(--joyfit-red)]",
+          ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)]"
+          : "border-zinc-500 bg-white",
       )}
       aria-hidden
     >
-      {checked ? (
-        <Check className="h-4 w-4 text-white" strokeWidth={3} />
-      ) : (
-        <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--joyfit-red)]" />
-      )}
+      <Check
+        className={cn(
+          "h-4 w-4 text-white transition-opacity duration-200",
+          checked ? "opacity-100" : "opacity-0",
+        )}
+        strokeWidth={3}
+      />
     </span>
   );
 }
@@ -83,14 +85,9 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
     <div className="w-full space-y-6">
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-[inset_0_0_0_3px_var(--joyfit-red)]">
-              <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--joyfit-red)]" />
-            </span>
-            <p className="text-base font-bold tracking-tight text-zinc-900 md:text-[17px]">
-              {GOOGLE_POST_CONSENT_PANEL_TITLE}
-            </p>
-          </div>
+          <p className="text-base font-bold tracking-tight text-zinc-900 md:text-[17px]">
+            {GOOGLE_POST_CONSENT_PANEL_TITLE}
+          </p>
           <span
             className={cn(
               "shrink-0 text-sm font-bold tabular-nums",
@@ -156,14 +153,25 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
                 disabled={locked}
                 onClick={() => onToggle(step.key)}
                 className={cn(
-                  "group flex w-full items-start gap-3.5 py-1 text-left transition-colors duration-200",
+                  "group -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-3 rounded-lg px-1 py-2.5 text-left transition-colors duration-200",
                   locked && "cursor-not-allowed",
-                  checked ? "text-[color:var(--joyfit-red-dark)]" : "text-zinc-900",
+                  !locked && !checked && "hover:bg-zinc-50/90",
+                  checked && "text-[color:var(--joyfit-red-dark)]",
                 )}
-                aria-pressed={checked}
+                aria-checked={checked}
+                role="checkbox"
               >
-                <ConsentEmergencyMark checked={checked} />
-                <span className="pt-0.5 text-[16px] font-semibold leading-snug">{step.affirmLabel}</span>
+                <ConsentCheckbox checked={checked} />
+                <span
+                  className={cn(
+                    "text-[16px] font-semibold leading-snug",
+                    !checked &&
+                      !locked &&
+                      "underline decoration-zinc-300 underline-offset-[5px] group-hover:decoration-[color:var(--joyfit-red)]/45",
+                  )}
+                >
+                  {step.affirmLabel}
+                </span>
               </button>
             </li>
           );
