@@ -990,7 +990,7 @@ export function ReviewFlow({
               />
             </section>
 
-            <section className={`${memberFormSectionDividerClass} space-y-4`}>
+            <section className={`${memberFormSectionDividerClass} space-y-5`}>
               <GooglePostConsentPanel
                 rating={rating ?? 0}
                 draft={draft}
