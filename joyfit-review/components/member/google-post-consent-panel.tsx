@@ -47,24 +47,23 @@ function ConsentStars({ rating }: { rating: number }) {
   );
 }
 
-function ConsentCheckbox({ checked }: { checked: boolean }) {
+/** 非常ボタン風のシンプルな確認マーク */
+function ConsentEmergencyMark({ checked }: { checked: boolean }) {
   return (
     <span
       className={cn(
-        "relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-all duration-200",
+        "relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200",
         checked
-          ? "border-[color:var(--joyfit-red-dark)] bg-[color:var(--joyfit-red)]"
-          : "border-zinc-400 bg-white",
+          ? "bg-[color:var(--joyfit-red)] shadow-[0_2px_8px_rgba(165,53,75,0.28)]"
+          : "bg-white shadow-[inset_0_0_0_3px_var(--joyfit-red)]",
       )}
       aria-hidden
     >
-      <Check
-        className={cn(
-          "h-4 w-4 text-white transition-all duration-200",
-          checked ? "scale-100 opacity-100" : "scale-75 opacity-0",
-        )}
-        strokeWidth={3}
-      />
+      {checked ? (
+        <Check className="h-4 w-4 text-white" strokeWidth={3} />
+      ) : (
+        <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--joyfit-red)]" />
+      )}
     </span>
   );
 }
@@ -83,10 +82,15 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
   return (
     <div className="w-full space-y-6">
       <div className="space-y-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-base font-bold tracking-tight text-zinc-900 md:text-[17px]">
-            {GOOGLE_POST_CONSENT_PANEL_TITLE}
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-[inset_0_0_0_3px_var(--joyfit-red)]">
+              <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--joyfit-red)]" />
+            </span>
+            <p className="text-base font-bold tracking-tight text-zinc-900 md:text-[17px]">
+              {GOOGLE_POST_CONSENT_PANEL_TITLE}
+            </p>
+          </div>
           <span
             className={cn(
               "shrink-0 text-sm font-bold tabular-nums",
@@ -99,7 +103,7 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
           </span>
         </div>
         <p className="text-[15px] leading-relaxed text-zinc-600">{GOOGLE_POST_CONSENT_PANEL_SUBTITLE}</p>
-        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
+        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100/80">
           <div
             className="h-full rounded-full bg-[color:var(--joyfit-red)] transition-all duration-500 ease-out"
             style={{ width: `${progressPercent}%` }}
@@ -107,8 +111,8 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
         </div>
       </div>
 
-      <ol className="w-full space-y-0">
-        {steps.map((step, index) => {
+      <ol className="w-full space-y-8">
+        {steps.map((step) => {
           const checked = consents[step.key];
           const unlocked = isStepUnlocked(step.key);
           const locked = !unlocked;
@@ -116,11 +120,7 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
           return (
             <li
               key={step.key}
-              className={cn(
-                "w-full space-y-3 border-t border-zinc-200/80 py-6",
-                index === 0 && "border-t-0 pt-0",
-                locked && "opacity-45",
-              )}
+              className={cn("w-full space-y-3", locked && "opacity-45")}
             >
               {step.questionLines ? (
                 <p className="w-full text-[16px] font-semibold leading-relaxed text-zinc-900">
@@ -144,7 +144,7 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
               )}
 
               {step.key === "draft" && (
-                <p className="w-full whitespace-pre-wrap border-l-[3px] border-[color:var(--joyfit-red)]/40 pl-3 text-[15px] leading-relaxed text-zinc-800">
+                <p className="w-full whitespace-pre-wrap pl-0.5 text-[15px] leading-relaxed text-zinc-800">
                   {draft.trim() || "（文面が空です）"}
                 </p>
               )}
@@ -156,14 +156,14 @@ export function GooglePostConsentPanel({ rating, draft, reward, consents, onTogg
                 disabled={locked}
                 onClick={() => onToggle(step.key)}
                 className={cn(
-                  "group flex w-full items-start gap-3 py-1 text-left transition-colors duration-200",
+                  "group flex w-full items-start gap-3.5 py-1 text-left transition-colors duration-200",
                   locked && "cursor-not-allowed",
                   checked ? "text-[color:var(--joyfit-red-dark)]" : "text-zinc-900",
                 )}
                 aria-pressed={checked}
               >
-                <ConsentCheckbox checked={checked} />
-                <span className="text-[16px] font-semibold leading-snug">{step.affirmLabel}</span>
+                <ConsentEmergencyMark checked={checked} />
+                <span className="pt-0.5 text-[16px] font-semibold leading-snug">{step.affirmLabel}</span>
               </button>
             </li>
           );

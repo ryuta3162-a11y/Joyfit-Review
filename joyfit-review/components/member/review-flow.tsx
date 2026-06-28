@@ -990,7 +990,7 @@ export function ReviewFlow({
               />
             </div>
 
-            <div className="space-y-5 border-t border-zinc-200/80 pt-8">
+            <div className="mt-8 space-y-5">
               <GooglePostConsentPanel
                 rating={rating ?? 0}
                 draft={draft}

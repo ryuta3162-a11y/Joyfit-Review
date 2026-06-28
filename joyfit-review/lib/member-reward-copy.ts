@@ -68,7 +68,6 @@ export function getGooglePostConsentSteps(input: {
 }
 
 export const GOOGLE_POST_CONSENT_PANEL_TITLE = "投稿前の確認";
-export const GOOGLE_POST_CONSENT_PANEL_SUBTITLE =
-  "以下の3項目を確認し、チェックを入れてください。";
+export const GOOGLE_POST_CONSENT_PANEL_SUBTITLE = "3項目を確認 → チェックをしてください";
 export const GOOGLE_POST_CONSENT_PROGRESS_HINT =
   "すべての項目にチェックを入れると、ボタンが使えるようになります。";
