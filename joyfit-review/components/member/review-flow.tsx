@@ -24,9 +24,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
-import { STORE_REWARD_VARIES_NOTE, type StoreRewardDisplay } from "@/lib/store-reward";
+import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
-  REVIEW_GOOGLE_POST_FLOW_NOTE,
+  getReviewGooglePostConsentLabel,
+  getReviewGooglePostInstructions,
+  REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   REVIEW_REWARD_ON_GOOGLE_POST_NOTE,
 } from "@/lib/member-reward-copy";
 import {
@@ -173,6 +175,7 @@ export function ReviewFlow({
   const recordedVisitDate = useMemo(() => localDateIsoForRecord(), []);
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
+  const [googlePostAgreed, setGooglePostAgreed] = useState(false);
   const [sent, setSent] = useState(false);
   const [sentKind, setSentKind] = useState<"high" | "low">("high");
   const [lowRatingMailtoUrl, setLowRatingMailtoUrl] = useState<string | null>(null);
@@ -276,6 +279,10 @@ export function ReviewFlow({
     };
   }, [memberCode, respondentCheckGasUrl]);
 
+  useEffect(() => {
+    setGooglePostAgreed(false);
+  }, [draft]);
+
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
@@ -285,6 +292,7 @@ export function ReviewFlow({
     setRating(value);
     if (value < 4) {
       setDraft("");
+      setGooglePostAgreed(false);
     }
   }
 
@@ -501,8 +509,7 @@ export function ReviewFlow({
               {reward.rewardPointLearnMoreLabel}
             </a>
           ) : null}
-          <p className="mt-2 text-[12px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
-          <p className="mx-auto mt-1.5 max-w-md text-[12px] leading-relaxed text-white/90">
+          <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-white/90">
             {REVIEW_REWARD_ON_GOOGLE_POST_NOTE}
           </p>
         </div>
@@ -986,24 +993,54 @@ export function ReviewFlow({
               />
             </section>
 
-            <div className="space-y-1.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm leading-relaxed text-zinc-700">
-              {REVIEW_GOOGLE_POST_FLOW_NOTE.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </div>
+            <section className={`${memberFormPanelClass} space-y-4`}>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-4 text-left text-[14px] leading-relaxed text-zinc-800">
+                {getReviewGooglePostInstructions(rating ?? 0).map((line) => (
+                  <p key={line} className={line === getReviewGooglePostInstructions(rating ?? 0)[0] ? "" : "mt-2"}>
+                    {line}
+                  </p>
+                ))}
+              </div>
 
-            {submitError && (
-              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
-                {submitError}
-              </p>
-            )}
-            <Button
-              onClick={() => void copyDraftAndOpen()}
-              disabled={submitting || sent || alreadyAnswered || !memberVerified}
-              className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30"
-            >
-              {submitting ? "保存中…" : sent ? "送信済み" : alreadyAnswered ? "回答済み" : "口コミを投稿する"}
-            </Button>
+              <button
+                type="button"
+                onClick={() => setGooglePostAgreed((v) => !v)}
+                className={`${memberFormChoiceClass(googlePostAgreed)} w-full text-left text-[13px] leading-snug`}
+              >
+                <span className="block font-bold">
+                  {googlePostAgreed ? "✓ 確認しました" : "タップして確認"}
+                </span>
+                <span className="mt-1 block font-semibold leading-relaxed">
+                  {getReviewGooglePostConsentLabel(reward.rewardLabel)}
+                </span>
+              </button>
+
+              {submitError && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+                  {submitError}
+                </p>
+              )}
+              {!googlePostAgreed && (
+                <p className="text-center text-[13px] text-muted-foreground">
+                  上のボックスをタップして確認すると、ボタンが使えるようになります。
+                </p>
+              )}
+              <Button
+                onClick={() => void copyDraftAndOpen()}
+                disabled={
+                  submitting || sent || alreadyAnswered || !memberVerified || !googlePostAgreed
+                }
+                className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30 disabled:bg-zinc-300 disabled:text-zinc-500 disabled:opacity-100 disabled:shadow-none"
+              >
+                {submitting
+                  ? "保存中…"
+                  : sent
+                    ? "移動済み"
+                    : alreadyAnswered
+                      ? "回答済み"
+                      : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
+              </Button>
+            </section>
           </div>
         )}
 
