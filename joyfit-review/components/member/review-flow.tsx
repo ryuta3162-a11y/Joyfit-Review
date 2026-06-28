@@ -954,8 +954,8 @@ export function ReviewFlow({
         )}
 
         {draft && isHigh && (
-          <>
-            <section className={`${memberFormSectionDividerClass} text-center`}>
+          <section className={`${memberFormSectionDividerClass} space-y-8`}>
+            <div className="text-center">
               <div className="flex flex-col items-center gap-1">
                 <Image
                   src="/google-logo.png"
@@ -988,9 +988,9 @@ export function ReviewFlow({
                 rows={7}
                 className={`mt-3 ${memberFormTextareaClass} leading-[1.75]`}
               />
-            </section>
+            </div>
 
-            <section className={`${memberFormSectionDividerClass} space-y-5`}>
+            <div className="space-y-5 border-t border-zinc-200/80 pt-8">
               <GooglePostConsentPanel
                 rating={rating ?? 0}
                 draft={draft}
@@ -1021,8 +1021,8 @@ export function ReviewFlow({
                       ? "回答済み"
                       : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
               </Button>
-            </section>
-          </>
+            </div>
+          </section>
         )}
 
       </div>
