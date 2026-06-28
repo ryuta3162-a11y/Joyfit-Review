@@ -22,11 +22,56 @@ export function getReviewGooglePostInstructions(rating: number): string[] {
   ];
 }
 
-/** 同意タップボックスの文言（店舗の特典表示を反映） */
-export function getReviewGooglePostConsentLabel(rewardLabel: string): string {
+/** 特典ラベルから付与内容だけを取り出す（「アンケート回答特典：」を除く） */
+export function getReviewRewardBenefitText(rewardLabel: string): string {
   const benefit = rewardLabel.replace(/^アンケート回答特典[：:]\s*/, "").trim();
-  if (benefit) {
-    return `Google口コミページへの投稿で、${benefit}`;
-  }
-  return REVIEW_REWARD_ON_GOOGLE_POST_NOTE;
+  return benefit || "特典ポイント";
 }
+
+export type GooglePostConsentKey = "rating" | "draft" | "reward";
+
+export type GooglePostConsentStep = {
+  key: GooglePostConsentKey;
+  stepNumber: number;
+  question: string;
+  hint: string;
+  affirmLabel: string;
+};
+
+/** 投稿前の3段階同意チェック用文言 */
+export function getGooglePostConsentSteps(input: {
+  rating: number;
+  rewardLabel: string;
+}): GooglePostConsentStep[] {
+  const benefit = getReviewRewardBenefitText(input.rewardLabel);
+
+  return [
+    {
+      key: "rating",
+      stepNumber: 1,
+      question: `口コミの評価は星${input.rating}で間違いありませんか？`,
+      hint: "Google口コミページでも、同じ星数をタップして選択してください。",
+      affirmLabel: `はい、星${input.rating}で間違いありません`,
+    },
+    {
+      key: "draft",
+      stepNumber: 2,
+      question: "以下の文面で投稿します。お間違いないですか？",
+      hint: "上の編集欄で変更した内容が、そのまま投稿文面になります。",
+      affirmLabel: "はい、この文面で投稿します",
+    },
+    {
+      key: "reward",
+      stepNumber: 3,
+      question: `口コミページへ移動し投稿すると、${benefit}が付与されます。理解しましたか？`,
+      hint: REVIEW_REWARD_ON_GOOGLE_POST_NOTE,
+      affirmLabel: "はい、理解しました",
+    },
+  ];
+}
+
+export const GOOGLE_POST_CONSENT_PANEL_TITLE = "投稿前の確認";
+export const GOOGLE_POST_CONSENT_PANEL_SUBTITLE =
+  "Google口コミへ進む前に、以下の3項目をご確認ください。";
+export const GOOGLE_POST_CONSENT_PROGRESS_HINT =
+  "すべての項目にチェックを入れると、ボタンが使えるようになります。";

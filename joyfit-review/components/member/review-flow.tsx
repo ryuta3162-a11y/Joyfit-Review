@@ -9,6 +9,12 @@ import { Mail, Star } from "lucide-react";
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { fetchCheckRespondent, type CheckSurveyRespondentResult, warmupRespondentCheckGas } from "@/lib/survey-respondent-check";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
+import {
+  EMPTY_GOOGLE_POST_CONSENT,
+  GooglePostConsentPanel,
+  isGooglePostFullyConsented,
+  type GooglePostConsentState,
+} from "@/components/member/google-post-consent-panel";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
   memberFormCardClass,
@@ -26,7 +32,6 @@ import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
-  getReviewGooglePostConsentLabel,
   getReviewGooglePostInstructions,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   REVIEW_REWARD_ON_GOOGLE_POST_NOTE,
@@ -175,7 +180,9 @@ export function ReviewFlow({
   const recordedVisitDate = useMemo(() => localDateIsoForRecord(), []);
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
-  const [googlePostAgreed, setGooglePostAgreed] = useState(false);
+  const [googlePostConsents, setGooglePostConsents] =
+    useState<GooglePostConsentState>(EMPTY_GOOGLE_POST_CONSENT);
+  const googlePostAgreed = isGooglePostFullyConsented(googlePostConsents);
   const [sent, setSent] = useState(false);
   const [sentKind, setSentKind] = useState<"high" | "low">("high");
   const [lowRatingMailtoUrl, setLowRatingMailtoUrl] = useState<string | null>(null);
@@ -280,7 +287,7 @@ export function ReviewFlow({
   }, [memberCode, respondentCheckGasUrl]);
 
   useEffect(() => {
-    setGooglePostAgreed(false);
+    setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
   }, [draft]);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
@@ -292,7 +299,7 @@ export function ReviewFlow({
     setRating(value);
     if (value < 4) {
       setDraft("");
-      setGooglePostAgreed(false);
+      setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
     }
   }
 
@@ -1002,27 +1009,19 @@ export function ReviewFlow({
                 ))}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setGooglePostAgreed((v) => !v)}
-                className={`${memberFormChoiceClass(googlePostAgreed)} w-full text-left text-[13px] leading-snug`}
-              >
-                <span className="block font-bold">
-                  {googlePostAgreed ? "✓ 確認しました" : "タップして確認"}
-                </span>
-                <span className="mt-1 block font-semibold leading-relaxed">
-                  {getReviewGooglePostConsentLabel(reward.rewardLabel)}
-                </span>
-              </button>
+              <GooglePostConsentPanel
+                rating={rating ?? 0}
+                draft={draft}
+                reward={reward}
+                consents={googlePostConsents}
+                onToggle={(key) =>
+                  setGooglePostConsents((prev) => ({ ...prev, [key]: !prev[key] }))
+                }
+              />
 
               {submitError && (
                 <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
                   {submitError}
-                </p>
-              )}
-              {!googlePostAgreed && (
-                <p className="text-center text-[13px] text-muted-foreground">
-                  上のボックスをタップして確認すると、ボタンが使えるようになります。
                 </p>
               )}
               <Button
