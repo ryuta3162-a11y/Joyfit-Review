@@ -105,7 +105,7 @@ export default async function BrandHomePage({ params }: Props) {
               </li>
               <li className="flex gap-2">
                 <span className={stepBadgeClass}>3</span>
-                <span>Google口コミ投稿で特典付与</span>
+                <span>Google口コミ投稿でアンケート終了</span>
               </li>
             </ul>
 

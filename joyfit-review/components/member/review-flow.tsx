@@ -34,8 +34,9 @@ import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
-  getGooglePostRewardLines,
+  getGooglePostSurveyCompletionLines,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
+  SURVEY_REWARD_GRANT_NOTE,
 } from "@/lib/member-reward-copy";
 import {
   buildReviewDraft,
@@ -435,7 +436,7 @@ export function ReviewFlow({
   }
 
   if (sent) {
-    const rewardLines = getGooglePostRewardLines(reward.rewardLabel);
+    const completionLines = getGooglePostSurveyCompletionLines();
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
@@ -447,9 +448,12 @@ export function ReviewFlow({
                 回答を保存しました。Google口コミページで投稿をお願いします。
               </p>
               <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/85">
-                {rewardLines[0]}
+                {completionLines[0]}
                 <br />
-                {rewardLines[1]}
+                {completionLines[1]}
+              </p>
+              <p className="mx-auto mt-2 max-w-sm text-[12px] leading-relaxed text-white/75">
+                {SURVEY_REWARD_GRANT_NOTE}
               </p>
             </>
           ) : (
@@ -995,7 +999,6 @@ export function ReviewFlow({
               <GooglePostConsentPanel
                 rating={rating ?? 0}
                 draft={draft}
-                reward={reward}
                 consents={googlePostConsents}
                 onToggle={(key) =>
                   setGooglePostConsents((prev) => ({ ...prev, [key]: !prev[key] }))

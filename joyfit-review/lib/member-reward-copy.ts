@@ -10,16 +10,12 @@ export { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 /** 口コミ画面：最終ボタン文言 */
 export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "Google口コミページへ移動する";
 
-/** 特典ラベルから付与内容だけを取り出す（「アンケート回答特典：」を除く） */
-export function getReviewRewardBenefitText(rewardLabel: string): string {
-  const benefit = rewardLabel.replace(/^アンケート回答特典[：:]\s*/, "").trim();
-  return benefit || "特典ポイント";
-}
+/** 特典はアンケート回答に紐づく旨（Google投稿とは切り離して案内） */
+export const SURVEY_REWARD_GRANT_NOTE = "特典はアンケート回答をもって付与されます。";
 
-/** 特典付与の案内（2行表示用） */
-export function getGooglePostRewardLines(rewardLabel: string): [string, string] {
-  const benefit = getReviewRewardBenefitText(rewardLabel);
-  return ["Google口コミページで投稿することで", `${benefit}が付与されます`];
+/** Google口コミ投稿後の案内（2行表示用） */
+export function getGooglePostSurveyCompletionLines(): [string, string] {
+  return ["Google口コミページで投稿すると、", "アンケートは終了です。"];
 }
 
 export type GooglePostConsentKey = "rating" | "draft" | "reward";
@@ -28,18 +24,15 @@ export type GooglePostConsentStep = {
   key: GooglePostConsentKey;
   stepNumber: number;
   question: string;
-  /** 2行で見せたいとき（特典案内など） */
+  /** 2行で見せたいとき */
   questionLines?: [string, string];
   hint: string;
   affirmLabel: string;
 };
 
 /** 投稿前の3段階同意チェック用文言 */
-export function getGooglePostConsentSteps(input: {
-  rating: number;
-  rewardLabel: string;
-}): GooglePostConsentStep[] {
-  const rewardLines = getGooglePostRewardLines(input.rewardLabel);
+export function getGooglePostConsentSteps(input: { rating: number }): GooglePostConsentStep[] {
+  const completionLines = getGooglePostSurveyCompletionLines();
 
   return [
     {
@@ -59,10 +52,10 @@ export function getGooglePostConsentSteps(input: {
     {
       key: "reward",
       stepNumber: 3,
-      question: rewardLines.join(""),
-      questionLines: rewardLines,
-      hint: "投稿が完了すると、特典が付与されます。",
-      affirmLabel: "はい、内容を確認しました",
+      question: completionLines.join(""),
+      questionLines: completionLines,
+      hint: SURVEY_REWARD_GRANT_NOTE,
+      affirmLabel: "はい、理解しました",
     },
   ];
 }

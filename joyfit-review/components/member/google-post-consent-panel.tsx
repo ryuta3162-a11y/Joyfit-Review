@@ -9,7 +9,6 @@ import {
   GOOGLE_POST_CONSENT_PANEL_TITLE,
   GOOGLE_POST_CONSENT_PROGRESS_HINT,
 } from "@/lib/member-reward-copy";
-import { type StoreRewardDisplay } from "@/lib/store-reward";
 import { cn } from "@/lib/utils";
 
 export type GooglePostConsentState = Record<GooglePostConsentKey, boolean>;
@@ -23,7 +22,6 @@ export const EMPTY_GOOGLE_POST_CONSENT: GooglePostConsentState = {
 type Props = {
   rating: number;
   draft: string;
-  reward: StoreRewardDisplay;
   consents: GooglePostConsentState;
   onToggle: (key: GooglePostConsentKey) => void;
 };
@@ -70,8 +68,8 @@ function ConsentCheckbox({ checked }: { checked: boolean }) {
   );
 }
 
-export function GooglePostConsentPanel({ rating, draft, reward, consents, onToggle }: Props) {
-  const steps = getGooglePostConsentSteps({ rating, rewardLabel: reward.rewardLabel });
+export function GooglePostConsentPanel({ rating, draft, consents, onToggle }: Props) {
+  const steps = getGooglePostConsentSteps({ rating });
   const completedCount = (Object.values(consents) as boolean[]).filter(Boolean).length;
   const progressPercent = (completedCount / steps.length) * 100;
 
