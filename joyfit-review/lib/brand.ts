@@ -58,8 +58,27 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
   },
 };
 
+const YOGA_STORE_NAME_PATTERN = /(yoga|ヨガ)/i;
+
+const JOYFIT_YOGA_THEME: BrandTheme = {
+  brand: "joyfit",
+  primary: "#2e8b57",
+  primaryDark: "#1f6b41",
+  primarySoft: "#4caf7d",
+  label: "JOYFIT YOGA",
+  fullLabel: "JOYFIT YOGA",
+  rewardPointName: "エンジョイポイント",
+  rewardLabel: "アンケート回答特典：エンジョイポイント500P付与",
+  rewardPointLearnMoreUrl: "https://joyfit.jp/pr_enjoypoint/",
+  rewardPointLearnMoreLabel: "EnjoyPointについてはこちらから",
+};
+
 export function getBrandTheme(storeName: string): BrandTheme {
-  return BRAND_THEMES[detectBrand(storeName)];
+  const brand = detectBrand(storeName);
+  if (brand === "joyfit" && YOGA_STORE_NAME_PATTERN.test(storeName)) {
+    return JOYFIT_YOGA_THEME;
+  }
+  return BRAND_THEMES[brand];
 }
 
 export function isBrand(value: string | undefined | null): value is Brand {
