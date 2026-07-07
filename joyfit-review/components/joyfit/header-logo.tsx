@@ -12,19 +12,30 @@ type Props = {
   brand?: Brand;
 };
 
-function YogaLogoImage({ className }: { className?: string }) {
+/** 黒背景ロゴを白枠内で見せる（mix-blend-screen で黒を白に落とす） */
+function YogaLogoBadge({
+  className,
+  imageClassName,
+}: {
+  className?: string;
+  imageClassName?: string;
+}) {
   const yogaLogo = BRAND_THEMES.yoga.logoSrc;
   if (!yogaLogo) return null;
 
   return (
-    <Image
-      src={yogaLogo}
-      alt={BRAND_THEMES.yoga.logoAlt ?? "JOY FIT YOGA"}
-      width={YOGA_LOGO_WIDTH}
-      height={YOGA_LOGO_HEIGHT}
-      priority
-      className={`block h-8 w-auto object-contain object-center mix-blend-screen md:h-9 ${className ?? ""}`}
-    />
+    <div
+      className={`inline-flex w-fit items-center justify-center rounded-xl border border-white/90 bg-white px-3.5 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.14)] ${className ?? ""}`}
+    >
+      <Image
+        src={yogaLogo}
+        alt={BRAND_THEMES.yoga.logoAlt ?? "JOY FIT YOGA"}
+        width={YOGA_LOGO_WIDTH}
+        height={YOGA_LOGO_HEIGHT}
+        priority
+        className={`block h-8 w-auto object-contain mix-blend-screen md:h-9 ${imageClassName ?? ""}`}
+      />
+    </div>
   );
 }
 
@@ -42,7 +53,7 @@ export function JoyfitHeaderLogo({ className, brand = "joyfit" }: Props) {
   if (brand === "yoga") {
     return (
       <div className={`relative z-[1] flex justify-center ${className ?? ""}`}>
-        <YogaLogoImage />
+        <YogaLogoBadge />
       </div>
     );
   }
@@ -67,11 +78,7 @@ export function BrandSelectorLogo({ brand }: { brand: Brand }) {
   }
 
   if (brand === "yoga") {
-    return (
-      <div className="flex h-12 shrink-0 items-center">
-        <YogaLogoImage className="h-9 md:h-10" />
-      </div>
-    );
+    return <YogaLogoBadge imageClassName="h-9 md:h-10" />;
   }
 
   return (
