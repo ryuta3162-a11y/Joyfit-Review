@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 
-import { memberFormBodyClass } from "@/lib/member-form-styles";
+import { memberFormBodyClass } from "@/components/member/member-form-styles";
 import {
   formatSurveyCompletionRewardLabel,
   REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,

@@ -1,0 +1,37 @@
+name: joyfit-review build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "joyfit-review/**"
+      - ".github/workflows/joyfit-review-build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "joyfit-review/**"
+      - ".github/workflows/joyfit-review-build.yml"
+
+defaults:
+  run:
+    working-directory: joyfit-review
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: joyfit-review/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build

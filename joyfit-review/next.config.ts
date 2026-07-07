@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(configDir, "..");
 
 const nextConfig: NextConfig = {
-  // OneDrive 上の日本語パスで Turbopack が panic するため dev は package.json で --webpack を使用。
-  // ルート推定の警告を抑える（npm run dev は joyfit-review 直下で実行すること）。
+  // Vercel（Root Directory = joyfit-review）とローカル dev の両方で root 推定を揃える。
+  outputFileTracingRoot: repoRoot,
   turbopack: {
-    root: path.resolve(process.cwd()),
+    root: repoRoot,
   },
 };
 
