@@ -160,6 +160,11 @@
   background: var(--joyfit-red);
 }
 
+/* 緑ヘッダー上の YOGA ロゴ（白文字版 PNG を使用） */
+.yoga-logo-on-brand {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+}
+
 @keyframes survey-success-pop {
   0% {
     opacity: 0;

@@ -2,8 +2,8 @@ import Image from "next/image";
 
 import { BRAND_THEMES, type Brand } from "@/lib/brand";
 
-const YOGA_LOGO_WIDTH = 832;
-const YOGA_LOGO_HEIGHT = 95;
+const YOGA_LOGO_WIDTH = 828;
+const YOGA_LOGO_HEIGHT = 91;
 
 type Props = {
   /** ヘッダー内の余白に合わせて調整 */
@@ -12,30 +12,25 @@ type Props = {
   brand?: Brand;
 };
 
-/** 黒背景ロゴを白枠内で見せる（mix-blend-screen で黒を白に落とす） */
-function YogaLogoBadge({
+function YogaLogoImage({
   className,
-  imageClassName,
+  priority = false,
 }: {
   className?: string;
-  imageClassName?: string;
+  priority?: boolean;
 }) {
   const yogaLogo = BRAND_THEMES.yoga.logoSrc;
   if (!yogaLogo) return null;
 
   return (
-    <div
-      className={`inline-flex w-fit items-center justify-center rounded-xl border border-white/90 bg-white px-3.5 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.14)] ${className ?? ""}`}
-    >
-      <Image
-        src={yogaLogo}
-        alt={BRAND_THEMES.yoga.logoAlt ?? "JOY FIT YOGA"}
-        width={YOGA_LOGO_WIDTH}
-        height={YOGA_LOGO_HEIGHT}
-        priority
-        className={`block h-8 w-auto object-contain mix-blend-screen md:h-9 ${imageClassName ?? ""}`}
-      />
-    </div>
+    <Image
+      src={yogaLogo}
+      alt={BRAND_THEMES.yoga.logoAlt ?? "JOY FIT YOGA"}
+      width={YOGA_LOGO_WIDTH}
+      height={YOGA_LOGO_HEIGHT}
+      priority={priority}
+      className={`yoga-logo-on-brand block object-contain object-center ${className ?? ""}`}
+    />
   );
 }
 
@@ -53,7 +48,7 @@ export function JoyfitHeaderLogo({ className, brand = "joyfit" }: Props) {
   if (brand === "yoga") {
     return (
       <div className={`relative z-[1] flex justify-center ${className ?? ""}`}>
-        <YogaLogoBadge />
+        <YogaLogoImage priority className="h-8 w-auto max-w-[min(100%,240px)] md:h-9" />
       </div>
     );
   }
@@ -78,7 +73,11 @@ export function BrandSelectorLogo({ brand }: { brand: Brand }) {
   }
 
   if (brand === "yoga") {
-    return <YogaLogoBadge imageClassName="h-9 md:h-10" />;
+    return (
+      <div className="flex h-12 w-24 shrink-0 items-center">
+        <YogaLogoImage className="h-9 w-auto max-w-[6rem] object-contain object-left md:h-10" />
+      </div>
+    );
   }
 
   return (
