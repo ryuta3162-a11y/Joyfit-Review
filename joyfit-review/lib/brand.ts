@@ -58,13 +58,24 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
   },
 };
 
-const YOGA_STORE_NAME_PATTERN = /(yoga|ヨガ)/i;
+const YOGA_HIBARIGAOKA_STORE_NAME_ALIASES = [
+  "joyfit yoga フレスポひばりが丘",
+  "yogaひばりが丘",
+] as const;
+
+function normalizeStoreName(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .trim()
+    .toLowerCase();
+}
 
 const JOYFIT_YOGA_THEME: BrandTheme = {
   brand: "joyfit",
-  primary: "#2e8b57",
-  primaryDark: "#1f6b41",
-  primarySoft: "#4caf7d",
+  primary: "#0C9090",
+  primaryDark: "#0A7A7A",
+  primarySoft: "#25A3A3",
   label: "JOYFIT YOGA",
   fullLabel: "JOYFIT YOGA",
   rewardPointName: "エンジョイポイント",
@@ -75,7 +86,11 @@ const JOYFIT_YOGA_THEME: BrandTheme = {
 
 export function getBrandTheme(storeName: string): BrandTheme {
   const brand = detectBrand(storeName);
-  if (brand === "joyfit" && YOGA_STORE_NAME_PATTERN.test(storeName)) {
+  const normalizedStoreName = normalizeStoreName(storeName);
+  if (
+    brand === "joyfit" &&
+    YOGA_HIBARIGAOKA_STORE_NAME_ALIASES.some((name) => normalizeStoreName(name) === normalizedStoreName)
+  ) {
     return JOYFIT_YOGA_THEME;
   }
   return BRAND_THEMES[brand];
