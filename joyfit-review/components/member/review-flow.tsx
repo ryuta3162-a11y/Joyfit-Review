@@ -479,6 +479,8 @@ export function ReviewFlow({
   }
 
   const isFit365 = brandTheme.brand === "fit365";
+  const isYoga = brandTheme.brand === "yoga";
+  const appGuideLabel = isFit365 ? "FIT365 APP" : isYoga ? "JOYFIT YOGA" : "JOYFIT APP";
 
   return (
     <div
@@ -508,7 +510,7 @@ export function ReviewFlow({
           <div className={memberFormGuideCardClass}>
               <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-3">
                 <span className="shrink-0 rounded-md bg-[color:var(--joyfit-red)] px-2.5 py-1 text-[12px] font-bold tracking-wide text-white">
-                  {isFit365 ? "FIT365 APP" : "JOYFIT APP"}
+                  {appGuideLabel}
                 </span>
                 <p className="text-[15px] font-semibold tracking-tight text-zinc-900">会員番号の確認・アプリ登録</p>
               </div>

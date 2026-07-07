@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { StorePicker } from "@/components/store/store-picker";
-import { detectBrand, parseBrandParam } from "@/lib/brand";
+import { detectBrandFromStore, parseBrandParam } from "@/lib/brand";
 import { fetchStoresRemote } from "@/lib/stores-remote";
 
 type Props = {
@@ -15,7 +15,7 @@ export default async function BrandSelectStorePage({ params }: Props) {
   if (!brand) notFound();
 
   const stores = await fetchStoresRemote();
-  const filtered = stores.filter((store) => detectBrand(store.name) === brand);
+  const filtered = stores.filter((store) => detectBrandFromStore(store.name) === brand);
 
   return (
     <MemberPageShell>

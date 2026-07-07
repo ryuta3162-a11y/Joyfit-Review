@@ -1,15 +1,15 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
+import { BrandSelectorLogo } from "@/components/joyfit/header-logo";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
 import { BRAND_THEMES } from "@/lib/brand";
 import { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
 const cards: Array<{
-  brand: "joyfit" | "fit365";
+  brand: "joyfit" | "fit365" | "yoga";
   description: string;
 }> = [
   {
@@ -20,6 +20,10 @@ const cards: Array<{
     brand: "fit365",
     description: "FIT365 各店舗のアンケート",
   },
+  {
+    brand: "yoga",
+    description: "JOYFIT YOGA 各店舗のアンケート",
+  },
 ];
 
 export default function BrandSelectorPage() {
@@ -28,7 +32,7 @@ export default function BrandSelectorPage() {
       <div className={memberFormCardClass}>
         <div className="bg-zinc-50/60 px-6 pb-6 pt-7 text-center">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">
-            JOYFIT / FIT365
+            JOYFIT / FIT365 / YOGA
           </p>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
             アンケートページ
@@ -44,6 +48,7 @@ export default function BrandSelectorPage() {
         <div className="space-y-3 px-5 pb-7 pt-1 md:px-6">
           {cards.map(({ brand, description }) => {
             const theme = BRAND_THEMES[brand];
+            const isFit365 = brand === "fit365";
             return (
               <Link
                 key={brand}
@@ -52,28 +57,20 @@ export default function BrandSelectorPage() {
               >
                 <div
                   className={`relative flex items-center gap-4 px-5 py-5 ${
-                    brand === "fit365" ? "text-zinc-900" : "text-white"
+                    isFit365 ? "text-zinc-900" : "text-white"
                   }`}
                   style={{ background: theme.primary }}
                 >
-                  {brand === "fit365" ? (
+                  {isFit365 ? (
                     <Fit365Mascot className="h-10 w-auto max-w-[7.5rem] shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.12)]" />
                   ) : (
-                    <div className="relative h-12 w-24 shrink-0">
-                      <Image
-                        src="/joyfit-logo.png"
-                        alt="JOYFIT24"
-                        fill
-                        sizes="96px"
-                        className="object-contain object-left"
-                      />
-                    </div>
+                    <BrandSelectorLogo brand={brand} />
                   )}
 
                   <div className="min-w-0 flex-1 text-left">
                     <p
                       className={`text-[11px] font-semibold tracking-[0.18em] ${
-                        brand === "fit365" ? "text-zinc-900/70" : "text-white/80"
+                        isFit365 ? "text-zinc-900/70" : "text-white/80"
                       }`}
                     >
                       {theme.fullLabel}
@@ -83,7 +80,7 @@ export default function BrandSelectorPage() {
                     </p>
                     <p
                       className={`mt-1 text-[11px] leading-relaxed ${
-                        brand === "fit365" ? "text-zinc-900/75" : "text-white/85"
+                        isFit365 ? "text-zinc-900/75" : "text-white/85"
                       }`}
                     >
                       {description}
@@ -92,7 +89,7 @@ export default function BrandSelectorPage() {
 
                   <ArrowRight
                     className={`h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 ${
-                      brand === "fit365" ? "text-zinc-900/70" : "text-white/85"
+                      isFit365 ? "text-zinc-900/70" : "text-white/85"
                     }`}
                   />
                 </div>

@@ -1,4 +1,4 @@
-import { type Brand, BRAND_THEMES, detectBrand } from "@/lib/brand";
+import { type Brand, BRAND_THEMES, detectBrandFromStore } from "@/lib/brand";
 
 /** 店舗ごとに特典が異なる場合の共通注記 */
 export const STORE_REWARD_VARIES_NOTE =
@@ -49,12 +49,12 @@ export function getStoreRewardDisplay(input: {
   storeName: string;
   rewardLabelFromSheet?: string;
 }): StoreRewardDisplay {
-  const brand = detectBrand(input.storeName);
+  const brand = detectBrandFromStore(input.storeName);
   const fromSheet = input.rewardLabelFromSheet?.trim();
   if (fromSheet) {
     return {
       rewardLabel: fromSheet,
-      ...(brand === "joyfit" ? joyfitEnjoyPointExtras() : {}),
+      ...(brand === "joyfit" || brand === "yoga" ? joyfitEnjoyPointExtras() : {}),
     };
   }
 

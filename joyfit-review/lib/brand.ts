@@ -1,10 +1,39 @@
 import type { CSSProperties } from "react";
 
-export type Brand = "joyfit" | "fit365";
+export type Brand = "joyfit" | "fit365" | "yoga";
 
-/** 店舗名からブランドを判定する */
+const YOGA_STORE_NAME_ALIASES = [
+  "joyfit yoga フレスポひばりが丘",
+  "yogaひばりが丘",
+] as const;
+
+function normalizeStoreName(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+/** YOGA専用店舗か（現状1店舗） */
+export function isYogaStore(storeName: string): boolean {
+  const normalized = normalizeStoreName(storeName);
+  return YOGA_STORE_NAME_ALIASES.some((name) => normalizeStoreName(name) === normalized);
+}
+
+/**
+ * 店舗名からブランドを判定する。
+ * FIT365 → yoga店舗 → それ以外は joyfit
+ */
+export function detectBrandFromStore(storeName: string): Brand {
+  if (/^\s*fit365/i.test(storeName)) return "fit365";
+  if (isYogaStore(storeName)) return "yoga";
+  return "joyfit";
+}
+
+/** @deprecated detectBrandFromStore と同義。既存呼び出し互換用 */
 export function detectBrand(storeName: string): Brand {
-  return /^\s*fit365/i.test(storeName) ? "fit365" : "joyfit";
+  return detectBrandFromStore(storeName);
 }
 
 export type BrandTheme = {
@@ -29,6 +58,9 @@ export type BrandTheme = {
   /** 店舗ページ上部に表示するマスコット画像（任意） */
   mascotSrc?: string;
   mascotAlt?: string;
+  /** ヘッダーロゴ画像（任意） */
+  logoSrc?: string;
+  logoAlt?: string;
 };
 
 export const BRAND_THEMES: Record<Brand, BrandTheme> = {
@@ -56,48 +88,28 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     mascotSrc: "/fit365-bears.png",
     mascotAlt: "FIT365 公式マスコット ベアクマ",
   },
-};
-
-const YOGA_HIBARIGAOKA_STORE_NAME_ALIASES = [
-  "joyfit yoga フレスポひばりが丘",
-  "yogaひばりが丘",
-] as const;
-
-function normalizeStoreName(value: string): string {
-  return value
-    .normalize("NFKC")
-    .replace(/\s+/g, "")
-    .trim()
-    .toLowerCase();
-}
-
-const JOYFIT_YOGA_THEME: BrandTheme = {
-  brand: "joyfit",
-  primary: "#0C9090",
-  primaryDark: "#0A7A7A",
-  primarySoft: "#25A3A3",
-  label: "JOYFIT YOGA",
-  fullLabel: "JOYFIT YOGA",
-  rewardPointName: "エンジョイポイント",
-  rewardLabel: "アンケート回答特典：エンジョイポイント500P付与",
-  rewardPointLearnMoreUrl: "https://joyfit.jp/pr_enjoypoint/",
-  rewardPointLearnMoreLabel: "EnjoyPointについてはこちらから",
+  yoga: {
+    brand: "yoga",
+    primary: "#0C9090",
+    primaryDark: "#0A7A7A",
+    primarySoft: "#25A3A3",
+    label: "JOYFIT YOGA",
+    fullLabel: "JOYFIT YOGA",
+    rewardPointName: "エンジョイポイント",
+    rewardLabel: "アンケート回答特典：エンジョイポイント500P付与",
+    rewardPointLearnMoreUrl: "https://joyfit.jp/pr_enjoypoint/",
+    rewardPointLearnMoreLabel: "EnjoyPointについてはこちらから",
+    logoSrc: "/joyfit-yoga-logo.png",
+    logoAlt: "JOY FIT YOGA",
+  },
 };
 
 export function getBrandTheme(storeName: string): BrandTheme {
-  const brand = detectBrand(storeName);
-  const normalizedStoreName = normalizeStoreName(storeName);
-  if (
-    brand === "joyfit" &&
-    YOGA_HIBARIGAOKA_STORE_NAME_ALIASES.some((name) => normalizeStoreName(name) === normalizedStoreName)
-  ) {
-    return JOYFIT_YOGA_THEME;
-  }
-  return BRAND_THEMES[brand];
+  return BRAND_THEMES[detectBrandFromStore(storeName)];
 }
 
 export function isBrand(value: string | undefined | null): value is Brand {
-  return value === "joyfit" || value === "fit365";
+  return value === "joyfit" || value === "fit365" || value === "yoga";
 }
 
 /** URL パラメータからブランドを得る（不正値は null） */
