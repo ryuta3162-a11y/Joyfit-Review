@@ -16,6 +16,19 @@ export const REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL = "Google口コミページを
 /** 特典はアンケート回答に紐づく旨（Google投稿とは切り離して案内） */
 export const SURVEY_REWARD_GRANT_NOTE = "特典はアンケート回答をもって付与されます。";
 
+/** 高評価アンケート完了画面 */
+export const SURVEY_COMPLETION_THANK_YOU = "ご協力ありがとうございます";
+export const SURVEY_COMPLETION_REWARD_NOTE = SURVEY_REWARD_GRANT_NOTE;
+export const SURVEY_COMPLETION_POINT_PENDING_NOTE =
+  "ポイント付与までには一定のお時間をいただく場合がございます。今しばらくお待ちください。";
+
+/** 完了画面の特典表示用（「アンケート回答特典：」などの接頭辞を除く） */
+export function formatSurveyCompletionRewardLabel(rewardLabel: string): string {
+  const trimmed = rewardLabel.trim();
+  const withoutPrefix = trimmed.replace(/^アンケート回答特典[：:]\s*/, "");
+  return withoutPrefix || trimmed;
+}
+
 /** Google口コミ投稿後の案内（2行表示用） */
 export function getGooglePostSurveyCompletionLines(): [string, string] {
   return ["Google口コミページで投稿すると、", "アンケートは終了です。"];

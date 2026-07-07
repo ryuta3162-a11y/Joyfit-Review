@@ -15,6 +15,7 @@ import {
   isGooglePostFullyConsented,
   type GooglePostConsentState,
 } from "@/components/member/google-post-consent-panel";
+import { SurveyCompletionSuccess } from "@/components/member/survey-completion-success";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
   memberFormCardClass,
@@ -34,10 +35,7 @@ import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
-  getGooglePostSurveyCompletionLines,
-  REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
-  SURVEY_REWARD_GRANT_NOTE,
 } from "@/lib/member-reward-copy";
 import {
   buildReviewDraft,
@@ -437,37 +435,12 @@ export function ReviewFlow({
   }
 
   if (sent) {
-    const completionLines = getGooglePostSurveyCompletionLines();
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
-        <div className="joyfit-brand-header px-6 py-10 text-center text-white">
-          {sentKind === "high" ? (
-            <>
-              <p className="text-4xl">🙏</p>
-              <h2 className="mt-4 text-xl font-bold">ご協力ありがとうございました</h2>
-              <p className="mx-auto mt-3 max-w-xs text-[15px] text-white/95">
-                回答を保存しました。Google口コミページで投稿をお願いします。
-              </p>
-              <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/85">
-                {completionLines[0]}
-                <br />
-                {completionLines[1]}
-              </p>
-              <p className="mx-auto mt-2 max-w-sm text-[12px] leading-relaxed text-white/75">
-                {SURVEY_REWARD_GRANT_NOTE}
-              </p>
-              {reviewUrl.trim() ? (
-                <a
-                  href={reviewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mx-auto mt-6 inline-flex h-12 w-full max-w-sm items-center justify-center rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
-                >
-                  {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
-                </a>
-              ) : null}
-            </>
-          ) : (
+        {sentKind === "high" ? (
+          <SurveyCompletionSuccess rewardLabel={reward.rewardLabel} reviewUrl={reviewUrl} />
+        ) : (
+          <div className="joyfit-brand-header px-6 py-10 text-center text-white">
             <div className="mx-auto max-w-sm space-y-4">
               <h2 className="text-xl font-bold">回答を保存しました</h2>
               <p className="text-[15px] leading-relaxed text-white/95">
@@ -485,8 +458,8 @@ export function ReviewFlow({
                 </a>
               ) : null}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
