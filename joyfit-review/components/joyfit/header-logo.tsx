@@ -2,12 +2,31 @@ import Image from "next/image";
 
 import { BRAND_THEMES, type Brand } from "@/lib/brand";
 
+const YOGA_LOGO_WIDTH = 832;
+const YOGA_LOGO_HEIGHT = 95;
+
 type Props = {
   /** ヘッダー内の余白に合わせて調整 */
   className?: string;
   /** 店舗ブランドに応じてロゴを切り替え（FIT365 はテキストロゴで代替） */
   brand?: Brand;
 };
+
+function YogaLogoImage({ className }: { className?: string }) {
+  const yogaLogo = BRAND_THEMES.yoga.logoSrc;
+  if (!yogaLogo) return null;
+
+  return (
+    <Image
+      src={yogaLogo}
+      alt={BRAND_THEMES.yoga.logoAlt ?? "JOY FIT YOGA"}
+      width={YOGA_LOGO_WIDTH}
+      height={YOGA_LOGO_HEIGHT}
+      priority
+      className={`block h-8 w-auto object-contain object-center mix-blend-screen md:h-9 ${className ?? ""}`}
+    />
+  );
+}
 
 export function JoyfitHeaderLogo({ className, brand = "joyfit" }: Props) {
   if (brand === "fit365") {
@@ -20,20 +39,10 @@ export function JoyfitHeaderLogo({ className, brand = "joyfit" }: Props) {
     );
   }
 
-  const yogaLogo = BRAND_THEMES.yoga.logoSrc;
-  if (brand === "yoga" && yogaLogo) {
+  if (brand === "yoga") {
     return (
       <div className={`relative z-[1] flex justify-center ${className ?? ""}`}>
-        <div className="rounded-xl bg-white px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
-          <Image
-            src={yogaLogo}
-            alt={BRAND_THEMES.yoga.logoAlt ?? "JOY FIT YOGA"}
-            width={280}
-            height={72}
-            priority
-            className="h-8 w-auto max-w-[min(100%,220px)] object-contain object-center md:h-9"
-          />
-        </div>
+        <YogaLogoImage />
       </div>
     );
   }
@@ -57,17 +66,10 @@ export function BrandSelectorLogo({ brand }: { brand: Brand }) {
     return null;
   }
 
-  const theme = BRAND_THEMES[brand];
-  if (brand === "yoga" && theme.logoSrc) {
+  if (brand === "yoga") {
     return (
-      <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-[0_2px_6px_rgba(0,0,0,0.12)]">
-        <Image
-          src={theme.logoSrc}
-          alt={theme.logoAlt ?? "JOY FIT YOGA"}
-          width={220}
-          height={56}
-          className="h-9 w-auto max-w-[8.5rem] object-contain object-left"
-        />
+      <div className="flex h-12 shrink-0 items-center">
+        <YogaLogoImage className="h-9 md:h-10" />
       </div>
     );
   }
