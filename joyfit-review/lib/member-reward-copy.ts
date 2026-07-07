@@ -10,6 +10,9 @@ export { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 /** 口コミ画面：最終ボタン文言 */
 export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "Google口コミページへ移動する";
 
+/** 完了画面：口コミページを開き直すボタン */
+export const REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL = "Google口コミページを開く";
+
 /** 特典はアンケート回答に紐づく旨（Google投稿とは切り離して案内） */
 export const SURVEY_REWARD_GRANT_NOTE = "特典はアンケート回答をもって付与されます。";
 

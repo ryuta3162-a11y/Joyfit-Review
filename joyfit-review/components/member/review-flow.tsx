@@ -35,6 +35,7 @@ import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
   getGooglePostSurveyCompletionLines,
+  REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   SURVEY_REWARD_GRANT_NOTE,
 } from "@/lib/member-reward-copy";
@@ -455,6 +456,16 @@ export function ReviewFlow({
               <p className="mx-auto mt-2 max-w-sm text-[12px] leading-relaxed text-white/75">
                 {SURVEY_REWARD_GRANT_NOTE}
               </p>
+              {reviewUrl.trim() ? (
+                <a
+                  href={reviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mx-auto mt-6 inline-flex h-12 w-full max-w-sm items-center justify-center rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
+                >
+                  {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
+                </a>
+              ) : null}
             </>
           ) : (
             <div className="mx-auto max-w-sm space-y-4">
