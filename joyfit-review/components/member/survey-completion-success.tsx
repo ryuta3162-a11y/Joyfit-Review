@@ -38,7 +38,7 @@ export function SurveyCompletionSuccess({ rewardLabel, reviewUrl }: Props) {
 
       <div className={`${memberFormBodyClass} px-6 py-8 text-center`}>
         <div className="survey-success-fade-up survey-success-fade-up--delay-2 mx-auto max-w-sm">
-          <p className="mt-1 rounded-2xl border border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/[0.04] px-5 py-4 text-[17px] font-bold leading-snug tracking-tight text-[color:var(--joyfit-red-dark)]">
+          <p className="mt-1 rounded-2xl border border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/4 px-5 py-4 text-[17px] font-bold leading-snug tracking-tight text-[color:var(--joyfit-red-dark)]">
             {completionRewardLabel}
           </p>
         </div>
