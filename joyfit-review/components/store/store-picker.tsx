@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronRight, Search, Store } from "lucide-react";
+import { ChevronRight, MapPin, Search, Store } from "lucide-react";
 
 import { memberFormCardClass, memberFormInputClass } from "@/components/member/member-form-styles";
 import { Input } from "@/components/ui/input";
 import { BRAND_THEMES, brandCssVars, type Brand } from "@/lib/brand";
+import {
+  acquireReviewGeo,
+  readStoredReviewGeo,
+  reviewGeoFailureMessage,
+  type ReviewGeoFailureReason,
+} from "@/lib/review-geo-client";
 import type { StoreMasterRow } from "@/lib/store-master";
-import { REVIEW_GEO_MAX_AGE_MS, REVIEW_GEO_STORAGE_KEY } from "@/lib/review-geo-storage";
 
 type Props = {
   stores: StoreMasterRow[];
@@ -42,7 +47,7 @@ function calcDistanceMeters(
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-type GeoPhase = "loading" | "ok" | "blocked" | "unsupported";
+type GeoPhase = "loading" | "ok" | "needs-action" | "failed" | "unsupported";
 
 export function StorePicker({ stores, brand }: Props) {
   const theme = BRAND_THEMES[brand];
@@ -51,63 +56,47 @@ export function StorePicker({ stores, brand }: Props) {
   const [query, setQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [geoPhase, setGeoPhase] = useState<GeoPhase>("loading");
+  const [geoFailureReason, setGeoFailureReason] = useState<ReviewGeoFailureReason | null>(null);
   const [nearestPromptDismissed, setNearestPromptDismissed] = useState(false);
+  const [manualSearch, setManualSearch] = useState(false);
 
-  const acquireLocation = useCallback(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setUserLocation(null);
+  const applyCoords = useCallback((coords: { lat: number; lng: number }) => {
+    setUserLocation(coords);
+    setGeoPhase("ok");
+    setGeoFailureReason(null);
+    setNearestPromptDismissed(false);
+  }, []);
+
+  const requestLocation = useCallback(async () => {
+    setGeoPhase("loading");
+    setGeoFailureReason(null);
+
+    const result = await acquireReviewGeo();
+    if (result.ok) {
+      applyCoords(result.coords);
+      return;
+    }
+
+    setUserLocation(null);
+    if (result.reason === "unsupported") {
       setGeoPhase("unsupported");
       return;
     }
-    setGeoPhase("loading");
-    setUserLocation(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc);
-        setGeoPhase("ok");
-        setNearestPromptDismissed(false);
-        try {
-          sessionStorage.setItem(
-            REVIEW_GEO_STORAGE_KEY,
-            JSON.stringify({ ...loc, t: Date.now() }),
-          );
-        } catch {
-          /* ignore */
-        }
-      },
-      () => {
-        setUserLocation(null);
-        setGeoPhase("blocked");
-      },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 },
-    );
-  }, []);
+
+    setGeoFailureReason(result.reason);
+    setGeoPhase("failed");
+  }, [applyCoords]);
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(REVIEW_GEO_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { lat?: unknown; lng?: unknown; t?: unknown };
-        const lat = parsed.lat;
-        const lng = parsed.lng;
-        const t = parsed.t;
-        if (
-          typeof lat === "number" &&
-          typeof lng === "number" &&
-          typeof t === "number" &&
-          Date.now() - t < REVIEW_GEO_MAX_AGE_MS
-        ) {
-          setUserLocation({ lat, lng });
-          setGeoPhase("ok");
-          return;
-        }
-      }
-    } catch {
-      /* fall through */
+    const cached = readStoredReviewGeo();
+    if (cached) {
+      applyCoords(cached);
+      return;
     }
-    acquireLocation();
-  }, [acquireLocation]);
+
+    // iOS 等ではユーザー操作なしの自動取得が失敗しやすいため、初回はボタン操作を促す
+    setGeoPhase("needs-action");
+  }, [applyCoords]);
 
   const filteredAndSorted = useMemo<StoreWithDistance[]>(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
@@ -148,7 +137,13 @@ export function StorePicker({ stores, brand }: Props) {
     return first;
   }, [filteredAndSorted, geoPhase, nearestPromptDismissed, query]);
 
-  const showStoreUi = geoPhase === "ok" && userLocation !== null;
+  const showStoreUi = manualSearch || (geoPhase === "ok" && userLocation !== null);
+  const failureMessage = geoFailureReason ? reviewGeoFailureMessage(geoFailureReason) : null;
+
+  const enterManualSearch = useCallback(() => {
+    setManualSearch(true);
+    setNearestPromptDismissed(true);
+  }, []);
 
   return (
     <div className="space-y-4" data-brand={brand} style={brandVars}>
@@ -178,10 +173,25 @@ export function StorePicker({ stores, brand }: Props) {
               />
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              位置情報の許可が必須です。
-              <br />
-              現在地に基づき、店舗の候補が表示されます。
+              {manualSearch ? (
+                <>店舗名で検索して、投稿する店舗を選んでください。</>
+              ) : (
+                <>
+                  現在地に基づき、お近くの店舗が優先して表示されます。
+                  <br />
+                  位置情報を許可しない場合は、下の「店舗名で検索する」から選べます。
+                </>
+              )}
             </p>
+            {!manualSearch && (
+              <button
+                type="button"
+                onClick={enterManualSearch}
+                className="mt-3 text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
+              >
+                位置情報を使わず店舗名で検索する
+              </button>
+            )}
           </div>
         ) : (
           <div className="border-t border-zinc-100 bg-card px-5 py-8">
@@ -190,20 +200,49 @@ export function StorePicker({ stores, brand }: Props) {
                 位置情報を確認しています…
               </p>
             )}
-            {geoPhase === "blocked" && (
+            {geoPhase === "needs-action" && (
               <div className="space-y-4 text-center">
                 <p className="text-sm font-semibold leading-relaxed text-zinc-900">
-                  位置情報が許可されていないため、店舗を表示できません。
+                  現在地を取得して、お近くの店舗を表示します。
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  ご利用には、ブラウザで当サイトへの位置情報の許可が必要です。
+                  下のボタンをタップし、表示された位置情報の許可を選んでください。
                 </p>
                 <button
                   type="button"
-                  onClick={acquireLocation}
+                  onClick={requestLocation}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+                >
+                  <MapPin className="h-4 w-4" />
+                  現在地を取得する
+                </button>
+                <button
+                  type="button"
+                  onClick={enterManualSearch}
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  位置情報を使わず店舗名で検索する
+                </button>
+              </div>
+            )}
+            {geoPhase === "failed" && (
+              <div className="space-y-4 text-center">
+                <p className="text-sm font-semibold leading-relaxed text-zinc-900">
+                  {failureMessage}
+                </p>
+                <button
+                  type="button"
+                  onClick={requestLocation}
                   className="w-full rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                 >
-                  許可を確認して再試行
+                  もう一度試す
+                </button>
+                <button
+                  type="button"
+                  onClick={enterManualSearch}
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  位置情報を使わず店舗名で検索する
                 </button>
                 <Link
                   href={`/${brand}`}
@@ -219,8 +258,15 @@ export function StorePicker({ stores, brand }: Props) {
                   お使いの環境では位置情報を利用できません。
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  スマートフォンのブラウザなど、位置情報に対応した端末からお試しください。
+                  店舗名で検索して、投稿する店舗を選んでください。
                 </p>
+                <button
+                  type="button"
+                  onClick={enterManualSearch}
+                  className="w-full rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+                >
+                  店舗名で検索する
+                </button>
                 <Link
                   href={`/${brand}`}
                   className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"

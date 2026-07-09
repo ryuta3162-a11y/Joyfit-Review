@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { Brand } from "@/lib/brand";
-import { REVIEW_GEO_STORAGE_KEY } from "@/lib/review-geo-storage";
+import { acquireReviewGeo, reviewGeoFailureMessage } from "@/lib/review-geo-client";
 
 type Props = {
   brand: Brand;
@@ -17,35 +17,18 @@ export function StartReviewCta({ brand }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  function start() {
+  async function start() {
     setErr(null);
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setErr(
-        "お使いのブラウザでは位置情報を利用できません。別の端末またはブラウザでお試しください。",
-      );
+    setBusy(true);
+
+    const result = await acquireReviewGeo();
+    if (result.ok) {
+      router.push(`/${brand}/select-store`);
       return;
     }
-    setBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        sessionStorage.setItem(
-          REVIEW_GEO_STORAGE_KEY,
-          JSON.stringify({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            t: Date.now(),
-          }),
-        );
-        router.push(`/${brand}/select-store`);
-      },
-      () => {
-        setBusy(false);
-        setErr(
-          "ご利用には位置情報の許可が必要です。アドレスバー付近の鍵アイコン等から、当サイトへの位置情報の許可をオンにしてください。",
-        );
-      },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 },
-    );
+
+    setBusy(false);
+    setErr(reviewGeoFailureMessage(result.reason));
   }
 
   return (
