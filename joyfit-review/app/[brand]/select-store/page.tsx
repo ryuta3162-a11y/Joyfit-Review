@@ -18,7 +18,7 @@ export default async function BrandSelectStorePage({ params }: Props) {
   const filtered = stores.filter((store) => detectBrandFromStore(store.name) === brand);
 
   // YOGA は1店舗のみのため、店舗選択・位置情報を挟まずアンケートへ直行
-  if (brand === "yoga" && filtered.length === 1) {
+  if (brand === "yoga" && filtered.length >= 1) {
     redirect(`/yoga/member/${filtered[0].id}`);
   }
 

@@ -451,7 +451,11 @@ export function ReviewFlow({
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
         {sentKind === "high" ? (
-          <SurveyCompletionSuccess rewardLabel={reward.rewardLabel} reviewUrl={reviewUrl} />
+          <SurveyCompletionSuccess
+            rewardLabel={reward.rewardLabel}
+            reviewUrl={reviewUrl}
+            hidePointReward={brandTheme.brand === "yoga"}
+          />
         ) : (
           <div className="joyfit-brand-header px-6 py-10 text-center text-white">
             <div className="mx-auto max-w-sm space-y-4">
@@ -999,6 +1003,7 @@ export function ReviewFlow({
                 rating={rating ?? 0}
                 draft={draft}
                 consents={googlePostConsents}
+                hideRewardGrantNote={isYoga}
                 onToggle={(key) =>
                   setGooglePostConsents((prev) => ({ ...prev, [key]: !prev[key] }))
                 }

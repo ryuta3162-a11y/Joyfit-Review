@@ -6,15 +6,23 @@ import {
   REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
   SURVEY_COMPLETION_POINT_PENDING_NOTE,
   SURVEY_COMPLETION_REWARD_NOTE,
+  SURVEY_COMPLETION_REWARD_NOTE_YOGA,
   SURVEY_COMPLETION_THANK_YOU,
+  SURVEY_COMPLETION_THANK_YOU_YOGA,
 } from "@/lib/member-reward-copy";
 
 type Props = {
   rewardLabel: string;
   reviewUrl: string;
+  /** YOGA などポイント付与なしのとき */
+  hidePointReward?: boolean;
 };
 
-export function SurveyCompletionSuccess({ rewardLabel, reviewUrl }: Props) {
+export function SurveyCompletionSuccess({
+  rewardLabel,
+  reviewUrl,
+  hidePointReward = false,
+}: Props) {
   const completionRewardLabel = formatSurveyCompletionRewardLabel(rewardLabel);
 
   return (
@@ -29,23 +37,27 @@ export function SurveyCompletionSuccess({ rewardLabel, reviewUrl }: Props) {
         </div>
 
         <h2 className="survey-success-fade-up mt-7 text-[22px] font-bold tracking-tight">
-          {SURVEY_COMPLETION_THANK_YOU}
+          {hidePointReward ? SURVEY_COMPLETION_THANK_YOU_YOGA : SURVEY_COMPLETION_THANK_YOU}
         </h2>
         <p className="survey-success-fade-up survey-success-fade-up--delay-1 mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
-          {SURVEY_COMPLETION_REWARD_NOTE}
+          {hidePointReward ? SURVEY_COMPLETION_REWARD_NOTE_YOGA : SURVEY_COMPLETION_REWARD_NOTE}
         </p>
       </div>
 
       <div className={`${memberFormBodyClass} px-6 py-8 text-center`}>
-        <div className="survey-success-fade-up survey-success-fade-up--delay-2 mx-auto max-w-sm">
-          <p className="mt-1 rounded-2xl border border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/4 px-5 py-4 text-[17px] font-bold leading-snug tracking-tight text-[color:var(--joyfit-red-dark)]">
-            {completionRewardLabel}
-          </p>
-        </div>
+        {!hidePointReward ? (
+          <>
+            <div className="survey-success-fade-up survey-success-fade-up--delay-2 mx-auto max-w-sm">
+              <p className="mt-1 rounded-2xl border border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/4 px-5 py-4 text-[17px] font-bold leading-snug tracking-tight text-[color:var(--joyfit-red-dark)]">
+                {completionRewardLabel}
+              </p>
+            </div>
 
-        <p className="survey-success-fade-up survey-success-fade-up--delay-3 mx-auto mt-5 max-w-sm text-[13px] leading-relaxed text-zinc-500">
-          {SURVEY_COMPLETION_POINT_PENDING_NOTE}
-        </p>
+            <p className="survey-success-fade-up survey-success-fade-up--delay-3 mx-auto mt-5 max-w-sm text-[13px] leading-relaxed text-zinc-500">
+              {SURVEY_COMPLETION_POINT_PENDING_NOTE}
+            </p>
+          </>
+        ) : null}
 
         {reviewUrl.trim() ? (
           <a

@@ -15,10 +15,17 @@ function normalizeStoreName(value: string): string {
     .toLowerCase();
 }
 
-/** YOGA専用店舗か（現状1店舗） */
+/** YOGA専用店舗か（現状1店舗：ひばりが丘） */
 export function isYogaStore(storeName: string): boolean {
   const normalized = normalizeStoreName(storeName);
-  return YOGA_STORE_NAME_ALIASES.some((name) => normalizeStoreName(name) === normalized);
+  if (YOGA_STORE_NAME_ALIASES.some((name) => normalizeStoreName(name) === normalized)) {
+    return true;
+  }
+  // 名称ゆれ吸収（YOGA/ヨガ + ひばりが丘）
+  const hasYoga = normalized.includes("yoga") || normalized.includes("ヨガ");
+  const hasHibarigaoka =
+    normalized.includes("ひばりが丘") || normalized.includes("ひばりヶ丘");
+  return hasYoga && hasHibarigaoka;
 }
 
 /**
@@ -95,10 +102,8 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     primarySoft: "#25A3A3",
     label: "JOYFIT YOGA",
     fullLabel: "JOYFIT YOGA",
-    rewardPointName: "エンジョイポイント",
-    rewardLabel: "アンケート回答特典：エンジョイポイント500P付与",
-    rewardPointLearnMoreUrl: "https://joyfit.jp/pr_enjoypoint/",
-    rewardPointLearnMoreLabel: "EnjoyPointについてはこちらから",
+    rewardPointName: "",
+    rewardLabel: "ご協力いただきありがとうございます",
     logoSrc: "/joyfit-yoga-logo.png",
     logoAlt: "JOY FIT YOGA",
   },

@@ -24,6 +24,7 @@ type Props = {
   draft: string;
   consents: GooglePostConsentState;
   onToggle: (key: GooglePostConsentKey) => void;
+  hideRewardGrantNote?: boolean;
 };
 
 function ConsentStars({ rating }: { rating: number }) {
@@ -68,8 +69,14 @@ function ConsentCheckbox({ checked }: { checked: boolean }) {
   );
 }
 
-export function GooglePostConsentPanel({ rating, draft, consents, onToggle }: Props) {
-  const steps = getGooglePostConsentSteps({ rating });
+export function GooglePostConsentPanel({
+  rating,
+  draft,
+  consents,
+  onToggle,
+  hideRewardGrantNote = false,
+}: Props) {
+  const steps = getGooglePostConsentSteps({ rating, hideRewardGrantNote });
   const completedCount = (Object.values(consents) as boolean[]).filter(Boolean).length;
   const progressPercent = (completedCount / steps.length) * 100;
 

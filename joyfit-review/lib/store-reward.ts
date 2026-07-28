@@ -40,9 +40,15 @@ function matchRewardByStoreName(storeName: string, brand: Brand): StoreRewardDis
   };
 }
 
+function yogaThanksDisplay(): StoreRewardDisplay {
+  const theme = BRAND_THEMES.yoga;
+  return { rewardLabel: theme.rewardLabel };
+}
+
 /**
  * 店舗ページなど、店舗が確定した画面用の特典表示。
  * 優先順: スプレッドシートの rewardLabel → コード上書き → 店舗名 → ブランド既定
+ * ※ YOGA はポイント付与なしのため、常に感謝文言のみ
  */
 export function getStoreRewardDisplay(input: {
   storeId: string;
@@ -50,11 +56,13 @@ export function getStoreRewardDisplay(input: {
   rewardLabelFromSheet?: string;
 }): StoreRewardDisplay {
   const brand = detectBrandFromStore(input.storeName);
+  if (brand === "yoga") return yogaThanksDisplay();
+
   const fromSheet = input.rewardLabelFromSheet?.trim();
   if (fromSheet) {
     return {
       rewardLabel: fromSheet,
-      ...(brand === "joyfit" || brand === "yoga" ? joyfitEnjoyPointExtras() : {}),
+      ...(brand === "joyfit" ? joyfitEnjoyPointExtras() : {}),
     };
   }
 
@@ -81,6 +89,7 @@ export function getStoreRewardDisplay(input: {
 
 /** ブランドトップ（店舗未選択）用。特典はブランド既定＋注記のみ */
 export function getBrandTopRewardDisplay(brand: Brand): StoreRewardDisplay {
+  if (brand === "yoga") return yogaThanksDisplay();
   const theme = BRAND_THEMES[brand];
   return {
     rewardLabel: theme.rewardLabel,

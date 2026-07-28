@@ -27,16 +27,14 @@ export default async function BrandHomePage({ params }: Props) {
   const isYoga = brand === "yoga";
 
   // YOGA は現状1店舗のみのため、位置情報なしで店舗アンケートへ直行
-  let yogaDirectHref: string | undefined;
-  let yogaStoreName: string | undefined;
+  let yogaDirectHref = "/yoga/select-store";
+  let yogaStoreName = "YOGAひばりが丘";
   if (isYoga) {
     const stores = await fetchStoresRemote();
     const yogaStores = stores.filter((store) => detectBrandFromStore(store.name) === "yoga");
-    if (yogaStores.length === 1) {
+    if (yogaStores.length >= 1) {
       yogaDirectHref = `/yoga/member/${yogaStores[0].id}`;
       yogaStoreName = yogaStores[0].name;
-    } else if (yogaStores.length > 1) {
-      yogaDirectHref = "/yoga/select-store";
     }
   }
 
@@ -90,21 +88,29 @@ export default async function BrandHomePage({ params }: Props) {
               アンケートページ
             </h1>
             <div className="relative z-[1] mt-6 text-center">
-              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
-                <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                <span className="leading-tight">{reward.rewardLabel}</span>
-              </div>
-              {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel ? (
-                <a
-                  href={reward.rewardPointLearnMoreUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 block text-[11px] font-medium text-white/90 underline underline-offset-2 hover:text-white"
-                >
-                  {reward.rewardPointLearnMoreLabel}
-                </a>
-              ) : null}
-              <p className="mt-2 text-[10px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
+              {isYoga ? (
+                <p className="text-[13px] font-medium leading-relaxed text-white/95">
+                  {reward.rewardLabel}
+                </p>
+              ) : (
+                <>
+                  <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/60 bg-white/15 px-4 py-1.5 text-[11px] font-medium text-white">
+                    <Gift className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                    <span className="leading-tight">{reward.rewardLabel}</span>
+                  </div>
+                  {reward.rewardPointLearnMoreUrl && reward.rewardPointLearnMoreLabel ? (
+                    <a
+                      href={reward.rewardPointLearnMoreUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block text-[11px] font-medium text-white/90 underline underline-offset-2 hover:text-white"
+                    >
+                      {reward.rewardPointLearnMoreLabel}
+                    </a>
+                  ) : null}
+                  <p className="mt-2 text-[10px] leading-relaxed text-white/80">{STORE_REWARD_VARIES_NOTE}</p>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -161,7 +167,7 @@ export default async function BrandHomePage({ params }: Props) {
 
             <StartReviewCta
               brand={brand}
-              directHref={yogaDirectHref}
+              directHref={isYoga ? yogaDirectHref : undefined}
               label={isYoga ? "アンケートを開始する" : undefined}
             />
           </div>

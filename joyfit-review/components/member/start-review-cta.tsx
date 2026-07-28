@@ -25,6 +25,12 @@ export function StartReviewCta({ brand, directHref, label }: Props) {
     setErr(null);
     setBusy(true);
 
+    // YOGA は1店舗のみ。位置情報は不要（取得失敗時も geo に落とさない）
+    if (brand === "yoga") {
+      router.push(directHref || "/yoga/select-store");
+      return;
+    }
+
     if (directHref) {
       router.push(directHref);
       return;
@@ -41,7 +47,8 @@ export function StartReviewCta({ brand, directHref, label }: Props) {
   }
 
   const idleLabel = label ?? "店舗を選んで開始する";
-  const busyLabel = directHref ? "移動しています…" : "位置情報の許可を確認中…";
+  const busyLabel =
+    brand === "yoga" || directHref ? "移動しています…" : "位置情報の許可を確認中…";
 
   return (
     <div className="space-y-3">
