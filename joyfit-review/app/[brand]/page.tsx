@@ -6,8 +6,9 @@ import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { StartReviewCta } from "@/components/member/start-review-cta";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
-import { BRAND_THEMES, brandCssVars, parseBrandParam } from "@/lib/brand";
+import { BRAND_THEMES, brandCssVars, detectBrandFromStore, parseBrandParam } from "@/lib/brand";
 import { getBrandTopRewardDisplay, STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
+import { fetchStoresRemote } from "@/lib/stores-remote";
 
 type Props = {
   params: Promise<{ brand: string }>;
@@ -23,6 +24,21 @@ export default async function BrandHomePage({ params }: Props) {
   const brandVars = brandCssVars(theme);
   const hasMascot = Boolean(theme.mascotSrc);
   const isFit365 = brand === "fit365";
+  const isYoga = brand === "yoga";
+
+  // YOGA は現状1店舗のみのため、位置情報なしで店舗アンケートへ直行
+  let yogaDirectHref: string | undefined;
+  let yogaStoreName: string | undefined;
+  if (isYoga) {
+    const stores = await fetchStoresRemote();
+    const yogaStores = stores.filter((store) => detectBrandFromStore(store.name) === "yoga");
+    if (yogaStores.length === 1) {
+      yogaDirectHref = `/yoga/member/${yogaStores[0].id}`;
+      yogaStoreName = yogaStores[0].name;
+    } else if (yogaStores.length > 1) {
+      yogaDirectHref = "/yoga/select-store";
+    }
+  }
 
   // FIT365: ピンク × グレー × 黒 × 白 の 4 色構成。
   // JOYFIT: 既存のレッド系をそのまま踏襲。
@@ -95,29 +111,59 @@ export default async function BrandHomePage({ params }: Props) {
 
           <div className="space-y-5 px-6 py-8">
             <ul className={`space-y-3 text-sm ${stepTextClass}`}>
-              <li className="flex gap-2">
-                <span className={stepBadgeClass}>1</span>
-                <span>店舗を検索して選択</span>
-              </li>
-              <li className="flex gap-2">
-                <span className={stepBadgeClass}>2</span>
-                <span>お客様情報・評価をタップ→口コミを自動生成</span>
-              </li>
-              <li className="flex gap-2">
-                <span className={stepBadgeClass}>3</span>
-                <span>Google口コミ投稿でアンケート終了</span>
-              </li>
+              {isYoga ? (
+                <>
+                  <li className="flex gap-2">
+                    <span className={stepBadgeClass}>1</span>
+                    <span>お客様情報・評価をタップ→口コミを自動生成</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className={stepBadgeClass}>2</span>
+                    <span>Google口コミ投稿でアンケート終了</span>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex gap-2">
+                    <span className={stepBadgeClass}>1</span>
+                    <span>店舗を検索して選択</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className={stepBadgeClass}>2</span>
+                    <span>お客様情報・評価をタップ→口コミを自動生成</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className={stepBadgeClass}>3</span>
+                    <span>Google口コミ投稿でアンケート終了</span>
+                  </li>
+                </>
+              )}
             </ul>
 
-            <div className={locationCardClass}>
-              <p className={locationBadgeClass}>
-                <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
-                LOCATION
-              </p>
-              <p className={locationTitleClass}>位置情報の許可が必要です</p>
-            </div>
+            {isYoga ? (
+              <div className={locationCardClass}>
+                <p className={locationTitleClass}>
+                  {yogaStoreName ? `${yogaStoreName} のアンケート` : "YOGAひばりが丘 のアンケート"}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  位置情報の許可は不要です。そのまま開始できます。
+                </p>
+              </div>
+            ) : (
+              <div className={locationCardClass}>
+                <p className={locationBadgeClass}>
+                  <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
+                  LOCATION
+                </p>
+                <p className={locationTitleClass}>位置情報の許可が必要です</p>
+              </div>
+            )}
 
-            <StartReviewCta brand={brand} />
+            <StartReviewCta
+              brand={brand}
+              directHref={yogaDirectHref}
+              label={isYoga ? "アンケートを開始する" : undefined}
+            />
           </div>
       </div>
     </MemberPageShell>

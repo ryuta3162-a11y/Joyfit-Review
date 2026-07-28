@@ -6,6 +6,9 @@
 /** 各ステップで選べる最大数 */
 export const MAX_PICKS_PER_SECTION = 2;
 
+/** 口コミ生成のトーン（ジム向け / YOGA向け） */
+export type ReviewSurveyVariant = "gym" | "yoga";
+
 /** 画面表示用のステップ見出し */
 export const reviewSectionLabels = {
   service: "サービス面で気に入っている点",
@@ -13,7 +16,7 @@ export const reviewSectionLabels = {
   audience: "どんな方へおすすめですか？",
 } as const;
 
-/** ① サービス面 */
+/** ① サービス面（ジム） */
 export const menuServiceOptions = [
   "24時間いつでも通える",
   "年中無休で利用しやすい",
@@ -28,7 +31,7 @@ export const menuServiceOptions = [
   "オプションメニューが充実",
 ] as const;
 
-/** ② 環境・設備 */
+/** ② 環境・設備（ジム） */
 export const environmentOptions = [
   "駅チカで通いやすい",
   "セキュリティ面が安心",
@@ -41,7 +44,7 @@ export const environmentOptions = [
   "マシンメンテナンスが行き届いている",
 ] as const;
 
-/** ③ おすすめの対象 */
+/** ③ おすすめの対象（ジム） */
 export const sceneOptions = [
   "24時間ジムを探している方に",
   "自分のペースでトレーニング",
@@ -55,11 +58,68 @@ export const sceneOptions = [
   "全国のJOYFITを活用したい方に",
 ] as const;
 
+/** ① サービス面（YOGAひばりが丘） */
+export const yogaMenuServiceOptions = [
+  "インストラクターの対応が良い",
+  "初心者でも安心して通える",
+  "予約が取りやすい",
+  "レッスンの種類が豊富",
+  "マシンピラティスが利用できる",
+  "溶岩ホットヨガが利用できる",
+  "設備が良い",
+  "自分のペースで通える",
+  "会員プランが充実",
+  "オプションサービスが充実",
+  "全国相互利用ができる",
+] as const;
+
+/** ② 環境・設備（YOGAひばりが丘） */
+export const yogaEnvironmentOptions = [
+  "施設が清潔で気持ちよく利用できる",
+  "溶岩スタジオが快適",
+  "ロッカー・更衣室が使いやすい",
+  "シャワールームが清潔",
+  "通いやすい立地",
+  "駐車場完備",
+  "館内の雰囲気が良い",
+  "セキュリティ面が安心",
+  "女性専用",
+] as const;
+
+/** ③ おすすめの対象（YOGAひばりが丘） */
+export const yogaSceneOptions = [
+  "ヨガもマシンピラティスもやりたい方",
+  "運動初心者の方",
+  "運動不足を解消したい方",
+  "健康維持をしたい方",
+  "肩こり・腰痛が気になる方",
+  "リフレッシュしたい方",
+  "ストレスを解消したい方",
+  "姿勢を改善したい方",
+  "体を引き締めたい方",
+] as const;
+
+export function getReviewSurveyOptions(variant: ReviewSurveyVariant) {
+  if (variant === "yoga") {
+    return {
+      service: yogaMenuServiceOptions,
+      environment: yogaEnvironmentOptions,
+      audience: yogaSceneOptions,
+    };
+  }
+  return {
+    service: menuServiceOptions,
+    environment: environmentOptions,
+    audience: sceneOptions,
+  };
+}
+
 type ReviewDraftInput = {
   service: string[];
   environment: string[];
   audience: string[];
   freeComment?: string;
+  variant?: ReviewSurveyVariant;
 };
 
 type ReviewPattern = {
@@ -67,7 +127,7 @@ type ReviewPattern = {
 };
 
 /** 締めの文（型とは独立してランダム採用 → 同じ型でも結びが変わる） */
-const reviewClosingLines = [
+const reviewClosingLinesGym = [
   "今後も通い続けたいジムだと感じました。",
   "また利用したいと思えるジムです。",
   "これからも続けて通いたいです。",
@@ -79,6 +139,27 @@ const reviewClosingLines = [
   "また来たいと思える環境でした。",
   "長く通いたいと感じられるジムです。",
 ] as const;
+
+const reviewClosingLinesYoga = [
+  "今後も通い続けたいスタジオだと感じました。",
+  "また利用したいと思えるスタジオです。",
+  "これからも続けて通いたいです。",
+  "通いやすく、気に入っているスタジオです。",
+  "お気に入りのスタジオになりそうです。",
+  "継続して通える場所が見つかってよかったです。",
+  "全体的に満足しており、また通いたいです。",
+  "気軽に通えて、続けやすいスタジオだと思います。",
+  "また来たいと思える環境でした。",
+  "長く通いたいと感じられるスタジオです。",
+] as const;
+
+function closingLinesFor(variant: ReviewSurveyVariant) {
+  return variant === "yoga" ? reviewClosingLinesYoga : reviewClosingLinesGym;
+}
+
+function placeWord(variant: ReviewSurveyVariant) {
+  return variant === "yoga" ? "スタジオ" : "ジム";
+}
 
 /** 口コミ文用：選択肢を読点・「や」で列挙（「AとBが」にならない） */
 export function formatEnumPhrases(items: string[]): string {
@@ -104,6 +185,7 @@ function prepareDraftInput(input: ReviewDraftInput): ReviewDraftInput {
     environment: shuffleOptions(input.environment),
     audience: shuffleOptions(input.audience),
     freeComment: input.freeComment,
+    variant: input.variant ?? "gym",
   };
 }
 
@@ -214,7 +296,7 @@ const reviewDraftPatterns: ReviewPattern[] = [
     lines: [
       (i) =>
         i.audience.length
-          ? `まず、${formatEnumPhrases(i.audience)}といった方に合うジムだと感じました。`
+          ? `まず、${formatEnumPhrases(i.audience)}といった方に合う${placeWord(i.variant ?? "gym")}だと感じました。`
           : "",
       (i) => {
         const parts: string[] = [];
@@ -238,7 +320,8 @@ export function formatPhraseList(items: string[]): string {
 }
 
 export function buildReviewDraft(input: ReviewDraftInput): string {
-  const draftInput = prepareDraftInput(input);
+  const variant = input.variant ?? "gym";
+  const draftInput = prepareDraftInput({ ...input, variant });
   const pattern = pickRandom(reviewDraftPatterns);
   const body = pattern.lines
     .flatMap((line) =>
@@ -250,10 +333,11 @@ export function buildReviewDraft(input: ReviewDraftInput): string {
     );
   const extra = (input.freeComment || "").trim();
   if (extra) body.push(extra);
+  const closings = closingLinesFor(variant);
   if (body.length === 0) {
-    return pickRandom(reviewClosingLines);
+    return pickRandom(closings);
   }
-  body.push(pickRandom(reviewClosingLines));
+  body.push(pickRandom(closings));
   return body.join("\n");
 }
 

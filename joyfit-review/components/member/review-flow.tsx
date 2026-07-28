@@ -39,11 +39,9 @@ import {
 } from "@/lib/member-reward-copy";
 import {
   buildReviewDraft,
-  environmentOptions,
+  getReviewSurveyOptions,
   MAX_PICKS_PER_SECTION,
-  menuServiceOptions,
   reviewSectionLabels,
-  sceneOptions,
   shuffleOptions,
   toggleLimitedPick,
 } from "@/lib/review-survey-options";
@@ -165,9 +163,23 @@ export function ReviewFlow({
 }: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
-  const shuffledMenuOptions = useMemo(() => shuffleOptions(menuServiceOptions), []);
-  const shuffledEnvOptions = useMemo(() => shuffleOptions(environmentOptions), []);
-  const shuffledSceneOptions = useMemo(() => shuffleOptions(sceneOptions), []);
+  const surveyVariant = brandTheme.brand === "yoga" ? "yoga" : "gym";
+  const surveyOptions = useMemo(
+    () => getReviewSurveyOptions(surveyVariant),
+    [surveyVariant],
+  );
+  const shuffledMenuOptions = useMemo(
+    () => shuffleOptions(surveyOptions.service),
+    [surveyOptions.service],
+  );
+  const shuffledEnvOptions = useMemo(
+    () => shuffleOptions(surveyOptions.environment),
+    [surveyOptions.environment],
+  );
+  const shuffledSceneOptions = useMemo(
+    () => shuffleOptions(surveyOptions.audience),
+    [surveyOptions.audience],
+  );
   const [rating, setRating] = useState<number | null>(null);
   const [menuPoints, setMenuPoints] = useState<string[]>([]);
   const [envPoints, setEnvPoints] = useState<string[]>([]);
@@ -339,6 +351,7 @@ export function ReviewFlow({
       environment: envPoints,
       audience: scenes,
       freeComment: feedback,
+      variant: surveyVariant,
     });
 
     setDraft(body);
@@ -490,10 +503,10 @@ export function ReviewFlow({
     >
       <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
-          href={`/${brandTheme.brand}/select-store`}
+          href={isYoga ? `/${brandTheme.brand}` : `/${brandTheme.brand}/select-store`}
           className="relative z-[1] mb-3 inline-block text-[13px] font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
         >
-          ← 店舗選択に戻る
+          {isYoga ? "← トップに戻る" : "← 店舗選択に戻る"}
         </Link>
         <h1 className="relative z-[1] mt-2 text-xl font-bold md:text-2xl">{storeName}</h1>
         <div className="relative z-[1] mx-auto mt-5 max-w-full text-center">

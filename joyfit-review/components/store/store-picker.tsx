@@ -58,7 +58,8 @@ export function StorePicker({ stores, brand }: Props) {
   const [geoPhase, setGeoPhase] = useState<GeoPhase>("loading");
   const [geoFailureReason, setGeoFailureReason] = useState<ReviewGeoFailureReason | null>(null);
   const [nearestPromptDismissed, setNearestPromptDismissed] = useState(false);
-  const [manualSearch, setManualSearch] = useState(false);
+  // YOGA は1店舗想定のため、位置情報なしで検索 UI を最初から出す
+  const [manualSearch, setManualSearch] = useState(brand === "yoga");
 
   const applyCoords = useCallback((coords: { lat: number; lng: number }) => {
     setUserLocation(coords);

@@ -10,9 +10,13 @@ import { acquireReviewGeo, reviewGeoFailureMessage } from "@/lib/review-geo-clie
 
 type Props = {
   brand: Brand;
+  /** 指定時は位置情報を取らず、この URL へ直接進む（YOGA 1店舗向け） */
+  directHref?: string;
+  /** ボタン文言（未指定時はブランド既定） */
+  label?: string;
 };
 
-export function StartReviewCta({ brand }: Props) {
+export function StartReviewCta({ brand, directHref, label }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -20,6 +24,11 @@ export function StartReviewCta({ brand }: Props) {
   async function start() {
     setErr(null);
     setBusy(true);
+
+    if (directHref) {
+      router.push(directHref);
+      return;
+    }
 
     const result = await acquireReviewGeo();
     if (result.ok) {
@@ -30,6 +39,9 @@ export function StartReviewCta({ brand }: Props) {
     setBusy(false);
     setErr(reviewGeoFailureMessage(result.reason));
   }
+
+  const idleLabel = label ?? "店舗を選んで開始する";
+  const busyLabel = directHref ? "移動しています…" : "位置情報の許可を確認中…";
 
   return (
     <div className="space-y-3">
@@ -49,7 +61,7 @@ export function StartReviewCta({ brand }: Props) {
         onClick={start}
         disabled={busy}
       >
-        {busy ? "位置情報の許可を確認中…" : "店舗を選んで開始する"}
+        {busy ? busyLabel : idleLabel}
         {!busy ? <ArrowRight className="h-4 w-4" /> : null}
       </Button>
     </div>
