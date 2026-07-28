@@ -22,13 +22,6 @@ export const SURVEY_COMPLETION_REWARD_NOTE = SURVEY_REWARD_GRANT_NOTE;
 export const SURVEY_COMPLETION_POINT_PENDING_NOTE =
   "ポイント付与までには一定のお時間をいただく場合がございます。今しばらくお待ちください。";
 
-/** YOGA（ポイント付与なし）完了画面 */
-export const SURVEY_COMPLETION_THANK_YOU_YOGA = "ご協力いただきありがとうございます";
-export const SURVEY_COMPLETION_REWARD_NOTE_YOGA =
-  "アンケートへのご回答、ありがとうございました。";
-export const SURVEY_GOOGLE_POST_HINT_YOGA =
-  "Google口コミページで投稿すると、アンケートは終了です。";
-
 /** 完了画面の特典表示用（「アンケート回答特典：」などの接頭辞を除く） */
 export function formatSurveyCompletionRewardLabel(rewardLabel: string): string {
   const trimmed = rewardLabel.trim();
@@ -54,15 +47,8 @@ export type GooglePostConsentStep = {
 };
 
 /** 投稿前の3段階同意チェック用文言 */
-export function getGooglePostConsentSteps(input: {
-  rating: number;
-  /** YOGA はポイント案内を出さない */
-  hideRewardGrantNote?: boolean;
-}): GooglePostConsentStep[] {
+export function getGooglePostConsentSteps(input: { rating: number }): GooglePostConsentStep[] {
   const completionLines = getGooglePostSurveyCompletionLines();
-  const rewardHint = input.hideRewardGrantNote
-    ? SURVEY_GOOGLE_POST_HINT_YOGA
-    : SURVEY_REWARD_GRANT_NOTE;
 
   return [
     {
@@ -84,7 +70,7 @@ export function getGooglePostConsentSteps(input: {
       stepNumber: 3,
       question: completionLines.join(""),
       questionLines: completionLines,
-      hint: rewardHint,
+      hint: SURVEY_REWARD_GRANT_NOTE,
       affirmLabel: "はい、理解しました",
     },
   ];
