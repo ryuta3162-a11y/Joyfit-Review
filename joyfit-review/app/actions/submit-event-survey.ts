@@ -1,0 +1,101 @@
+"use server";
+
+export type SubmitEventSurveyInput = {
+  eventId: string;
+  eventName: string;
+  rating: number;
+  experience: string[];
+  experienceOther: string;
+  triggers: string[];
+  triggerOther: string;
+  instagramAccounts: string[];
+  futureEvents: string[];
+  futureEventOther: string;
+  pilatesMinutes: string;
+  yogaMinutes: string;
+  concerns: string[];
+  concernOther: string;
+  interest: string;
+  impression: string;
+  fullName: string;
+  age: string;
+  contact: string;
+  generatedReview: string;
+  submissionId: string;
+};
+
+export type SubmitEventSurveyResult = { ok: true } | { ok: false; error: string };
+
+export async function submitEventSurvey(
+  input: SubmitEventSurveyInput,
+): Promise<SubmitEventSurveyResult> {
+  const gasUrl = process.env.STORES_JSON_URL?.trim();
+  if (!gasUrl) {
+    return { ok: false, error: "ただいま送信をお受けできません。" };
+  }
+
+  if (!input.rating || input.rating < 1 || input.rating > 5) {
+    return { ok: false, error: "評価（星）を選択してください。" };
+  }
+
+  if (!input.submissionId.trim()) {
+    return { ok: false, error: "送信に失敗しました。ページを再読み込みして再度お試しください。" };
+  }
+
+  try {
+    const res = await fetch(gasUrl, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({
+        action: "eventSurvey",
+        eventId: input.eventId,
+        eventName: input.eventName,
+        rating: input.rating,
+        experience: input.experience,
+        experienceOther: input.experienceOther.trim(),
+        triggers: input.triggers,
+        triggerOther: input.triggerOther.trim(),
+        instagramAccounts: input.instagramAccounts,
+        futureEvents: input.futureEvents,
+        futureEventOther: input.futureEventOther.trim(),
+        pilatesMinutes: input.pilatesMinutes.trim(),
+        yogaMinutes: input.yogaMinutes.trim(),
+        concerns: input.concerns,
+        concernOther: input.concernOther.trim(),
+        interest: input.interest,
+        impression: input.impression.trim(),
+        fullName: input.fullName.trim(),
+        age: input.age.trim(),
+        contact: input.contact.trim(),
+        generatedReview: input.generatedReview.trim(),
+        submissionId: input.submissionId.trim(),
+      }),
+    });
+
+    const text = await res.text();
+    let json: { ok?: boolean; error?: string } = {};
+    try {
+      json = JSON.parse(text) as { ok?: boolean; error?: string };
+    } catch {
+      return {
+        ok: false,
+        error:
+          "送信に失敗しました（サーバー応答が不正です）。GASの再デプロイと STORES_JSON_URL をご確認ください。",
+      };
+    }
+
+    if (!res.ok || !json.ok) {
+      if (json.error === "rating is required") {
+        return { ok: false, error: "評価（星）を選択してください。" };
+      }
+      return {
+        ok: false,
+        error: `送信に失敗しました。${json.error ? `（${json.error}）` : ""} しばらくしてから再度お試しください。`,
+      };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "送信に失敗しました。通信状況をご確認のうえ、再度お試しください。" };
+  }
+}

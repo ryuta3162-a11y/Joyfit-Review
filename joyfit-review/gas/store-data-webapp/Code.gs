@@ -105,6 +105,10 @@ function doPost(e) {
       return outputJson({ ok: true, savedSheet: result.sheetName, duplicate: !!result.duplicate });
     }
 
+    if (action === "eventSurvey") {
+      return outputJson(saveEventSurveyResponse(data));
+    }
+
     // 旧互換: メール送信だけのPOST
     var to = String(data.to || "").trim();
     if (!to || to.indexOf("@") < 0) {
@@ -335,6 +339,97 @@ function saveSurveyResponse(data) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** 催事アンケート（会員番号不要・既存会員アンケートの重複制約と分離） */
+function saveEventSurveyResponse(data) {
+  var eventId = String(data.eventId || "").trim() || "event";
+  var eventName = String(data.eventName || "").trim() || eventId;
+  var rating = Number(data.rating || 0);
+  if (!rating) {
+    return { ok: false, error: "rating is required" };
+  }
+
+  var submissionId = String(data.submissionId || "").trim();
+  var sheet = getOrCreateEventSurveySheet(eventId, eventName);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(15000)) {
+    return { ok: false, error: "server busy" };
+  }
+
+  try {
+    if (submissionId && isSubmissionIdRecorded(submissionId)) {
+      return { ok: true, duplicate: true, sheetName: sheet.getName() };
+    }
+
+    sheet.appendRow([
+      new Date(),
+      eventId,
+      eventName,
+      rating,
+      toArray(data.experience).join(" / "),
+      String(data.experienceOther || "").trim(),
+      toArray(data.triggers).join(" / "),
+      String(data.triggerOther || "").trim(),
+      toArray(data.instagramAccounts).join(" / "),
+      toArray(data.futureEvents).join(" / "),
+      String(data.futureEventOther || "").trim(),
+      String(data.pilatesMinutes || "").trim(),
+      String(data.yogaMinutes || "").trim(),
+      toArray(data.concerns).join(" / "),
+      String(data.concernOther || "").trim(),
+      String(data.interest || "").trim(),
+      String(data.impression || "").trim(),
+      String(data.fullName || "").trim(),
+      String(data.age || "").trim(),
+      String(data.contact || "").trim(),
+      String(data.generatedReview || "").trim(),
+      submissionId,
+    ]);
+
+    if (submissionId) {
+      recordSurveySubmissionId(submissionId, eventId, "event");
+    }
+
+    return { ok: true, sheetName: sheet.getName() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getOrCreateEventSurveySheet(eventId, eventName) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var base = ("催事_" + safeSheetName(eventId)).slice(0, 90);
+  var sheet = ss.getSheetByName(base);
+  if (sheet) return sheet;
+
+  sheet = ss.insertSheet(base);
+  sheet.appendRow([
+    "timestamp",
+    "eventId",
+    "eventName",
+    "rating",
+    "experience",
+    "experienceOther",
+    "triggers",
+    "triggerOther",
+    "instagramAccounts",
+    "futureEvents",
+    "futureEventOther",
+    "pilatesMinutes",
+    "yogaMinutes",
+    "concerns",
+    "concernOther",
+    "interest",
+    "impression",
+    "fullName",
+    "age",
+    "contact",
+    "generatedReview",
+    "submissionId",
+  ]);
+  return sheet;
 }
 
 function getSurveyDedupSheet() {
