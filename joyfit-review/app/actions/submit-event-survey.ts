@@ -1,5 +1,9 @@
 "use server";
 
+/** 催事専用スプレッドシートに紐づく GAS ウェブアプリ（ENV で上書き可） */
+const DEFAULT_EVENT_SURVEY_GAS_URL =
+  "https://script.google.com/macros/s/AKfycby5dFI0fhOWwNHWRWU-Ax-jQAnBANyoPaWix4Kr3s6uL1r6QXregJPAnvYB2H7-AfjOqg/exec";
+
 export type SubmitEventSurveyInput = {
   eventId: string;
   eventName: string;
@@ -29,7 +33,9 @@ export type SubmitEventSurveyResult = { ok: true } | { ok: false; error: string 
 export async function submitEventSurvey(
   input: SubmitEventSurveyInput,
 ): Promise<SubmitEventSurveyResult> {
-  const gasUrl = process.env.STORES_JSON_URL?.trim();
+  const gasUrl =
+    process.env.EVENT_SURVEY_GAS_URL?.trim() ||
+    DEFAULT_EVENT_SURVEY_GAS_URL;
   if (!gasUrl) {
     return { ok: false, error: "ただいま送信をお受けできません。" };
   }
