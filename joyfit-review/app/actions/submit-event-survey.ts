@@ -23,7 +23,8 @@ export type SubmitEventSurveyInput = {
   impression: string;
   fullName: string;
   age: string;
-  contact: string;
+  email: string;
+  address: string;
   generatedReview: string;
   submissionId: string;
 };
@@ -73,7 +74,8 @@ export async function submitEventSurvey(
         impression: input.impression.trim(),
         fullName: input.fullName.trim(),
         age: input.age.trim(),
-        contact: input.contact.trim(),
+        email: input.email.trim(),
+        address: input.address.trim(),
         generatedReview: input.generatedReview.trim(),
         submissionId: input.submissionId.trim(),
       }),
@@ -87,7 +89,7 @@ export async function submitEventSurvey(
       return {
         ok: false,
         error:
-          "送信に失敗しました（サーバー応答が不正です）。GASの再デプロイと STORES_JSON_URL をご確認ください。",
+          "送信に失敗しました（サーバー応答が不正です）。GASの再デプロイをご確認ください。",
       };
     }
 

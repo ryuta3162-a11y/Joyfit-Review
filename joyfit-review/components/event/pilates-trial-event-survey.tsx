@@ -6,15 +6,11 @@ import { Check, Star } from "lucide-react";
 
 import { submitEventSurvey } from "@/app/actions/submit-event-survey";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
-import { MemberFormField } from "@/components/member/member-form-field";
 import {
   memberFormBodyClass,
   memberFormCardClass,
   memberFormChoiceClass,
   memberFormInputClass,
-  memberFormSectionClass,
-  memberFormSectionDividerClass,
-  memberFormSectionTitleClass,
   memberFormTagClass,
   memberFormTextareaClass,
 } from "@/components/member/member-form-styles";
@@ -62,6 +58,70 @@ function newSubmissionId(): string {
   return `event-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function SectionHeader({
+  step,
+  title,
+  required,
+  hint,
+}: {
+  step: number;
+  title: string;
+  required?: boolean;
+  hint?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--joyfit-red)] px-2 text-[11px] font-bold text-white">
+          {step}
+        </span>
+        <p className="text-[15px] font-semibold tracking-tight text-zinc-900">{title}</p>
+        {required ? (
+          <span className="rounded-md bg-[color:var(--joyfit-red)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[color:var(--joyfit-red)]">
+            必須
+          </span>
+        ) : (
+          <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500">
+            任意
+          </span>
+        )}
+      </div>
+      {hint ? <p className="pl-8 text-[12px] leading-relaxed text-zinc-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+function ChoiceGrid({
+  options,
+  selected,
+  onToggle,
+  multi,
+}: {
+  options: readonly string[];
+  selected: string[];
+  onToggle: (opt: string) => void;
+  multi?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = selected.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            aria-pressed={active}
+            className={multi ? memberFormTagClass(active) : memberFormChoiceClass(active)}
+            onClick={() => onToggle(opt)}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) {
   const theme = BRAND_THEMES.yoga;
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
@@ -83,7 +143,8 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
   const [impression, setImpression] = useState("");
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
-  const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -98,6 +159,10 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
   const needsYogaMinutes = futureEvents.includes(LABEL.yogaTrial);
   const needsConcernOther = concerns.includes(LABEL.other);
 
+  const emailTrimmed = email.trim();
+  const emailInvalid = Boolean(emailTrimmed) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
+
+  // 選択系は必須。自由記述（感想・任意プロフィール）は空でも送信可
   const canSubmit =
     rating !== null &&
     experience.length > 0 &&
@@ -110,7 +175,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
     concerns.length > 0 &&
     (!needsConcernOther || concernOther.trim()) &&
     Boolean(interest) &&
-    impression.trim().length > 0;
+    !emailInvalid;
 
   async function handleSubmit() {
     if (!canSubmit || rating === null || submitting || sent) return;
@@ -142,7 +207,8 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
       impression,
       fullName,
       age,
-      contact,
+      email: emailTrimmed,
+      address: address.trim(),
       generatedReview,
       submissionId: submissionIdRef.current,
     });
@@ -223,7 +289,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
       className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
-      <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
+      <div className="joyfit-brand-header px-5 pb-8 pt-6 text-center text-white md:px-6 md:pt-8">
         <JoyfitHeaderLogo brand="yoga" />
         <h1 className="relative z-[1] mt-5 text-xl font-bold md:text-2xl">
           {PILATES_TRIAL_EVENT.title}
@@ -234,209 +300,195 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
         <p className="relative z-[1] mt-1 text-[12px] text-white/80">
           {PILATES_TRIAL_EVENT.dateLabel}
         </p>
-        <p className="relative z-[1] mt-4 text-[12px] text-white/75">
-          {storeDisplayName} の口コミにもつながる体験アンケートです
-        </p>
+        <div className="relative z-[1] mx-auto mt-5 max-w-sm rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-left">
+          <p className="text-[12px] font-semibold text-white">回答のながれ</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-white/85">
+            タップで選ぶ質問が中心です。所要目安は2〜3分。
+            <br />
+            お名前・連絡先・感想は任意です。空欄のままでも送信できます。
+          </p>
+          <p className="mt-2 text-[11px] text-white/75">
+            {storeDisplayName} のGoogle口コミへもつながります
+          </p>
+        </div>
       </div>
 
-      <div className={memberFormBodyClass}>
-        <section className={memberFormSectionClass}>
-          <p className={memberFormSectionTitleClass}>
-            今回のマシンピラティス体験を星の数で評価してください
-            <span className="text-[color:var(--joyfit-red)]"> *</span>
-          </p>
-          <p className="text-[12px] text-zinc-500">低評価 ← → 高評価（タップで黄色になります）</p>
-          <div className="flex items-center justify-center gap-2 py-2">
-            {stars.map((value) => {
-              const filled = rating !== null && value <= rating;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`${value}つ星`}
-                  onClick={() => setRating(value)}
-                  className="rounded-lg p-1 transition hover:scale-105"
-                >
-                  <Star
-                    className={cn(
-                      "h-10 w-10",
-                      filled ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300",
-                    )}
-                    strokeWidth={1.5}
-                  />
-                </button>
-              );
-            })}
+      <div className={`${memberFormBodyClass} space-y-7`}>
+        <section className="space-y-3">
+          <SectionHeader
+            step={1}
+            title="今回の体験を星で評価してください"
+            required
+            hint="タップすると黄色になります（1＝低評価、5＝高評価）"
+          />
+          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4">
+            <div className="flex items-center justify-center gap-2">
+              {stars.map((value) => {
+                const filled = rating !== null && value <= rating;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`${value}つ星`}
+                    onClick={() => setRating(value)}
+                    className="rounded-lg p-1.5 transition hover:scale-105 active:scale-95"
+                  >
+                    <Star
+                      className={cn(
+                        "h-11 w-11",
+                        filled ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300",
+                      )}
+                      strokeWidth={1.5}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-center text-[13px] font-medium text-zinc-600">
+              {rating ? `${rating}つ星を選択中` : "星をタップしてください"}
+            </p>
           </div>
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>
-            今回のマシンピラティス体験はいかがでしたか？
-            <span className="text-[color:var(--joyfit-red)]"> *</span>
-          </p>
-          <p className="text-[12px] text-zinc-500">複数選択可</p>
-          <div className="flex flex-wrap gap-2">
-            {EXPERIENCE_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={memberFormTagClass(experience.includes(opt))}
-                onClick={() => setExperience((prev) => toggleMulti(prev, opt))}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+        <section className="space-y-3 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={2}
+            title="今回のマシンピラティス体験はいかがでしたか？"
+            required
+            hint="あてはまるものをすべて選択"
+          />
+          <ChoiceGrid
+            multi
+            options={EXPERIENCE_OPTIONS}
+            selected={experience}
+            onToggle={(opt) => setExperience((prev) => toggleMulti(prev, opt))}
+          />
           {needsExperienceOther ? (
-            <MemberFormField label="その他の内容" required>
-              <Input
-                value={experienceOther}
-                onChange={(e) => setExperienceOther(e.target.value)}
-                className={memberFormInputClass}
-                placeholder="自由にご記入ください"
-              />
-            </MemberFormField>
+            <Input
+              value={experienceOther}
+              onChange={(e) => setExperienceOther(e.target.value)}
+              className={memberFormInputClass}
+              placeholder="その他の内容を入力"
+            />
           ) : null}
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>
-            今回体験を受けてくださったキッカケを教えてください
-            <span className="text-[color:var(--joyfit-red)]"> *</span>
-          </p>
-          <p className="text-[12px] text-zinc-500">複数選択可</p>
-          <div className="flex flex-wrap gap-2">
-            {TRIGGER_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={memberFormTagClass(triggers.includes(opt))}
-                onClick={() => setTriggers((prev) => toggleMulti(prev, opt))}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+        <section className="space-y-3 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={3}
+            title="体験のキッカケを教えてください"
+            required
+            hint="あてはまるものをすべて選択"
+          />
+          <ChoiceGrid
+            multi
+            options={TRIGGER_OPTIONS}
+            selected={triggers}
+            onToggle={(opt) => setTriggers((prev) => toggleMulti(prev, opt))}
+          />
           {needsInstagram ? (
-            <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4">
+            <div className="space-y-2 rounded-2xl border border-[color:var(--joyfit-red)]/20 bg-[color:var(--joyfit-red)]/5 p-4">
               <p className="text-[13px] font-semibold text-zinc-800">
                 どちらのアカウントで知りましたか？
-                <span className="text-[color:var(--joyfit-red)]"> *</span>
+                <span className="ml-1 text-[10px] font-bold text-[color:var(--joyfit-red)]">必須</span>
               </p>
-              <div className="flex flex-wrap gap-2">
-                {INSTAGRAM_ACCOUNT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    className={memberFormChoiceClass(instagramAccounts.includes(opt))}
-                    onClick={() => setInstagramAccounts((prev) => toggleMulti(prev, opt))}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+              <ChoiceGrid
+                multi
+                options={INSTAGRAM_ACCOUNT_OPTIONS}
+                selected={instagramAccounts}
+                onToggle={(opt) => setInstagramAccounts((prev) => toggleMulti(prev, opt))}
+              />
             </div>
           ) : null}
           {needsTriggerOther ? (
-            <MemberFormField label="その他の内容" required>
-              <Input
-                value={triggerOther}
-                onChange={(e) => setTriggerOther(e.target.value)}
-                className={memberFormInputClass}
-                placeholder="自由にご記入ください"
-              />
-            </MemberFormField>
+            <Input
+              value={triggerOther}
+              onChange={(e) => setTriggerOther(e.target.value)}
+              className={memberFormInputClass}
+              placeholder="その他の内容を入力"
+            />
           ) : null}
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>
-            今後体験してみたいイベントを教えてください
-            <span className="text-[color:var(--joyfit-red)]"> *</span>
-          </p>
-          <p className="text-[12px] text-zinc-500">複数選択可</p>
-          <div className="flex flex-wrap gap-2">
-            {FUTURE_EVENT_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={memberFormTagClass(futureEvents.includes(opt))}
-                onClick={() => setFutureEvents((prev) => toggleMulti(prev, opt))}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+        <section className="space-y-3 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={4}
+            title="今後体験してみたいイベントは？"
+            required
+            hint="あてはまるものをすべて選択"
+          />
+          <ChoiceGrid
+            multi
+            options={FUTURE_EVENT_OPTIONS}
+            selected={futureEvents}
+            onToggle={(opt) => setFutureEvents((prev) => toggleMulti(prev, opt))}
+          />
           {needsPilatesMinutes ? (
-            <MemberFormField label="マシンピラティス体験の希望時間" hint="分程度">
+            <div className="flex items-center gap-2">
+              <p className="shrink-0 text-[13px] font-medium text-zinc-700">ピラティス希望時間</p>
               <Input
                 value={pilatesMinutes}
                 onChange={(e) => setPilatesMinutes(e.target.value.replace(/[^\d]/g, ""))}
-                className={memberFormInputClass}
+                className={`${memberFormInputClass} max-w-[7rem]`}
                 inputMode="numeric"
-                placeholder="例: 30"
+                placeholder="30"
               />
-            </MemberFormField>
+              <span className="text-[13px] text-zinc-500">分くらい</span>
+            </div>
           ) : null}
           {needsYogaMinutes ? (
-            <MemberFormField label="ヨガ体験の希望時間" hint="分程度">
+            <div className="flex items-center gap-2">
+              <p className="shrink-0 text-[13px] font-medium text-zinc-700">ヨガ希望時間</p>
               <Input
                 value={yogaMinutes}
                 onChange={(e) => setYogaMinutes(e.target.value.replace(/[^\d]/g, ""))}
-                className={memberFormInputClass}
+                className={`${memberFormInputClass} max-w-[7rem]`}
                 inputMode="numeric"
-                placeholder="例: 45"
+                placeholder="45"
               />
-            </MemberFormField>
+              <span className="text-[13px] text-zinc-500">分くらい</span>
+            </div>
           ) : null}
           {needsFutureOther ? (
-            <MemberFormField label="その他の内容" required>
-              <Input
-                value={futureEventOther}
-                onChange={(e) => setFutureEventOther(e.target.value)}
-                className={memberFormInputClass}
-                placeholder="自由にご記入ください"
-              />
-            </MemberFormField>
+            <Input
+              value={futureEventOther}
+              onChange={(e) => setFutureEventOther(e.target.value)}
+              className={memberFormInputClass}
+              placeholder="その他の内容を入力"
+            />
           ) : null}
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>
-            普段、体のお悩みや気になっていることはありますか？
-            <span className="text-[color:var(--joyfit-red)]"> *</span>
-          </p>
-          <p className="text-[12px] text-zinc-500">複数選択可</p>
-          <div className="flex flex-wrap gap-2">
-            {CONCERN_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={memberFormTagClass(concerns.includes(opt))}
-                onClick={() => setConcerns((prev) => toggleMulti(prev, opt))}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+        <section className="space-y-3 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={5}
+            title="普段、体のお悩みはありますか？"
+            required
+            hint="あてはまるものをすべて選択"
+          />
+          <ChoiceGrid
+            multi
+            options={CONCERN_OPTIONS}
+            selected={concerns}
+            onToggle={(opt) => setConcerns((prev) => toggleMulti(prev, opt))}
+          />
           {needsConcernOther ? (
-            <MemberFormField label="その他の内容" required>
-              <Input
-                value={concernOther}
-                onChange={(e) => setConcernOther(e.target.value)}
-                className={memberFormInputClass}
-                placeholder="自由にご記入ください"
-              />
-            </MemberFormField>
+            <Input
+              value={concernOther}
+              onChange={(e) => setConcernOther(e.target.value)}
+              className={memberFormInputClass}
+              placeholder="その他の内容を入力"
+            />
           ) : null}
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>
-            本格的なレッスンや、スタジオでの体験に興味はありますか？
-            <span className="text-[color:var(--joyfit-red)]"> *</span>
-          </p>
+        <section className="space-y-3 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={6}
+            title="スタジオでの本格レッスンに興味はありますか？"
+            required
+            hint="1つだけ選択"
+          />
           <div className="grid gap-2">
             {INTEREST_OPTIONS.map((opt) => (
               <button
@@ -451,47 +503,82 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
           </div>
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <MemberFormField label="本日の感想を教えてください" required>
-            <Textarea
-              value={impression}
-              onChange={(e) => setImpression(e.target.value)}
-              rows={5}
-              className={memberFormTextareaClass}
-              placeholder="ご自由にお書きください"
-            />
-          </MemberFormField>
+        <section className="space-y-3 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={7}
+            title="本日の感想"
+            hint="書ける範囲で大丈夫です。空欄のままでも送信できます"
+          />
+          <Textarea
+            value={impression}
+            onChange={(e) => setImpression(e.target.value)}
+            rows={4}
+            className={memberFormTextareaClass}
+            placeholder="例: 初めてでも分かりやすく楽しめました"
+          />
         </section>
 
-        <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>差し支えなければご記入ください（任意）</p>
-          <p className="text-[12px] leading-relaxed text-zinc-500">
-            今後のご案内（キャンペーン情報・特典等）のため
-          </p>
-          <MemberFormField label="お名前">
-            <Input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={memberFormInputClass}
-              placeholder="山田 花子"
-            />
-          </MemberFormField>
-          <MemberFormField label="ご年齢">
-            <Input
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className={memberFormInputClass}
-              placeholder="例: 35"
-            />
-          </MemberFormField>
-          <MemberFormField label="ご連絡先（ご住所 or メールアドレス）">
-            <Input
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              className={memberFormInputClass}
-              placeholder="メールアドレスまたは住所"
-            />
-          </MemberFormField>
+        <section className="space-y-4 border-t border-zinc-200/80 pt-7">
+          <SectionHeader
+            step={8}
+            title="今後のご案内（任意）"
+            hint="キャンペーンや特典のご連絡用です。未記入でも問題ありません"
+          />
+          <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
+            <div>
+              <p className="mb-1.5 text-[13px] font-semibold text-zinc-800">お名前</p>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className={memberFormInputClass}
+                placeholder="山田 花子"
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[13px] font-semibold text-zinc-800">ご年齢</p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={age}
+                  onChange={(e) => setAge(e.target.value.replace(/[^\d]/g, "").slice(0, 3))}
+                  className={`${memberFormInputClass} max-w-[7rem]`}
+                  inputMode="numeric"
+                  placeholder="35"
+                />
+                <span className="text-[13px] text-zinc-500">歳</span>
+              </div>
+            </div>
+            <div>
+              <p className="mb-1.5 text-[13px] font-semibold text-zinc-800">メールアドレス</p>
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={memberFormInputClass}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="example@email.com"
+                aria-invalid={emailInvalid}
+              />
+              {emailInvalid ? (
+                <p className="mt-1.5 text-[12px] font-medium text-[color:var(--joyfit-red)]">
+                  メールアドレスの形式をご確認ください
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-zinc-500">ご案内の主な連絡先です</p>
+              )}
+            </div>
+            <div>
+              <p className="mb-1.5 text-[13px] font-semibold text-zinc-800">ご住所</p>
+              <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className={memberFormInputClass}
+                autoComplete="street-address"
+                placeholder="任意（郵便物が必要な場合のみ）"
+              />
+            </div>
+          </div>
         </section>
 
         {submitError ? (
@@ -500,21 +587,25 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
           </p>
         ) : null}
 
-        <Button
-          type="button"
-          onClick={() => void handleSubmit()}
-          disabled={!canSubmit || submitting}
-          className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-300 disabled:text-zinc-500"
-        >
-          {submitting
-            ? "送信中…"
-            : rating !== null && rating >= 4
-              ? "送信してGoogle口コミへ"
-              : "アンケートを送信する"}
-        </Button>
-        <p className="text-center text-[11px] leading-relaxed text-zinc-500">
-          高評価の場合は、Google口コミページを開きます（口コミ文面を自動作成します）。
-        </p>
+        <div className="space-y-2 pb-2">
+          <Button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit || submitting}
+            className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-300 disabled:text-zinc-500"
+          >
+            {submitting
+              ? "送信中…"
+              : rating !== null && rating >= 4
+                ? "送信してGoogle口コミへ"
+                : "アンケートを送信する"}
+          </Button>
+          <p className="text-center text-[11px] leading-relaxed text-zinc-500">
+            必須の選択が終わるとボタンが押せます。
+            <br />
+            高評価の場合は、口コミ文面を作成してGoogle口コミページを開きます。
+          </p>
+        </div>
       </div>
     </div>
   );

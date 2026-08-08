@@ -78,7 +78,8 @@ export type PilatesTrialAnswers = {
   impression: string;
   fullName: string;
   age: string;
-  contact: string;
+  email: string;
+  address: string;
 };
 
 export function buildEventReviewDraft(input: Pick<PilatesTrialAnswers, "experience" | "impression" | "rating">): string {

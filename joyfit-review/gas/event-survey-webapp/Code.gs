@@ -97,10 +97,7 @@ function getOrCreateEventSurveySheet(eventId, eventName) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var base = ("催事_" + safeSheetName(eventId)).slice(0, 90);
   var sheet = ss.getSheetByName(base);
-  if (sheet) return sheet;
-
-  sheet = ss.insertSheet(base);
-  sheet.appendRow([
+  var headers = [
     "timestamp",
     "eventId",
     "eventName",
@@ -120,10 +117,20 @@ function getOrCreateEventSurveySheet(eventId, eventName) {
     "impression",
     "fullName",
     "age",
-    "contact",
+    "email",
+    "address",
     "generatedReview",
     "submissionId",
-  ]);
+  ];
+
+  if (!sheet) {
+    sheet = ss.insertSheet(base);
+    sheet.appendRow(headers);
+    return sheet;
+  }
+
+  // 既存シートのヘッダーを最新列構成へ更新（contact → email / address）
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   return sheet;
 }
 
@@ -148,6 +155,9 @@ function saveEventSurveyResponse(data) {
       return { ok: true, duplicate: true, sheetName: sheet.getName() };
     }
 
+    var email = String(data.email || data.contact || "").trim();
+    var address = String(data.address || "").trim();
+
     sheet.appendRow([
       new Date(),
       eventId,
@@ -168,7 +178,8 @@ function saveEventSurveyResponse(data) {
       String(data.impression || "").trim(),
       String(data.fullName || "").trim(),
       String(data.age || "").trim(),
-      String(data.contact || "").trim(),
+      email,
+      address,
       String(data.generatedReview || "").trim(),
       submissionId,
     ]);
