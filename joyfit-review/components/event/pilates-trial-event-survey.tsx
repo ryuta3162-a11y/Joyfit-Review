@@ -48,6 +48,13 @@ const notoSansJp = Noto_Sans_JP({
 
 const stars = [1, 2, 3, 4, 5] as const;
 
+const LABEL = {
+  other: "その他",
+  igTrigger: "インスグラムで告知を見たため",
+  pilatesAgain: "もう一度！マシンピラティス体験",
+  yogaTrial: "ヨガ体験",
+} as const;
+
 function newSubmissionId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -83,13 +90,13 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
   const [sent, setSent] = useState(false);
   const [draft, setDraft] = useState("");
 
-  const needsExperienceOther = experience.includes("???");
-  const needsTriggerOther = triggers.includes("???");
-  const needsInstagram = triggers.includes("??????????????");
-  const needsFutureOther = futureEvents.includes("???");
-  const needsPilatesMinutes = futureEvents.includes("???????????????");
-  const needsYogaMinutes = futureEvents.includes("????");
-  const needsConcernOther = concerns.includes("???");
+  const needsExperienceOther = experience.includes(LABEL.other);
+  const needsTriggerOther = triggers.includes(LABEL.other);
+  const needsInstagram = triggers.includes(LABEL.igTrigger);
+  const needsFutureOther = futureEvents.includes(LABEL.other);
+  const needsPilatesMinutes = futureEvents.includes(LABEL.pilatesAgain);
+  const needsYogaMinutes = futureEvents.includes(LABEL.yogaTrial);
+  const needsConcernOther = concerns.includes(LABEL.other);
 
   const canSubmit =
     rating !== null &&
@@ -167,17 +174,17 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
               <Check className="h-7 w-7" strokeWidth={2.75} />
             </div>
-            <h2 className="mt-7 text-[22px] font-bold tracking-tight">?????????????</h2>
+            <h2 className="mt-7 text-[22px] font-bold tracking-tight">ご協力ありがとうございます</h2>
             <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
-              ????????????????????
+              体験会へのご回答ありがとうございました。
               <br />
-              ??????Google?????????????
+              よろしければGoogle口コミにもご協力ください。
             </p>
           </div>
           <div className={`${memberFormBodyClass} px-6 py-8 text-center`}>
             {draft ? (
               <div className="mx-auto max-w-sm text-left">
-                <p className="mb-2 text-[13px] font-semibold text-zinc-700">????????????</p>
+                <p className="mb-2 text-[13px] font-semibold text-zinc-700">口コミ文面（コピー済み）</p>
                 <pre className="whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
                   {draft}
                 </pre>
@@ -199,11 +206,11 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
     return (
       <div data-brand="yoga" className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 py-12 text-center text-white">
-          <h2 className="text-xl font-bold">?????????????</h2>
+          <h2 className="text-xl font-bold">ご回答ありがとうございます</h2>
           <p className="mt-3 text-[14px] leading-relaxed text-white/90">
-            ?????????????????????
+            体験会へのご参加、ありがとうございました。
             <br />
-            ???????????????????????
+            貴重なご意見を今後の参考にさせていただきます。
           </p>
         </div>
       </div>
@@ -228,17 +235,17 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
           {PILATES_TRIAL_EVENT.dateLabel}
         </p>
         <p className="relative z-[1] mt-4 text-[12px] text-white/75">
-          {storeDisplayName} ???????????????????
+          {storeDisplayName} の口コミにもつながる体験アンケートです
         </p>
       </div>
 
       <div className={memberFormBodyClass}>
         <section className={memberFormSectionClass}>
           <p className={memberFormSectionTitleClass}>
-            ??????????????????????????
+            今回のマシンピラティス体験を星の数で評価してください
             <span className="text-[color:var(--joyfit-red)]"> *</span>
           </p>
-          <p className="text-[12px] text-zinc-500">??? ? ? ????????????????</p>
+          <p className="text-[12px] text-zinc-500">低評価 ← → 高評価（タップで黄色になります）</p>
           <div className="flex items-center justify-center gap-2 py-2">
             {stars.map((value) => {
               const filled = rating !== null && value <= rating;
@@ -246,7 +253,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
                 <button
                   key={value}
                   type="button"
-                  aria-label={`${value}??`}
+                  aria-label={`${value}つ星`}
                   onClick={() => setRating(value)}
                   className="rounded-lg p-1 transition hover:scale-105"
                 >
@@ -265,10 +272,10 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
 
         <section className={memberFormSectionDividerClass}>
           <p className={memberFormSectionTitleClass}>
-            ??????????????????????
+            今回のマシンピラティス体験はいかがでしたか？
             <span className="text-[color:var(--joyfit-red)]"> *</span>
           </p>
-          <p className="text-[12px] text-zinc-500">?????</p>
+          <p className="text-[12px] text-zinc-500">複数選択可</p>
           <div className="flex flex-wrap gap-2">
             {EXPERIENCE_OPTIONS.map((opt) => (
               <button
@@ -282,12 +289,12 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             ))}
           </div>
           {needsExperienceOther ? (
-            <MemberFormField label="??????" required>
+            <MemberFormField label="その他の内容" required>
               <Input
                 value={experienceOther}
                 onChange={(e) => setExperienceOther(e.target.value)}
                 className={memberFormInputClass}
-                placeholder="??????????"
+                placeholder="自由にご記入ください"
               />
             </MemberFormField>
           ) : null}
@@ -295,10 +302,10 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
 
         <section className={memberFormSectionDividerClass}>
           <p className={memberFormSectionTitleClass}>
-            ?????????????????????????
+            今回体験を受けてくださったキッカケを教えてください
             <span className="text-[color:var(--joyfit-red)]"> *</span>
           </p>
-          <p className="text-[12px] text-zinc-500">?????</p>
+          <p className="text-[12px] text-zinc-500">複数選択可</p>
           <div className="flex flex-wrap gap-2">
             {TRIGGER_OPTIONS.map((opt) => (
               <button
@@ -314,7 +321,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
           {needsInstagram ? (
             <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4">
               <p className="text-[13px] font-semibold text-zinc-800">
-                ?????????????????
+                どちらのアカウントで知りましたか？
                 <span className="text-[color:var(--joyfit-red)]"> *</span>
               </p>
               <div className="flex flex-wrap gap-2">
@@ -332,12 +339,12 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             </div>
           ) : null}
           {needsTriggerOther ? (
-            <MemberFormField label="??????" required>
+            <MemberFormField label="その他の内容" required>
               <Input
                 value={triggerOther}
                 onChange={(e) => setTriggerOther(e.target.value)}
                 className={memberFormInputClass}
-                placeholder="??????????"
+                placeholder="自由にご記入ください"
               />
             </MemberFormField>
           ) : null}
@@ -345,10 +352,10 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
 
         <section className={memberFormSectionDividerClass}>
           <p className={memberFormSectionTitleClass}>
-            ?????????????????????
+            今後体験してみたいイベントを教えてください
             <span className="text-[color:var(--joyfit-red)]"> *</span>
           </p>
-          <p className="text-[12px] text-zinc-500">?????</p>
+          <p className="text-[12px] text-zinc-500">複数選択可</p>
           <div className="flex flex-wrap gap-2">
             {FUTURE_EVENT_OPTIONS.map((opt) => (
               <button
@@ -362,34 +369,34 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             ))}
           </div>
           {needsPilatesMinutes ? (
-            <MemberFormField label="???????????????" hint="???">
+            <MemberFormField label="マシンピラティス体験の希望時間" hint="分程度">
               <Input
                 value={pilatesMinutes}
                 onChange={(e) => setPilatesMinutes(e.target.value.replace(/[^\d]/g, ""))}
                 className={memberFormInputClass}
                 inputMode="numeric"
-                placeholder="?: 30"
+                placeholder="例: 30"
               />
             </MemberFormField>
           ) : null}
           {needsYogaMinutes ? (
-            <MemberFormField label="?????????" hint="???">
+            <MemberFormField label="ヨガ体験の希望時間" hint="分程度">
               <Input
                 value={yogaMinutes}
                 onChange={(e) => setYogaMinutes(e.target.value.replace(/[^\d]/g, ""))}
                 className={memberFormInputClass}
                 inputMode="numeric"
-                placeholder="?: 45"
+                placeholder="例: 45"
               />
             </MemberFormField>
           ) : null}
           {needsFutureOther ? (
-            <MemberFormField label="??????" required>
+            <MemberFormField label="その他の内容" required>
               <Input
                 value={futureEventOther}
                 onChange={(e) => setFutureEventOther(e.target.value)}
                 className={memberFormInputClass}
-                placeholder="??????????"
+                placeholder="自由にご記入ください"
               />
             </MemberFormField>
           ) : null}
@@ -397,10 +404,10 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
 
         <section className={memberFormSectionDividerClass}>
           <p className={memberFormSectionTitleClass}>
-            ?????????????????????????
+            普段、体のお悩みや気になっていることはありますか？
             <span className="text-[color:var(--joyfit-red)]"> *</span>
           </p>
-          <p className="text-[12px] text-zinc-500">?????</p>
+          <p className="text-[12px] text-zinc-500">複数選択可</p>
           <div className="flex flex-wrap gap-2">
             {CONCERN_OPTIONS.map((opt) => (
               <button
@@ -414,12 +421,12 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             ))}
           </div>
           {needsConcernOther ? (
-            <MemberFormField label="??????" required>
+            <MemberFormField label="その他の内容" required>
               <Input
                 value={concernOther}
                 onChange={(e) => setConcernOther(e.target.value)}
                 className={memberFormInputClass}
-                placeholder="??????????"
+                placeholder="自由にご記入ください"
               />
             </MemberFormField>
           ) : null}
@@ -427,7 +434,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
 
         <section className={memberFormSectionDividerClass}>
           <p className={memberFormSectionTitleClass}>
-            ????????????????????????????
+            本格的なレッスンや、スタジオでの体験に興味はありますか？
             <span className="text-[color:var(--joyfit-red)]"> *</span>
           </p>
           <div className="grid gap-2">
@@ -445,44 +452,44 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
         </section>
 
         <section className={memberFormSectionDividerClass}>
-          <MemberFormField label="?????????????" required>
+          <MemberFormField label="本日の感想を教えてください" required>
             <Textarea
               value={impression}
               onChange={(e) => setImpression(e.target.value)}
               rows={5}
               className={memberFormTextareaClass}
-              placeholder="???????????"
+              placeholder="ご自由にお書きください"
             />
           </MemberFormField>
         </section>
 
         <section className={memberFormSectionDividerClass}>
-          <p className={memberFormSectionTitleClass}>???????????????????</p>
+          <p className={memberFormSectionTitleClass}>差し支えなければご記入ください（任意）</p>
           <p className="text-[12px] leading-relaxed text-zinc-500">
-            ???????????????????????
+            今後のご案内（キャンペーン情報・特典等）のため
           </p>
-          <MemberFormField label="???">
+          <MemberFormField label="お名前">
             <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className={memberFormInputClass}
-              placeholder="?? ??"
+              placeholder="山田 花子"
             />
           </MemberFormField>
-          <MemberFormField label="???">
+          <MemberFormField label="ご年齢">
             <Input
               value={age}
               onChange={(e) => setAge(e.target.value)}
               className={memberFormInputClass}
-              placeholder="?: 35"
+              placeholder="例: 35"
             />
           </MemberFormField>
-          <MemberFormField label="???????? or ????????">
+          <MemberFormField label="ご連絡先（ご住所 or メールアドレス）">
             <Input
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               className={memberFormInputClass}
-              placeholder="????????????"
+              placeholder="メールアドレスまたは住所"
             />
           </MemberFormField>
         </section>
@@ -500,13 +507,13 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
           className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-300 disabled:text-zinc-500"
         >
           {submitting
-            ? "????"
+            ? "送信中…"
             : rating !== null && rating >= 4
-              ? "????Google????"
-              : "??????????"}
+              ? "送信してGoogle口コミへ"
+              : "アンケートを送信する"}
         </Button>
         <p className="text-center text-[11px] leading-relaxed text-zinc-500">
-          ????????Google???????????????????????????
+          高評価の場合は、Google口コミページを開きます（口コミ文面を自動作成します）。
         </p>
       </div>
     </div>
