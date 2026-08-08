@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   reviewUrl: string;
-  storeDisplayName: string;
 };
 
 const notoSansJp = Noto_Sans_JP({

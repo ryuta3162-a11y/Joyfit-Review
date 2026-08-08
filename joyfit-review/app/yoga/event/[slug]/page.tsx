@@ -23,11 +23,10 @@ export default async function YogaEventSurveyPage({ params }: Props) {
   }
 
   const reviewUrl = store?.googleReviewUrl?.trim() || "";
-  const storeDisplayName = store?.name?.trim() || "YOGAひばりが丘";
 
   return (
     <MemberPageShell>
-      <PilatesTrialEventSurvey reviewUrl={reviewUrl} storeDisplayName={storeDisplayName} />
+      <PilatesTrialEventSurvey reviewUrl={reviewUrl} />
     </MemberPageShell>
   );
 }
