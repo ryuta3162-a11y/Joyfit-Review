@@ -122,7 +122,7 @@ function ChoiceGrid({
   );
 }
 
-export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) {
+export function PilatesTrialEventSurvey({ reviewUrl }: Props) {
   const theme = BRAND_THEMES.yoga;
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
   const submissionIdRef = useRef(newSubmissionId());
@@ -289,28 +289,14 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
       className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
-      <div className="joyfit-brand-header px-5 pb-8 pt-6 text-center text-white md:px-6 md:pt-8">
+      <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
         <JoyfitHeaderLogo brand="yoga" />
         <h1 className="relative z-[1] mt-5 text-xl font-bold md:text-2xl">
           {PILATES_TRIAL_EVENT.title}
         </h1>
         <p className="relative z-[1] mt-2 text-[13px] text-white/90">
-          {PILATES_TRIAL_EVENT.subtitle}
-        </p>
-        <p className="relative z-[1] mt-1 text-[12px] text-white/80">
           {PILATES_TRIAL_EVENT.dateLabel}
         </p>
-        <div className="relative z-[1] mx-auto mt-5 max-w-sm rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-left">
-          <p className="text-[12px] font-semibold text-white">回答のながれ</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-white/85">
-            タップで選ぶ質問が中心です。所要目安は2〜3分。
-            <br />
-            お名前・連絡先・感想は任意です。空欄のままでも送信できます。
-          </p>
-          <p className="mt-2 text-[11px] text-white/75">
-            {storeDisplayName} のGoogle口コミへもつながります
-          </p>
-        </div>
       </div>
 
       <div className={`${memberFormBodyClass} space-y-7`}>
@@ -319,7 +305,6 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             step={1}
             title="今回の体験を星で評価してください"
             required
-            hint="タップすると黄色になります（1＝低評価、5＝高評価）"
           />
           <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4">
             <div className="flex items-center justify-center gap-2">
@@ -344,9 +329,11 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
                 );
               })}
             </div>
-            <p className="mt-2 text-center text-[13px] font-medium text-zinc-600">
-              {rating ? `${rating}つ星を選択中` : "星をタップしてください"}
-            </p>
+            {rating ? (
+              <p className="mt-2 text-center text-[13px] font-medium text-zinc-600">
+                {rating}つ星
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -355,7 +342,6 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             step={2}
             title="今回のマシンピラティス体験はいかがでしたか？"
             required
-            hint="あてはまるものをすべて選択"
           />
           <ChoiceGrid
             multi
@@ -378,7 +364,6 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             step={3}
             title="体験のキッカケを教えてください"
             required
-            hint="あてはまるものをすべて選択"
           />
           <ChoiceGrid
             multi
@@ -415,7 +400,6 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             step={4}
             title="今後体験してみたいイベントは？"
             required
-            hint="あてはまるものをすべて選択"
           />
           <ChoiceGrid
             multi
@@ -464,7 +448,6 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             step={5}
             title="普段、体のお悩みはありますか？"
             required
-            hint="あてはまるものをすべて選択"
           />
           <ChoiceGrid
             multi
@@ -487,7 +470,6 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
             step={6}
             title="スタジオでの本格レッスンに興味はありますか？"
             required
-            hint="1つだけ選択"
           />
           <div className="grid gap-2">
             {INTEREST_OPTIONS.map((opt) => (
@@ -504,11 +486,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
         </section>
 
         <section className="space-y-3 border-t border-zinc-200/80 pt-7">
-          <SectionHeader
-            step={7}
-            title="本日の感想"
-            hint="書ける範囲で大丈夫です。空欄のままでも送信できます"
-          />
+          <SectionHeader step={7} title="本日の感想" />
           <Textarea
             value={impression}
             onChange={(e) => setImpression(e.target.value)}
@@ -519,11 +497,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
         </section>
 
         <section className="space-y-4 border-t border-zinc-200/80 pt-7">
-          <SectionHeader
-            step={8}
-            title="今後のご案内（任意）"
-            hint="キャンペーンや特典のご連絡用です。未記入でも問題ありません"
-          />
+          <SectionHeader step={8} title="今後のご案内" />
           <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
             <div>
               <p className="mb-1.5 text-[13px] font-semibold text-zinc-800">お名前</p>
@@ -564,9 +538,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
                 <p className="mt-1.5 text-[12px] font-medium text-[color:var(--joyfit-red)]">
                   メールアドレスの形式をご確認ください
                 </p>
-              ) : (
-                <p className="mt-1.5 text-[11px] text-zinc-500">ご案内の主な連絡先です</p>
-              )}
+              ) : null}
             </div>
             <div>
               <p className="mb-1.5 text-[13px] font-semibold text-zinc-800">ご住所</p>
@@ -575,7 +547,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
                 onChange={(e) => setAddress(e.target.value)}
                 className={memberFormInputClass}
                 autoComplete="street-address"
-                placeholder="任意（郵便物が必要な場合のみ）"
+                placeholder="任意"
               />
             </div>
           </div>
@@ -587,7 +559,7 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
           </p>
         ) : null}
 
-        <div className="space-y-2 pb-2">
+        <div className="pb-2">
           <Button
             type="button"
             onClick={() => void handleSubmit()}
@@ -598,13 +570,8 @@ export function PilatesTrialEventSurvey({ reviewUrl, storeDisplayName }: Props) 
               ? "送信中…"
               : rating !== null && rating >= 4
                 ? "送信してGoogle口コミへ"
-                : "アンケートを送信する"}
+                : "送信する"}
           </Button>
-          <p className="text-center text-[11px] leading-relaxed text-zinc-500">
-            必須の選択が終わるとボタンが押せます。
-            <br />
-            高評価の場合は、口コミ文面を作成してGoogle口コミページを開きます。
-          </p>
         </div>
       </div>
     </div>
