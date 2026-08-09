@@ -9,22 +9,24 @@ type Props = {
   params: Promise<{ brand: string }>;
 };
 
-export default async function BrandSelectStorePage({ params }: Props) {
+const REGION = "west" as const;
+const BASE = "/west";
+
+export default async function WestBrandSelectStorePage({ params }: Props) {
   const { brand: raw } = await params;
   const brand = parseBrandParam(raw);
   if (!brand) notFound();
 
-  const stores = await fetchStoresRemote("east");
+  const stores = await fetchStoresRemote(REGION);
   const filtered = stores.filter((store) => detectBrandFromStore(store.name) === brand);
 
-  // YOGA は1店舗のみのため、店舗選択・位置情報を挟まずアンケートへ直行
   if (brand === "yoga" && filtered.length >= 1) {
-    redirect(`/yoga/member/${filtered[0].id}`);
+    redirect(`${BASE}/yoga/member/${filtered[0].id}`);
   }
 
   return (
     <MemberPageShell>
-      <StorePicker stores={filtered} brand={brand} />
+      <StorePicker stores={filtered} brand={brand} basePath={BASE} />
     </MemberPageShell>
   );
 }

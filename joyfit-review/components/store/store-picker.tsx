@@ -18,6 +18,8 @@ import type { StoreMasterRow } from "@/lib/store-master";
 type Props = {
   stores: StoreMasterRow[];
   brand: Brand;
+  /** EAST ? ""?WEST ? "/west" */
+  basePath?: string;
 };
 
 type StoreWithDistance = {
@@ -49,16 +51,17 @@ function calcDistanceMeters(
 
 type GeoPhase = "loading" | "ok" | "needs-action" | "failed" | "unsupported";
 
-export function StorePicker({ stores, brand }: Props) {
+export function StorePicker({ stores, brand, basePath = "" }: Props) {
   const theme = BRAND_THEMES[brand];
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
-  const memberHref = (storeId: string) => `/${brand}/member/${storeId}`;
+  const memberHref = (storeId: string) => `${basePath}/${brand}/member/${storeId}`;
+  const homeHref = `${basePath}/${brand}`;
   const [query, setQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [geoPhase, setGeoPhase] = useState<GeoPhase>("loading");
   const [geoFailureReason, setGeoFailureReason] = useState<ReviewGeoFailureReason | null>(null);
   const [nearestPromptDismissed, setNearestPromptDismissed] = useState(false);
-  // YOGA は1店舗想定のため、位置情報なしで検索 UI を最初から出す
+  // YOGA ?1????????????????? UI ???????
   const [manualSearch, setManualSearch] = useState(brand === "yoga");
 
   const applyCoords = useCallback((coords: { lat: number; lng: number }) => {
@@ -95,7 +98,7 @@ export function StorePicker({ stores, brand }: Props) {
       return;
     }
 
-    // iOS 等ではユーザー操作なしの自動取得が失敗しやすいため、初回はボタン操作を促す
+    // iOS ?????????????????????????????????????
     setGeoPhase("needs-action");
   }, [applyCoords]);
 
@@ -154,33 +157,33 @@ export function StorePicker({ stores, brand }: Props) {
             href={`/${brand}`}
             className="relative z-[1] mb-3 inline-block text-xs font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
           >
-            ← トップに戻る
+            ? ??????
           </Link>
           <h1 className="relative z-[1] mt-2 text-lg font-bold leading-snug whitespace-nowrap md:text-xl">
-            対象店舗を選択してください
+            ?????????????
           </h1>
         </div>
 
         {showStoreUi ? (
           <div className="border-t border-zinc-100 bg-card px-5 py-5">
-            <p className="mb-3 text-sm font-bold text-zinc-900">他の店舗の口コミを投稿</p>
+            <p className="mb-3 text-sm font-bold text-zinc-900">???????????</p>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="店舗名を検索"
+                placeholder="??????"
                 className={`${memberFormInputClass} h-12 pl-10`}
               />
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
               {manualSearch ? (
-                <>店舗名で検索して、投稿する店舗を選んでください。</>
+                <>????????????????????????</>
               ) : (
                 <>
-                  現在地に基づき、お近くの店舗が優先して表示されます。
+                  ??????????????????????????
                   <br />
-                  位置情報を許可しない場合は、下の「店舗名で検索する」から選べます。
+                  ?????????????????????????????????
                 </>
               )}
             </p>
@@ -190,7 +193,7 @@ export function StorePicker({ stores, brand }: Props) {
                 onClick={enterManualSearch}
                 className="mt-3 text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
               >
-                位置情報を使わず店舗名で検索する
+                ????????????????
               </button>
             )}
           </div>
@@ -198,16 +201,16 @@ export function StorePicker({ stores, brand }: Props) {
           <div className="border-t border-zinc-100 bg-card px-5 py-8">
             {geoPhase === "loading" && (
               <p className="text-center text-sm font-medium text-muted-foreground">
-                位置情報を確認しています…
+                ?????????????
               </p>
             )}
             {geoPhase === "needs-action" && (
               <div className="space-y-4 text-center">
                 <p className="text-sm font-semibold leading-relaxed text-zinc-900">
-                  現在地を取得して、お近くの店舗を表示します。
+                  ??????????????????????
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  下のボタンをタップし、表示された位置情報の許可を選んでください。
+                  ????????????????????????????????
                 </p>
                 <button
                   type="button"
@@ -215,14 +218,14 @@ export function StorePicker({ stores, brand }: Props) {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                 >
                   <MapPin className="h-4 w-4" />
-                  現在地を取得する
+                  ????????
                 </button>
                 <button
                   type="button"
                   onClick={enterManualSearch}
                   className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
                 >
-                  位置情報を使わず店舗名で検索する
+                  ????????????????
                 </button>
               </div>
             )}
@@ -236,43 +239,43 @@ export function StorePicker({ stores, brand }: Props) {
                   onClick={requestLocation}
                   className="w-full rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                 >
-                  もう一度試す
+                  ??????
                 </button>
                 <button
                   type="button"
                   onClick={enterManualSearch}
                   className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
                 >
-                  位置情報を使わず店舗名で検索する
+                  ????????????????
                 </button>
                 <Link
                   href={`/${brand}`}
                   className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
                 >
-                  トップに戻る
+                  ??????
                 </Link>
               </div>
             )}
             {geoPhase === "unsupported" && (
               <div className="space-y-3 text-center">
                 <p className="text-sm font-semibold text-zinc-900">
-                  お使いの環境では位置情報を利用できません。
+                  ?????????????????????
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  店舗名で検索して、投稿する店舗を選んでください。
+                  ????????????????????????
                 </p>
                 <button
                   type="button"
                   onClick={enterManualSearch}
                   className="w-full rounded-xl bg-[color:var(--joyfit-red)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                 >
-                  店舗名で検索する
+                  ????????
                 </button>
                 <Link
                   href={`/${brand}`}
                   className="inline-block text-xs font-medium text-[color:var(--joyfit-red)] underline-offset-4 hover:underline"
                 >
-                  トップに戻る
+                  ??????
                 </Link>
               </div>
             )}
@@ -283,21 +286,21 @@ export function StorePicker({ stores, brand }: Props) {
       {showStoreUi && nearestStore && (
         <div className="rounded-2xl border border-[color:var(--joyfit-red)]/30 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white p-5 shadow-md">
           <p className="mt-2 text-base font-bold leading-snug text-zinc-900">
-            口コミを投稿する店舗は「{nearestStore.store.name}」で合っていますか？
+            ????????????{nearestStore.store.name}??????????
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href={memberHref(nearestStore.store.id)}
               className="inline-flex items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
             >
-              アンケートに進む
+              ????????
             </Link>
             <button
               type="button"
               onClick={() => setNearestPromptDismissed(true)}
               className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
             >
-              他の店舗を選ぶ
+              ???????
             </button>
           </div>
         </div>
@@ -307,9 +310,9 @@ export function StorePicker({ stores, brand }: Props) {
         <ul className="space-y-3">
           {filteredAndSorted.length === 0 ? (
             <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-10 text-center text-sm text-muted-foreground">
-              該当する店舗がありません。
+              ?????????????
               <br />
-              別のキーワードでお試しください。
+              ????????????????
             </li>
           ) : (
             filteredAndSorted.map(({ store }) => (

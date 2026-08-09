@@ -1,5 +1,7 @@
 "use server";
 
+import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
+
 export type SubmitMemberSurveyInput = {
   storeId: string;
   storeName: string;
@@ -18,6 +20,8 @@ export type SubmitMemberSurveyInput = {
   skipAutoMail?: boolean;
   /** 同一操作の再送・二重タップで重複保存しないためのID */
   submissionId: string;
+  /** EAST / WEST。未指定時は EAST（既存互換） */
+  region?: ReviewRegion | string;
 };
 
 export type SubmitMemberSurveyResult = { ok: true } | { ok: false; error: string };
@@ -56,7 +60,8 @@ function resolveRecipients(storeEmail: string, fallback: string): string {
 export async function submitMemberSurvey(
   input: SubmitMemberSurveyInput,
 ): Promise<SubmitMemberSurveyResult> {
-  const gasUrl = process.env.STORES_JSON_URL?.trim();
+  const region = parseReviewRegion(input.region);
+  const gasUrl = getStoresGasUrl(region);
   if (!gasUrl) {
     return { ok: false, error: "ただいま送信をお受けできません。" };
   }

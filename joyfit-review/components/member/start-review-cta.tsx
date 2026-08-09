@@ -14,9 +14,11 @@ type Props = {
   directHref?: string;
   /** ボタン文言（未指定時はブランド既定） */
   label?: string;
+  /** EAST は ""、WEST は "/west" */
+  basePath?: string;
 };
 
-export function StartReviewCta({ brand, directHref, label }: Props) {
+export function StartReviewCta({ brand, directHref, label, basePath = "" }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function StartReviewCta({ brand, directHref, label }: Props) {
 
     // YOGA は1店舗のみ。位置情報は不要（取得失敗時も geo に落とさない）
     if (brand === "yoga") {
-      router.push(directHref || "/yoga/select-store");
+      router.push(directHref || `${basePath}/yoga/select-store`);
       return;
     }
 
@@ -38,7 +40,7 @@ export function StartReviewCta({ brand, directHref, label }: Props) {
 
     const result = await acquireReviewGeo();
     if (result.ok) {
-      router.push(`/${brand}/select-store`);
+      router.push(`${basePath}/${brand}/select-store`);
       return;
     }
 

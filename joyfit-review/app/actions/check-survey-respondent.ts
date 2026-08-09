@@ -1,5 +1,6 @@
 "use server";
 
+import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
 import {
   fetchCheckRespondent,
   type CheckSurveyRespondentResult,
@@ -9,8 +10,9 @@ export type { CheckSurveyRespondentResult };
 
 export async function checkSurveyRespondent(input: {
   memberCode: string;
+  region?: ReviewRegion | string;
 }): Promise<CheckSurveyRespondentResult> {
-  const gasUrl = process.env.STORES_JSON_URL?.trim();
+  const gasUrl = getStoresGasUrl(parseReviewRegion(input.region));
   if (!gasUrl) {
     return { ok: false, error: "ただいま確認をお受けできません。" };
   }

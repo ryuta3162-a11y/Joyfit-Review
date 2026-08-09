@@ -14,26 +14,24 @@ const cards: Array<{
 }> = [
   {
     brand: "joyfit",
-    description: "JOYFIT24・JOYFIT24ジムLITE 各店舗のアンケート",
+    description: "JOYFIT24・JOYFIT24ジムLITE（関西・西日本）",
   },
   {
     brand: "fit365",
-    description: "FIT365 各店舗のアンケート",
+    description: "FIT365（関西・西日本）",
   },
   {
     brand: "yoga",
-    description: "JOYFIT YOGA 各店舗のアンケート",
+    description: "JOYFIT YOGA（関西・西日本）",
   },
 ];
 
-export default function BrandSelectorPage() {
+export default function WestBrandSelectorPage() {
   return (
     <MemberPageShell>
       <div className={memberFormCardClass}>
         <div className="bg-zinc-50/60 px-6 pb-6 pt-7 text-center">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">
-            EAST / JOYFIT / FIT365 / YOGA
-          </p>
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">WEST / 関西・西日本</p>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
             アンケートページ
           </h1>
@@ -42,6 +40,9 @@ export default function BrandSelectorPage() {
           </p>
           <p className="mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-zinc-500">
             {STORE_REWARD_VARIES_NOTE}
+          </p>
+          <p className="mx-auto mt-2 max-w-sm text-[11px] leading-relaxed text-zinc-400">
+            ※ EAST（関東など）とは別のデータです
           </p>
         </div>
 
@@ -52,7 +53,7 @@ export default function BrandSelectorPage() {
             return (
               <Link
                 key={brand}
-                href={`/${brand}`}
+                href={`/west/${brand}`}
                 className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
               >
                 <div
@@ -106,12 +107,8 @@ export default function BrandSelectorPage() {
         </div>
 
         <div className="border-t border-zinc-100 px-6 py-4 text-center">
-          <Link
-            href="/west"
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#a5354b] underline-offset-2 hover:underline"
-          >
-            WEST（関西・西日本）はこちら
-            <ArrowRight className="h-3.5 w-3.5" />
+          <Link href="/" className="text-[12px] font-medium text-zinc-500 underline-offset-2 hover:underline">
+            EAST（関東など）はこちら
           </Link>
         </div>
       </div>

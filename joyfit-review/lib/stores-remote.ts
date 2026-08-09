@@ -1,5 +1,6 @@
 import type { StoreMasterRow } from "@/lib/store-master";
 import { STORES_FALLBACK } from "@/lib/store-master";
+import { getStoresGasUrl, type ReviewRegion } from "@/lib/region";
 
 /** GAS doGet の JSON モード用。ベース URL のみ設定されていても店舗一覧が取れるようにする */
 function storesListRequestUrl(base: string): string {
@@ -73,42 +74,53 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
   };
 }
 
+function fallbackForRegion(region: ReviewRegion): StoreMasterRow[] {
+  // WEST に EAST のサンプル店舗を絶対に混ぜない
+  if (region === "west") return [];
+  return STORES_FALLBACK;
+}
+
 /**
  * GAS Webアプリ（または任意のJSON配列URL）から店舗一覧を取得。
- * 失敗時はフォールバック。
+ * region で EAST / WEST の接続先を切り替える。
  */
-export async function fetchStoresRemote(): Promise<StoreMasterRow[]> {
-  const url = process.env.STORES_JSON_URL?.trim();
+export async function fetchStoresRemote(
+  region: ReviewRegion = "east",
+): Promise<StoreMasterRow[]> {
+  const url = getStoresGasUrl(region);
   if (!url) {
-    return STORES_FALLBACK;
+    return fallbackForRegion(region);
   }
 
   try {
     const res = await fetch(storesListRequestUrl(url), {
-      next: { revalidate: 300 },
+      next: { revalidate: 60 },
       headers: { Accept: "application/json" },
     });
 
     if (!res.ok) {
-      return STORES_FALLBACK;
+      return fallbackForRegion(region);
     }
 
     const json: unknown = await res.json();
     if (!Array.isArray(json)) {
-      return STORES_FALLBACK;
+      return fallbackForRegion(region);
     }
 
     const parsed = json
       .map((row) => normalizeRemoteRow(row))
       .filter((row): row is StoreMasterRow => row !== null);
 
-    return parsed.length ? parsed : STORES_FALLBACK;
+    return parsed.length ? parsed : fallbackForRegion(region);
   } catch {
-    return STORES_FALLBACK;
+    return fallbackForRegion(region);
   }
 }
 
-export async function getStoreByIdRemote(id: string): Promise<StoreMasterRow | undefined> {
-  const stores = await fetchStoresRemote();
+export async function getStoreByIdRemote(
+  id: string,
+  region: ReviewRegion = "east",
+): Promise<StoreMasterRow | undefined> {
+  const stores = await fetchStoresRemote(region);
   return stores.find((store) => store.id === id);
 }

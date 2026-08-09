@@ -1,5 +1,7 @@
 "use server";
 
+import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
+
 function resolveRecipients(storeEmail: string, fallback: string): string {
   const a = storeEmail.trim();
   const b = fallback.trim();
@@ -11,7 +13,7 @@ export type SubmitLowRatingResult = { ok: true } | { ok: false; error: string };
 
 /**
  * 星3以下のご意見を GAS（MailApp）経由でメール送信する。
- * STORES_JSON_URL と同じウェブアプリに doPost を実装してあること。
+ * 各エリアの STORES_JSON_URL / STORES_JSON_URL_WEST と同じウェブアプリに doPost を実装してあること。
  */
 export async function submitLowRatingFeedback(input: {
   storeId: string;
@@ -19,8 +21,9 @@ export async function submitLowRatingFeedback(input: {
   rating: number;
   message: string;
   storeFeedbackEmail: string;
+  region?: ReviewRegion | string;
 }): Promise<SubmitLowRatingResult> {
-  const gasUrl = process.env.STORES_JSON_URL?.trim();
+  const gasUrl = getStoresGasUrl(parseReviewRegion(input.region));
   const defaultEmail = process.env.DEFAULT_LOW_RATING_EMAIL?.trim() ?? "";
 
   const to = resolveRecipients(input.storeFeedbackEmail, defaultEmail);

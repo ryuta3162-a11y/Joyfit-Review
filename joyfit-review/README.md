@@ -44,25 +44,25 @@ npm run dev
 npm run build
 ```
 
-## URL 構成（JOYFIT / FIT365 でブランドを分離）
+## URL 構成（EAST / WEST × JOYFIT / FIT365）
 
-- `/` … ブランド選択（JOYFIT / FIT365 のどちらかを選んで進む）
-- `/joyfit` … JOYFIT 用トップ（位置情報許可）
-- `/joyfit/select-store` … JOYFIT 系列店舗の選択
-- `/joyfit/member/[店舗ID]` … JOYFIT 店舗のアンケート＆クチコミ誘導
-- `/fit365` … FIT365 用トップ（ピンク／ベアクマ）
-- `/fit365/select-store` … FIT365 店舗の選択
-- `/fit365/member/[店舗ID]` … FIT365 店舗のアンケート（特典：ベアレージポイント）
+### EAST（既存・関東など）
+- `/` … ブランド選択
+- `/joyfit` `/fit365` `/yoga` … 各ブランド入口
+- `/joyfit/select-store` … 店舗選択
+- `/joyfit/member/[店舗ID]` … アンケート
 
-店内 POP・QR には **`/joyfit` または `/fit365` を直接記載**するのが推奨です。店舗別 QR にしたい場合は `/joyfit/member/{店舗ID}` 等を埋め込みます。
+### WEST（関西・西日本）
+- `/west` … WEST ブランド選択
+- `/west/joyfit` `/west/fit365` `/west/yoga` … 各ブランド入口
+- 店舗データは **別スプレッドシート／別 GAS**（`STORES_JSON_URL_WEST`）
 
-## フォルダの目安
+店内 POP・QR には EAST なら `/joyfit`、WEST なら `/west/joyfit` などを直接記載。
 
-- `app/page.tsx` … ブランド選択
-- `app/[brand]/...` … ブランド別のトップ／店舗選択／店舗ページ
-- `components/member/review-flow.tsx` … メインのアンケート・口コミ案内 UI
-- `lib/brand.ts` … ブランド判定・カラー・特典文言
-- `lib/stores-remote.ts` … 店舗 JSON の取得
-- `gas/store-data-webapp/` … スプレッドシート連携用 GAS（エディタにコピーしてデプロイ）
-  - `index.html` … 会員向け口コミフロー（GAS単体版）
-  - `points.html` … **ポイント付与管理**（`?page=points` で表示）
+## 環境変数
+
+| 名前 | 説明 |
+|------|------|
+| `STORES_JSON_URL` | **EAST** 用 GAS ウェブアプリ URL |
+| `STORES_JSON_URL_WEST` | **WEST** 用 GAS ウェブアプリ URL |
+| `DEFAULT_LOW_RATING_EMAIL` | 任意。店舗ごとの通知メールが空のときのフォールバック |

@@ -56,6 +56,8 @@ type Props = {
   reward: StoreRewardDisplay;
   /** 会員番号重複確認用 GAS URL（クライアントから直接照会して応答を短縮） */
   respondentCheckGasUrl?: string;
+  /** EAST / WEST。未指定時は EAST */
+  region?: "east" | "west";
 };
 
 const stars = [1, 2, 3, 4, 5];
@@ -160,9 +162,11 @@ export function ReviewFlow({
   feedbackEmail,
   reward,
   respondentCheckGasUrl,
+  region = "east",
 }: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
+  const pathPrefix = region === "west" ? "/west" : "";
   const surveyVariant = brandTheme.brand === "yoga" ? "yoga" : "gym";
   const surveyOptions = useMemo(
     () => getReviewSurveyOptions(surveyVariant),
@@ -382,6 +386,7 @@ export function ReviewFlow({
       storeFeedbackEmail: feedbackEmail,
       skipAutoMail: payloadReview === "" && rating <= 3,
       submissionId: getSubmissionId(),
+      region,
     });
   }
 
@@ -503,7 +508,11 @@ export function ReviewFlow({
     >
       <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
-          href={isYoga ? `/${brandTheme.brand}` : `/${brandTheme.brand}/select-store`}
+          href={
+            isYoga
+              ? `${pathPrefix}/${brandTheme.brand}`
+              : `${pathPrefix}/${brandTheme.brand}/select-store`
+          }
           className="relative z-[1] mb-3 inline-block text-[13px] font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
         >
           {isYoga ? "← トップに戻る" : "← 店舗選択に戻る"}
