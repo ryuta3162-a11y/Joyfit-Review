@@ -32,7 +32,7 @@ export default function BrandSelectorPage() {
       <div className={memberFormCardClass}>
         <div className="bg-zinc-50/60 px-6 pb-6 pt-7 text-center">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">
-            EAST / JOYFIT / FIT365 / YOGA
+            JOYFIT / FIT365 / YOGA
           </p>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
             アンケートページ
@@ -103,16 +103,6 @@ export default function BrandSelectorPage() {
               </Link>
             );
           })}
-        </div>
-
-        <div className="border-t border-zinc-100 px-6 py-4 text-center">
-          <Link
-            href="/west"
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#a5354b] underline-offset-2 hover:underline"
-          >
-            WEST（関西・西日本）はこちら
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </div>
     </MemberPageShell>
