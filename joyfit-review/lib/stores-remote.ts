@@ -59,7 +59,7 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
     "特典",
   ]);
 
-  if (!name || !googleReviewUrl || !id) return null;
+  if (!name || !id) return null;
 
   return {
     id,

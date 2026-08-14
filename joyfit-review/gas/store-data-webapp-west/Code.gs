@@ -213,7 +213,7 @@ function readStoreRows() {
     var row = values[i];
     var name = String(row[0] || "").trim();
     var googleReviewUrl = String(row[1] || "").trim();
-    if (!name || !googleReviewUrl) {
+    if (!name) {
       continue;
     }
 
@@ -1080,15 +1080,6 @@ function setupWestWorkbook() {
   };
 }
 
-function mapsSearchUrl_(query) {
-  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
-}
-
-/**
- * WESTプレビュー用の関西サンプル店舗を「店舗データ」へ投入。
- * 通知メール（C列）は空欄。レビューURLはGoogleマップ検索（本番口コミURL確定前の仮）。
- * エディタから1回実行、または GET ?format=json&action=seedSampleStores
- */
 function seedWestSampleStores() {
   setupWestWorkbook();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1128,7 +1119,7 @@ function westSampleStoreRows_() {
   return [
     [
       "JOYFIT24西梅田",
-      mapsSearchUrl_("JOYFIT24西梅田 福島区福島7-21-11"),
+      "",
       "",
       "nishiumeda",
       "大阪府大阪市福島区福島7-21-11 都島福島ビル2F・3F",
@@ -1139,7 +1130,7 @@ function westSampleStoreRows_() {
     ],
     [
       "JOYFIT24新大阪",
-      mapsSearchUrl_("JOYFIT24新大阪 西中島5-1-4"),
+      "",
       "",
       "shinosaka",
       "大阪府大阪市淀川区西中島5-1-4 モジュール新大阪2F・3F",
@@ -1150,7 +1141,7 @@ function westSampleStoreRows_() {
     ],
     [
       "JOYFIT24天六",
-      mapsSearchUrl_("JOYFIT24天六 天神橋六丁目"),
+      "",
       "",
       "tenroku",
       "大阪府大阪市北区天神橋六丁目7-12 EQUINIA106ビル2F・3F",
@@ -1161,7 +1152,7 @@ function westSampleStoreRows_() {
     ],
     [
       "JOYFIT24南森町",
-      mapsSearchUrl_("JOYFIT24南森町 東天満"),
+      "",
       "",
       "minamimorimachi",
       "大阪府大阪市北区東天満2丁目10-41 双栄ビル2F・3F",
@@ -1172,7 +1163,7 @@ function westSampleStoreRows_() {
     ],
     [
       "JOYFIT24 三宮",
-      mapsSearchUrl_("JOYFIT24三宮 下山手通"),
+      "",
       "",
       "sannomiya",
       "兵庫県神戸市中央区下山手通2-13-3 建創ビル3F",
@@ -1183,7 +1174,7 @@ function westSampleStoreRows_() {
     ],
     [
       "JOYFIT24堀川今出川",
-      mapsSearchUrl_("JOYFIT24堀川今出川"),
+      "",
       "",
       "horikawaimadegawa",
       "京都府京都市上京区西堀川通元誓願寺上ル竪門前町400 竪門前ビル2F・3F",
@@ -1194,7 +1185,7 @@ function westSampleStoreRows_() {
     ],
     [
       "FIT365天満橋",
-      mapsSearchUrl_("FIT365天満橋 OMM別館"),
+      "",
       "",
       "temmabashi",
       "大阪府大阪市中央区大手前1丁目7-31 OMM別館",
@@ -1205,7 +1196,7 @@ function westSampleStoreRows_() {
     ],
     [
       "FIT365門真打越",
-      mapsSearchUrl_("FIT365門真打越 舟田町"),
+      "",
       "",
       "kadomauchikoshi",
       "大阪府門真市舟田町1-3",
@@ -1216,7 +1207,7 @@ function westSampleStoreRows_() {
     ],
     [
       "FIT365南海堺東",
-      mapsSearchUrl_("FIT365南海堺東"),
+      "",
       "",
       "sakaihigashi",
       "大阪府堺市堺区三国ヶ丘御幸通59 南海堺東ビル7階",
@@ -1227,7 +1218,7 @@ function westSampleStoreRows_() {
     ],
     [
       "FIT365神戸エコール・リラ",
-      mapsSearchUrl_("FIT365神戸エコール・リラ"),
+      "",
       "",
       "ecolelilas",
       "兵庫県神戸市北区藤原台中町1-2-2 エコール・リラ ショッピングセンター本館2F",
