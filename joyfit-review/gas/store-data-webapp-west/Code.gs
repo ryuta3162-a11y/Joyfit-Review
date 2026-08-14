@@ -79,6 +79,9 @@ function doGet(e) {
   if (format === "json" && action === "setupWorkbook") {
     return outputJson(setupWestWorkbook());
   }
+  if (format === "json" && action === "seedSampleStores") {
+    return outputJson(seedWestSampleStores());
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
@@ -123,6 +126,10 @@ function doPost(e) {
 
     if (action === "setupWorkbook") {
       return outputJson(setupWestWorkbook());
+    }
+
+    if (action === "seedSampleStores") {
+      return outputJson(seedWestSampleStores());
     }
 
     if (action === "checkRespondent") {
@@ -225,8 +232,9 @@ function readStoreRows() {
     var latitude = null;
     var longitude = null;
 
-    if (c.indexOf("@") >= 0) {
-      feedbackEmail = c;
+    if (c.indexOf("@") >= 0 || !c) {
+      // 新レイアウト: C=通知メール（空欄可） / D=店舗ID / E以降=住所・座標
+      feedbackEmail = c.indexOf("@") >= 0 ? c : "";
       id = d || "row" + (i + 1);
       address = e;
       latitude = parseCoordinate(f);
@@ -1068,8 +1076,167 @@ function setupWestWorkbook() {
       return sh.getName();
     }),
     storeHeaders: STORE_HEADERS,
-    note: "店舗行は未投入。店舗名が決まり次第「店舗データ」2行目から追加してください。",
+    note: "店舗行は未投入。seedWestSampleStores() で関西サンプルを投入できます。",
   };
+}
+
+function mapsSearchUrl_(query) {
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+}
+
+/**
+ * WESTプレビュー用の関西サンプル店舗を「店舗データ」へ投入。
+ * 通知メール（C列）は空欄。レビューURLはGoogleマップ検索（本番口コミURL確定前の仮）。
+ * エディタから1回実行、または GET ?format=json&action=seedSampleStores
+ */
+function seedWestSampleStores() {
+  setupWestWorkbook();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+
+  var samples = westSampleStoreRows_();
+  var colCount = STORE_HEADERS.length;
+  var last = Math.max(sheet.getLastRow(), 1);
+  if (last >= 2) {
+    sheet.getRange(2, 1, last - 1, colCount).clearContent();
+  }
+  sheet.getRange(2, 1, samples.length, colCount).setValues(samples);
+  sheet
+    .getRange(2, 1, samples.length, colCount)
+    .setFontColor(WEST_COLOR.ink)
+    .setFontStyle("normal");
+
+  if (sheet.getFilter()) {
+    sheet.getFilter().remove();
+  }
+  sheet.getRange(1, 1, samples.length + 1, colCount).createFilter();
+
+  return {
+    ok: true,
+    count: samples.length,
+    ids: samples.map(function (row) {
+      return row[3];
+    }),
+  };
+}
+
+function westSampleStoreRows_() {
+  // 公式サイト所在地ベース。座標は駅・施設付近（プレビュー用）
+  return [
+    [
+      "JOYFIT24西梅田",
+      mapsSearchUrl_("JOYFIT24西梅田 福島区福島7-21-11"),
+      "",
+      "nishiumeda",
+      "大阪府大阪市福島区福島7-21-11 都島福島ビル2F・3F",
+      34.6985,
+      135.4868,
+      "西梅田 にしうめだ 福島 ふくしま nishiumeda 大阪",
+      "",
+    ],
+    [
+      "JOYFIT24新大阪",
+      mapsSearchUrl_("JOYFIT24新大阪 西中島5-1-4"),
+      "",
+      "shinosaka",
+      "大阪府大阪市淀川区西中島5-1-4 モジュール新大阪2F・3F",
+      34.7335,
+      135.5003,
+      "新大阪 しんおおさか shinosaka 西中島 大阪",
+      "",
+    ],
+    [
+      "JOYFIT24天六",
+      mapsSearchUrl_("JOYFIT24天六 天神橋六丁目"),
+      "",
+      "tenroku",
+      "大阪府大阪市北区天神橋六丁目7-12 EQUINIA106ビル2F・3F",
+      34.7108,
+      135.5108,
+      "天六 てんろく 天神橋 てんじんばし tenroku 大阪",
+      "",
+    ],
+    [
+      "JOYFIT24南森町",
+      mapsSearchUrl_("JOYFIT24南森町 東天満"),
+      "",
+      "minamimorimachi",
+      "大阪府大阪市北区東天満2丁目10-41 双栄ビル2F・3F",
+      34.6975,
+      135.5115,
+      "南森町 みなみもりまち minamimorimachi 大阪",
+      "",
+    ],
+    [
+      "JOYFIT24 三宮",
+      mapsSearchUrl_("JOYFIT24三宮 下山手通"),
+      "",
+      "sannomiya",
+      "兵庫県神戸市中央区下山手通2-13-3 建創ビル3F",
+      34.6937,
+      135.1955,
+      "三宮 さんのみや 神戸 こうべ sannomiya 兵庫",
+      "",
+    ],
+    [
+      "JOYFIT24堀川今出川",
+      mapsSearchUrl_("JOYFIT24堀川今出川"),
+      "",
+      "horikawaimadegawa",
+      "京都府京都市上京区西堀川通元誓願寺上ル竪門前町400 竪門前ビル2F・3F",
+      35.0295,
+      135.748,
+      "堀川今出川 ほりかわいまでがわ 京都 horikawa 今出川",
+      "",
+    ],
+    [
+      "FIT365天満橋",
+      mapsSearchUrl_("FIT365天満橋 OMM別館"),
+      "",
+      "temmabashi",
+      "大阪府大阪市中央区大手前1丁目7-31 OMM別館",
+      34.6908,
+      135.517,
+      "天満橋 てんまばし temmabashi FIT365 大阪",
+      "",
+    ],
+    [
+      "FIT365門真打越",
+      mapsSearchUrl_("FIT365門真打越 舟田町"),
+      "",
+      "kadomauchikoshi",
+      "大阪府門真市舟田町1-3",
+      34.732,
+      135.587,
+      "門真 かどま 打越 うちこし kadoma FIT365 大阪",
+      "",
+    ],
+    [
+      "FIT365南海堺東",
+      mapsSearchUrl_("FIT365南海堺東"),
+      "",
+      "sakaihigashi",
+      "大阪府堺市堺区三国ヶ丘御幸通59 南海堺東ビル7階",
+      34.5753,
+      135.4831,
+      "堺東 さかいひがし sakaihigashi 南海 FIT365 堺",
+      "",
+    ],
+    [
+      "FIT365神戸エコール・リラ",
+      mapsSearchUrl_("FIT365神戸エコール・リラ"),
+      "",
+      "ecolelilas",
+      "兵庫県神戸市北区藤原台中町1-2-2 エコール・リラ ショッピングセンター本館2F",
+      34.825,
+      135.226,
+      "エコールリラ おかば 岡場 神戸北区 ecolelilas FIT365 兵庫",
+      "",
+    ],
+  ];
 }
 
 function ensureNamedSheet_(ss, name, index) {
