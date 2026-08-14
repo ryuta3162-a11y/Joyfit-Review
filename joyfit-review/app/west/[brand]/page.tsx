@@ -13,7 +13,6 @@ type Props = {
   params: Promise<{ brand: string }>;
 };
 
-const REGION = "west" as const;
 const BASE = "/west";
 
 export default async function WestBrandHomePage({ params }: Props) {
