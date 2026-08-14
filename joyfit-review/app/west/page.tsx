@@ -9,7 +9,7 @@ import { BRAND_THEMES } from "@/lib/brand";
 import { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
 const cards: Array<{
-  brand: "joyfit" | "fit365" | "yoga";
+  brand: "joyfit" | "fit365";
   description: string;
 }> = [
   {
@@ -19,10 +19,6 @@ const cards: Array<{
   {
     brand: "fit365",
     description: "FIT365（関西・西日本）",
-  },
-  {
-    brand: "yoga",
-    description: "JOYFIT YOGA（関西・西日本）",
   },
 ];
 

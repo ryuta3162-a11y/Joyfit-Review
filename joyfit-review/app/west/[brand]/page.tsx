@@ -20,7 +20,7 @@ const BASE = "/west";
 export default async function WestBrandHomePage({ params }: Props) {
   const { brand: raw } = await params;
   const brand = parseBrandParam(raw);
-  if (!brand) notFound();
+  if (!brand || brand === "yoga") notFound();
 
   const theme = BRAND_THEMES[brand];
   const reward = getBrandTopRewardDisplay(brand);

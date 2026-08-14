@@ -17,7 +17,7 @@ const BASE = "/west";
 export default async function WestBrandMemberStorePage({ params }: Props) {
   const { brand: rawBrand, storeId } = await params;
   const brand = parseBrandParam(rawBrand);
-  if (!brand) notFound();
+  if (!brand || brand === "yoga") notFound();
 
   const normalizedId = String(storeId || "").trim();
   let store = await getStoreByIdRemote(normalizedId, REGION);

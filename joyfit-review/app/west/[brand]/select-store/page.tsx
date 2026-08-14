@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { StorePicker } from "@/components/store/store-picker";
@@ -15,14 +15,10 @@ const BASE = "/west";
 export default async function WestBrandSelectStorePage({ params }: Props) {
   const { brand: raw } = await params;
   const brand = parseBrandParam(raw);
-  if (!brand) notFound();
+  if (!brand || brand === "yoga") notFound();
 
   const stores = await fetchStoresRemote(REGION);
   const filtered = stores.filter((store) => detectBrandFromStore(store.name) === brand);
-
-  if (brand === "yoga" && filtered.length >= 1) {
-    redirect(`${BASE}/yoga/member/${filtered[0].id}`);
-  }
 
   return (
     <MemberPageShell>
