@@ -338,7 +338,7 @@ function saveSurveyResponse(data) {
   var respondentFullName = String(data.fullName || "").trim();
 
   try {
-    if (submissionId && isSubmissionIdRecorded(submissionId)) {
+    if (submissionId && isSubmissionIdRecorded(submissionId) && isMemberCodeOnSheet_(sheet, memberCode)) {
       return {
         ok: true,
         duplicate: true,
@@ -348,7 +348,7 @@ function saveSurveyResponse(data) {
       };
     }
 
-    if (isMemberCodeRecorded(memberCode)) {
+    if (isMemberCodeRecorded(memberCode) && isMemberCodeOnSheet_(sheet, memberCode)) {
       return { ok: false, error: "already_answered", matchedBy: "memberCode" };
     }
 
@@ -750,17 +750,12 @@ function appendSurveyRecord_(sheet, record) {
   var colByName = {};
   for (var i = 0; i < headers.length; i++) {
     var key = String(headers[i] || "").trim();
-    if (key && colByName[key] == null) {
+    if (key) {
       colByName[key] = i;
     }
   }
 
-  var row = [];
-  for (var c = 0; c < lastCol; c++) {
-    row.push("");
-  }
-
-  var mapped = false;
+  var mappedCols = [];
   var names = Object.keys(SURVEY_HEADER_ALIASES_);
   for (var n = 0; n < names.length; n++) {
     var field = names[n];
@@ -769,17 +764,16 @@ function appendSurveyRecord_(sheet, record) {
     for (var a = 0; a < aliases.length; a++) {
       if (colByName[aliases[a]] != null) {
         idx = colByName[aliases[a]];
-        break;
       }
     }
     if (idx >= 0) {
-      row[idx] = record[field];
-      mapped = true;
+      mappedCols.push({ col: idx + 1, value: record[field] });
     }
   }
 
-  if (!mapped) {
-    row = [
+  var newRow = sheet.getLastRow() + 1;
+  if (!mappedCols.length) {
+    sheet.getRange(newRow, 1, 1, 16).setValues([[
       record.timestamp,
       record.storeId,
       record.storeName,
@@ -796,9 +790,40 @@ function appendSurveyRecord_(sheet, record) {
       record.freeComment,
       record.generatedReview,
       record.submissionId,
-    ];
+    ]]);
+    return;
   }
-  sheet.appendRow(row);
+
+  for (var m = 0; m < mappedCols.length; m++) {
+    sheet.getRange(newRow, mappedCols[m].col).setValue(mappedCols[m].value);
+  }
+}
+
+function isMemberCodeOnSheet_(sheet, memberCode) {
+  var memberCodeNorm = normalizeMemberCode(memberCode);
+  if (!memberCodeNorm) {
+    return false;
+  }
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var col = 6;
+  for (var i = 0; i < headers.length; i++) {
+    var key = String(headers[i] || "").trim();
+    if (key === "memberCode" || key === "会員番号") {
+      col = i + 1;
+    }
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return false;
+  }
+  var values = sheet.getRange(2, col, lastRow - 1, 1).getValues();
+  for (var r = 0; r < values.length; r++) {
+    if (normalizeMemberCode(values[r][0]) === memberCodeNorm) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function safeSheetName(value) {

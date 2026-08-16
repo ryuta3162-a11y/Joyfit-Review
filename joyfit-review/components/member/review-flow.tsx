@@ -419,24 +419,17 @@ export function ReviewFlow({
     if (!draft || sent || alreadyAnswered || submitting) return;
     setSubmitError(null);
     setSubmitting(true);
-    void navigator.clipboard.writeText(draft).catch(() => {
-      /* クリップボード制限のある環境でも、投稿導線は止めない */
-    });
-    const popup = window.open("about:blank", "_blank");
+    void navigator.clipboard.writeText(draft).catch(() => {});
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
-        if (popup && !popup.closed) popup.close();
         setSubmitError(result.error);
         return;
       }
-      if (popup && !popup.closed) {
-        popup.location.replace(reviewUrl);
-      } else {
-        window.open(reviewUrl, "_blank", "noopener,noreferrer");
-      }
       setSentKind("high");
       setSent(true);
+    } catch {
+      setSubmitError("送信に失敗しました。通信状況をご確認のうえ、再度お試しください。");
     } finally {
       setSubmitting(false);
     }
@@ -1075,7 +1068,7 @@ export function ReviewFlow({
                   : alreadyAnswered
                     ? "回答済み"
                     : submitting
-                      ? "保存してから移動します…"
+                      ? "保存中…"
                       : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
               </button>
             </div>
