@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
@@ -64,10 +63,6 @@ type Props = {
 const stars = [1, 2, 3, 4, 5];
 const genderOptions = ["男性", "女性", "その他"] as const;
 const ageOptions = ["10代", "20代", "30代", "40代", "50代", "60代以上"] as const;
-const notoSansJp = Noto_Sans_JP({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-});
 
 function localDateIsoForRecord(): string {
   const n = new Date();
@@ -536,7 +531,7 @@ export function ReviewFlow({
   return (
     <div
       data-brand={brandTheme.brand}
-      className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
+      className={`${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
       {submitting ? (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Noto_Sans_JP } from "next/font/google";
 import { Check, Star } from "lucide-react";
 
 import { submitEventSurvey } from "@/app/actions/submit-event-survey";
@@ -35,11 +34,6 @@ import { cn } from "@/lib/utils";
 type Props = {
   reviewUrl: string;
 };
-
-const notoSansJp = Noto_Sans_JP({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-});
 
 const stars = [1, 2, 3, 4, 5] as const;
 
@@ -285,7 +279,7 @@ export function PilatesTrialEventSurvey({ reviewUrl }: Props) {
   return (
     <div
       data-brand="yoga"
-      className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
+      className={`${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
       <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
