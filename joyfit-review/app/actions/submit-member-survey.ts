@@ -2,8 +2,6 @@
 
 import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
 
-export const maxDuration = 10;
-
 export type SubmitMemberSurveyInput = {
   storeId: string;
   storeName: string;
