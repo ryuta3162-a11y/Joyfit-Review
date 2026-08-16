@@ -76,6 +76,10 @@ export async function fetchCheckRespondent(
       return getParsed;
     }
 
+    if (getText.trimStart().startsWith("<")) {
+      return { ok: false, error: "確認に失敗しました。" };
+    }
+
     // GETがJSONとして読めないときだけPOST（二重待ちを避ける）
     const postRes = await fetch(gasUrl, {
       method: "POST",

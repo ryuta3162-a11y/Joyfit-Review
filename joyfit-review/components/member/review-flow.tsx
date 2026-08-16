@@ -6,6 +6,7 @@ import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import { Mail, Star } from "lucide-react";
 
+import { checkSurveyRespondent } from "@/app/actions/check-survey-respondent";
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
 import { fetchCheckRespondent, type CheckSurveyRespondentResult, warmupRespondentCheckGas } from "@/lib/survey-respondent-check";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
@@ -212,13 +213,16 @@ export function ReviewFlow({
   /** 送信ボタン1回分のID。エラー時の再送は同じIDで冪等に処理する */
   const submissionIdRef = useRef<string | null>(null);
   const checkRequestIdRef = useRef(0);
+  const [checkRetryNonce, setCheckRetryNonce] = useState(0);
 
   const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const alreadyAnswered = respondentCheck.status === "already";
   const respondentCheckFailed = respondentCheck.status === "error";
   const respondentCheckPending = respondentCheck.status === "checking";
-  /** 会員番号の重複確認が通ったら、下の項目を入力可能にする */
-  const memberVerified = memberCodeOk && respondentCheck.status === "eligible";
+  /** 確認APIが落ちても入力は止めない。重複のみブロックする */
+  const memberVerified =
+    memberCodeOk &&
+    (respondentCheck.status === "eligible" || respondentCheck.status === "error");
   const formFieldsLocked = !memberVerified && !alreadyAnswered;
 
   function getSubmissionId(): string {
@@ -280,12 +284,20 @@ export function ReviewFlow({
 
     const debounceTimer = window.setTimeout(() => {
       void (async () => {
-        const result: CheckSurveyRespondentResult = respondentCheckGasUrl
+        let result: CheckSurveyRespondentResult = respondentCheckGasUrl
           ? await fetchCheckRespondent(respondentCheckGasUrl, code, controller.signal)
-          : { ok: false, error: "ただいま確認をお受けできません。" };
+          : { ok: false, error: "confirm-via-server" };
+
         if (requestId !== checkRequestIdRef.current) return;
 
-        respondentCheckCache.set(code, result);
+        if (!result.ok && result.error !== "確認を中断しました。") {
+          result = await checkSurveyRespondent({ memberCode: code, region });
+        }
+        if (requestId !== checkRequestIdRef.current) return;
+
+        if (result.ok) {
+          respondentCheckCache.set(code, result);
+        }
 
         if (result.ok && result.eligible === false) {
           setRespondentCheck({ status: "already" });
@@ -300,10 +312,7 @@ export function ReviewFlow({
         }
         setRespondentCheck({
           status: "error",
-          errorMessage:
-            "gasOutdated" in result && result.gasOutdated
-              ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
-              : result.error || "回答状況を確認できませんでした。",
+          errorMessage: "会員番号の確認ができませんでしたが、入力は続けられます。",
         });
       })();
     }, 180);
@@ -312,7 +321,7 @@ export function ReviewFlow({
       window.clearTimeout(debounceTimer);
       controller.abort();
     };
-  }, [memberCode, respondentCheckGasUrl]);
+  }, [memberCode, respondentCheckGasUrl, region, checkRetryNonce]);
 
   useEffect(() => {
     setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
@@ -682,9 +691,19 @@ export function ReviewFlow({
               </p>
             )}
             {respondentCheckFailed && respondentCheck.errorMessage && (
-              <p className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-950">
-                {respondentCheck.errorMessage}
-              </p>
+              <div className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-950">
+                <p>{respondentCheck.errorMessage}</p>
+                <button
+                  type="button"
+                  className="mt-1 font-medium underline underline-offset-2"
+                  onClick={() => {
+                    respondentCheckCache.delete(memberCode.trim());
+                    setCheckRetryNonce((n) => n + 1);
+                  }}
+                >
+                  もう一度確認する
+                </button>
+              </div>
             )}
           </MemberFormField>
 

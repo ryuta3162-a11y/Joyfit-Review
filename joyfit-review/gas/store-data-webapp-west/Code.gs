@@ -294,15 +294,19 @@ function normalizeMemberCode(value) {
 }
 
 function checkSurveyRespondent(data) {
-  var memberCodeNorm = normalizeMemberCode(data.memberCode);
-  if (!memberCodeNorm) {
+  try {
+    var memberCodeNorm = normalizeMemberCode(data.memberCode);
+    if (!memberCodeNorm) {
+      return { ok: true, eligible: true };
+    }
+    ensureMemberCodeIndex();
+    if (isMemberCodeRecorded(memberCodeNorm)) {
+      return { ok: true, eligible: false, matchedBy: "memberCode" };
+    }
     return { ok: true, eligible: true };
+  } catch (e) {
+    return { ok: false, error: "check failed: " + String(e && e.message ? e.message : e) };
   }
-  ensureMemberCodeIndex();
-  if (isMemberCodeRecorded(memberCodeNorm)) {
-    return { ok: true, eligible: false, matchedBy: "memberCode" };
-  }
-  return { ok: true, eligible: true };
 }
 
 function saveSurveyResponse(data) {
@@ -631,22 +635,33 @@ function isMemberCodeInAnswerSheets(memberCodeNorm) {
   return false;
 }
 
+function memberCodeCacheGet_(memberCodeNorm) {
+  try {
+    return CacheService.getScriptCache().get("mc_" + memberCodeNorm);
+  } catch (e) {
+    return null;
+  }
+}
+
+function memberCodeCachePut_(memberCodeNorm) {
+  try {
+    CacheService.getScriptCache().put("mc_" + memberCodeNorm, "1", 21600);
+  } catch (e) {}
+}
+
 function isMemberCodeRecorded(memberCode) {
   var memberCodeNorm = normalizeMemberCode(memberCode);
   if (!memberCodeNorm) {
     return false;
   }
-  var cache = CacheService.getScriptCache();
-  var cacheKey = "mc_" + memberCodeNorm;
-  if (cache.get(cacheKey) === "1") {
+  if (memberCodeCacheGet_(memberCodeNorm) === "1") {
     return true;
   }
   ensureMemberCodeIndex();
   if (isMemberCodeInIndex(memberCodeNorm)) {
-    cache.put(cacheKey, "1", 21600);
+    memberCodeCachePut_(memberCodeNorm);
     return true;
   }
-  // 未回答が普通のケース。全「回答_*」シート走査は10〜20秒かかるためしない。
   return false;
 }
 
@@ -656,9 +671,7 @@ function recordMemberCode(memberCode) {
     return;
   }
   getMemberCodeIndexSheet().appendRow([memberCodeNorm]);
-  try {
-    CacheService.getScriptCache().put("mc_" + memberCodeNorm, "1", 21600);
-  } catch (e) {}
+  memberCodeCachePut_(memberCodeNorm);
 }
 
 /** エディタから実行: testCheckRespondentByMemberCode("1304002222") */
