@@ -82,6 +82,7 @@ export async function submitMemberSurvey(
       method: "POST",
       redirect: "follow",
       headers: { "Content-Type": "application/json; charset=utf-8" },
+      signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
         action: "survey",
         to,
@@ -125,7 +126,13 @@ export async function submitMemberSurvey(
       };
     }
     return { ok: true };
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      return {
+        ok: false,
+        error: "保存に時間がかかっています。画面を再読み込みせず、もう一度お試しください。",
+      };
+    }
     return { ok: false, error: "送信に失敗しました。通信状況をご確認のうえ、再度お試しください。" };
   }
 }

@@ -241,6 +241,7 @@ function parseCoordinate(raw) {
 
 /** 回答シートの会員番号列（1始まり・標準レイアウトではF列=6） */
 var SURVEY_MEMBER_CODE_COL = 6;
+var memberCodeSetCache_ = null;
 
 function normalizeMemberCode(value) {
   var mc = String(value || "").trim().replace(/\D/g, "");
@@ -256,7 +257,6 @@ function checkSurveyRespondent(data) {
     if (!memberCodeNorm) {
       return { ok: true, eligible: true };
     }
-    ensureMemberCodeIndex();
     if (isMemberCodeRecorded(memberCodeNorm)) {
       return { ok: true, eligible: false, matchedBy: "memberCode" };
     }
@@ -305,7 +305,6 @@ function saveSurveyResponse(data) {
       };
     }
 
-    ensureMemberCodeIndex();
     if (isMemberCodeRecorded(memberCode)) {
       return { ok: false, error: "already_answered", matchedBy: "memberCode" };
     }
@@ -456,13 +455,13 @@ function isSubmissionIdRecorded(submissionId) {
   if (lastRow <= 1) {
     return false;
   }
-  return (
-    sheet
-      .getRange(2, 1, lastRow - 1, 1)
-      .createTextFinder(submissionId)
-      .matchEntireCell(true)
-      .findNext() !== null
-  );
+  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < values.length; i++) {
+    if (String(values[i][0] || "") === submissionId) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function recordSurveySubmissionId(submissionId, storeId, memberCode) {
@@ -483,11 +482,24 @@ function getMemberCodeIndexSheet() {
   return sheet;
 }
 
-function ensureMemberCodeIndex() {
-  var sheet = getMemberCodeIndexSheet();
-  if (sheet.getLastRow() <= 1) {
-    rebuildMemberCodeIndex();
+function loadMemberCodeSet_() {
+  if (memberCodeSetCache_) {
+    return memberCodeSetCache_;
   }
+  var set = {};
+  var sheet = getMemberCodeIndexSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var mc = normalizeMemberCode(values[i][0]);
+      if (mc) {
+        set[mc] = true;
+      }
+    }
+  }
+  memberCodeSetCache_ = set;
+  return set;
 }
 
 function getMemberCodeColumnIndex(sheet) {
@@ -529,12 +541,6 @@ function readMemberCodesFromAnswerSheet(sh) {
  */
 function rebuildMemberCodeIndex() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var indexSheet = getMemberCodeIndexSheet();
-  var lastRow = indexSheet.getLastRow();
-  if (lastRow > 1) {
-    indexSheet.getRange(2, 1, lastRow - 1, 1).clearContent();
-  }
-
   var seen = {};
   var rows = [];
   var sheets = ss.getSheets();
@@ -554,24 +560,19 @@ function rebuildMemberCodeIndex() {
     }
   }
 
+  var indexSheet = getMemberCodeIndexSheet();
+  var lastRow = indexSheet.getLastRow();
+  if (lastRow > 1) {
+    indexSheet.getRange(2, 1, lastRow - 1, 1).clearContent();
+  }
   if (rows.length) {
     indexSheet.getRange(2, 1, rows.length, 1).setValues(rows);
   }
+  memberCodeSetCache_ = seen;
 }
 
 function isMemberCodeInIndex(memberCodeNorm) {
-  var sheet = getMemberCodeIndexSheet();
-  var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) {
-    return false;
-  }
-  return (
-    sheet
-      .getRange(2, 1, lastRow - 1, 1)
-      .createTextFinder(memberCodeNorm)
-      .matchEntireCell(true)
-      .findNext() !== null
-  );
+  return !!loadMemberCodeSet_()[memberCodeNorm];
 }
 
 function isMemberCodeInAnswerSheets(memberCodeNorm) {
@@ -614,7 +615,6 @@ function isMemberCodeRecorded(memberCode) {
   if (memberCodeCacheGet_(memberCodeNorm) === "1") {
     return true;
   }
-  ensureMemberCodeIndex();
   if (isMemberCodeInIndex(memberCodeNorm)) {
     memberCodeCachePut_(memberCodeNorm);
     return true;
@@ -624,10 +624,15 @@ function isMemberCodeRecorded(memberCode) {
 
 function recordMemberCode(memberCode) {
   var memberCodeNorm = normalizeMemberCode(memberCode);
-  if (!memberCodeNorm || isMemberCodeInIndex(memberCodeNorm)) {
+  if (!memberCodeNorm) {
+    return;
+  }
+  var set = loadMemberCodeSet_();
+  if (set[memberCodeNorm]) {
     return;
   }
   getMemberCodeIndexSheet().appendRow([memberCodeNorm]);
+  set[memberCodeNorm] = true;
   memberCodeCachePut_(memberCodeNorm);
 }
 

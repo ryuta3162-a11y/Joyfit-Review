@@ -417,17 +417,19 @@ export function ReviewFlow({
     void navigator.clipboard.writeText(draft).catch(() => {
       /* クリップボード制限のある環境でも、投稿導線は止めない */
     });
-    const result = await submitSurvey(draft);
-    if (!result.ok) {
-      setSubmitting(false);
-      setSubmitError(result.error);
-      return;
-    }
+    try {
+      const result = await submitSurvey(draft);
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
 
-    setSentKind("high");
-    setSent(true);
-    setSubmitting(false);
-    window.open(reviewUrl, "_blank", "noopener,noreferrer");
+      setSentKind("high");
+      setSent(true);
+      window.open(reviewUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function getLowRatingContactDraft() {
@@ -458,16 +460,18 @@ export function ReviewFlow({
 
     setSubmitting(true);
     setSubmitError(null);
-    const result = await submitSurvey("");
-    if (!result.ok) {
+    try {
+      const result = await submitSurvey("");
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
+      setLowRatingMailtoUrl(mailDraft.mailtoUrl);
+      setSentKind("low");
+      setSent(true);
+    } finally {
       setSubmitting(false);
-      setSubmitError(result.error);
-      return;
     }
-    setLowRatingMailtoUrl(mailDraft.mailtoUrl);
-    setSentKind("low");
-    setSent(true);
-    setSubmitting(false);
   }
 
   if (sent) {
