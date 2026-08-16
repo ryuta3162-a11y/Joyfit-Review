@@ -1,3 +1,5 @@
+"use client";
+
 import { Check } from "lucide-react";
 
 import { memberFormBodyClass } from "@/components/member/member-form-styles";
@@ -5,6 +7,9 @@ import {
   formatSurveyCompletionRewardLabel,
   REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
   SURVEY_COMPLETION_POINT_PENDING_NOTE,
+  SURVEY_COMPLETION_REVIEW_PREFACE_BODY,
+  SURVEY_COMPLETION_REVIEW_PREFACE_HINT,
+  SURVEY_COMPLETION_REVIEW_PREFACE_TITLE,
   SURVEY_COMPLETION_REWARD_NOTE,
   SURVEY_COMPLETION_THANK_YOU,
 } from "@/lib/member-reward-copy";
@@ -12,10 +17,33 @@ import {
 type Props = {
   rewardLabel: string;
   reviewUrl: string;
+  reviewDraft?: string;
 };
 
-export function SurveyCompletionSuccess({ rewardLabel, reviewUrl }: Props) {
+async function copyReviewDraft(text: string) {
+  const value = text.trim();
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    /* クリップボード制限があっても口コミページは開く */
+  }
+}
+
+export function SurveyCompletionSuccess({
+  rewardLabel,
+  reviewUrl,
+  reviewDraft = "",
+}: Props) {
   const completionRewardLabel = formatSurveyCompletionRewardLabel(rewardLabel);
+  const url = reviewUrl.trim();
+
+  function openGoogleReview() {
+    void copyReviewDraft(reviewDraft);
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }
 
   return (
     <>
@@ -47,15 +75,29 @@ export function SurveyCompletionSuccess({ rewardLabel, reviewUrl }: Props) {
           {SURVEY_COMPLETION_POINT_PENDING_NOTE}
         </p>
 
-        {reviewUrl.trim() ? (
-          <a
-            href={reviewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="survey-success-fade-up survey-success-fade-up--delay-4 mx-auto mt-7 inline-flex h-12 w-full max-w-sm items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(165,53,75,0.65)] transition hover:bg-[color:var(--joyfit-red-dark)]"
-          >
-            {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
-          </a>
+        {url ? (
+          <div className="survey-success-fade-up survey-success-fade-up--delay-4 mx-auto mt-7 max-w-sm overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-50/80 text-left shadow-[0_1px_8px_rgba(24,24,27,0.04)]">
+            <div className="px-5 pb-4 pt-5">
+              <p className="text-[15px] font-semibold leading-snug tracking-tight text-zinc-900">
+                {SURVEY_COMPLETION_REVIEW_PREFACE_TITLE}
+              </p>
+              <p className="mt-2 text-[14px] leading-relaxed text-zinc-700">
+                {SURVEY_COMPLETION_REVIEW_PREFACE_BODY}
+              </p>
+              <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
+                {SURVEY_COMPLETION_REVIEW_PREFACE_HINT}
+              </p>
+            </div>
+            <div className="border-t border-zinc-200/80 bg-white px-4 py-3">
+              <button
+                type="button"
+                onClick={openGoogleReview}
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(165,53,75,0.65)] transition hover:bg-[color:var(--joyfit-red-dark)]"
+              >
+                {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
+              </button>
+            </div>
+          </div>
         ) : null}
       </div>
     </>

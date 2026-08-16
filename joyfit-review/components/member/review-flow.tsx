@@ -456,7 +456,11 @@ export function ReviewFlow({
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
         {sentKind === "high" ? (
-          <SurveyCompletionSuccess rewardLabel={reward.rewardLabel} reviewUrl={reviewUrl} />
+          <SurveyCompletionSuccess
+            rewardLabel={reward.rewardLabel}
+            reviewUrl={reviewUrl}
+            reviewDraft={draft}
+          />
         ) : (
           <div className="joyfit-brand-header px-6 py-10 text-center text-white">
             <div className="mx-auto max-w-sm space-y-4">

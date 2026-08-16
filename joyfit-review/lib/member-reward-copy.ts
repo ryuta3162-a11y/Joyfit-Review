@@ -22,6 +22,12 @@ export const SURVEY_COMPLETION_REWARD_NOTE = SURVEY_REWARD_GRANT_NOTE;
 export const SURVEY_COMPLETION_POINT_PENDING_NOTE =
   "ポイント付与までには一定のお時間をいただく場合がございます。今しばらくお待ちください。";
 
+export const SURVEY_COMPLETION_REVIEW_PREFACE_TITLE = "アンケートは完了です";
+export const SURVEY_COMPLETION_REVIEW_PREFACE_BODY =
+  "よろしければ、Google口コミにも口コミをお寄せください。";
+export const SURVEY_COMPLETION_REVIEW_PREFACE_HINT =
+  "※口コミ文はコピー済みですのでそのまま貼り付け可能です";
+
 /** 完了画面の特典表示用（「アンケート回答特典：」などの接頭辞を除く） */
 export function formatSurveyCompletionRewardLabel(rewardLabel: string): string {
   const trimmed = rewardLabel.trim();
