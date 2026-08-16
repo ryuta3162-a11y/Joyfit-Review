@@ -332,6 +332,11 @@ export function ReviewFlow({
     setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
   }, [draft]);
 
+  useEffect(() => {
+    if (!sent) return;
+    window.scrollTo(0, 0);
+  }, [sent]);
+
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
@@ -419,7 +424,6 @@ export function ReviewFlow({
     if (!draft || sent || alreadyAnswered || submitting) return;
     setSubmitError(null);
     setSubmitting(true);
-    void navigator.clipboard.writeText(draft).catch(() => {});
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
@@ -535,6 +539,16 @@ export function ReviewFlow({
       className={`${notoSansJp.className} ${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
+      {submitting ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/55 px-6">
+          <div className="w-full max-w-sm rounded-2xl bg-white px-6 py-8 text-center shadow-xl">
+            <p className="text-lg font-bold text-zinc-900">回答を保存しています</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-zinc-500">
+              この画面のまま完了するまでお待ちください。Googleは次の画面から開けます。
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div className="joyfit-brand-header px-5 pb-7 pt-6 text-center text-white md:px-6 md:pt-8">
         <Link
           href={
@@ -1053,8 +1067,8 @@ export function ReviewFlow({
               />
 
               {submitError && (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
-                  {submitError}
+                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[14px] font-semibold leading-relaxed text-destructive">
+                  保存できませんでした。{submitError}
                 </p>
               )}
               <button

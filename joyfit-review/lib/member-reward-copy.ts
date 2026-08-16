@@ -8,7 +8,7 @@ export const SHARED_REWARD_BADGE_LABEL =
 export { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
 /** 口コミ画面：最終ボタン文言 */
-export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "Google口コミページへ移動する";
+export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "回答を保存して完了する";
 
 /** 完了画面：口コミページを開き直すボタン */
 export const REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL = "Google口コミページを開く";
