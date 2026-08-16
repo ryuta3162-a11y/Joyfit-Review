@@ -352,24 +352,25 @@ function saveSurveyResponse(data) {
       return { ok: false, error: "already_answered", matchedBy: "memberCode" };
     }
 
-    sheet.appendRow([
-      new Date(),
-      storeId,
-      storeName,
-      rating,
-      respondentFullName,
-      memberCode,
-      String(data.gender || "").trim(),
-      String(data.ageRange || "").trim(),
-      email,
-      String(data.visitDate || "").trim(),
-      to,
-      toArray(data.positives).join(" / "),
-      toArray(data.useScenes).join(" / "),
-      String(data.freeComment || "").trim(),
-      String(data.generatedReview || "").trim(),
-      submissionId,
-    ]);
+    appendSurveyRecord_(sheet, {
+      timestamp: new Date(),
+      storeId: storeId,
+      storeName: storeName,
+      rating: rating,
+      fullName: respondentFullName,
+      memberCode: memberCode,
+      gender: String(data.gender || "").trim(),
+      ageRange: String(data.ageRange || "").trim(),
+      email: email,
+      visitDate: String(data.visitDate || "").trim(),
+      notifyTo: to,
+      positives: toArray(data.positives).join(" / "),
+      useScenes: toArray(data.useScenes).join(" / "),
+      freeComment: String(data.freeComment || "").trim(),
+      generatedReview: String(data.generatedReview || "").trim(),
+      submissionId: submissionId,
+    });
+    SpreadsheetApp.flush();
 
     if (submissionId) {
       recordSurveySubmissionId(submissionId, storeId, memberCode);
@@ -688,11 +689,21 @@ function testCheckRespondentByMemberCode(memberCode) {
 
 function getOrCreateSurveySheet(storeId, storeName) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var base = ("回答_" + safeSheetName(storeName) + "_" + safeSheetName(storeId)).slice(0, 90);
-  var sheet = ss.getSheetByName(base);
+  var wantedId = safeSheetName(storeId);
+  var exact = ("回答_" + safeSheetName(storeName) + "_" + wantedId).slice(0, 90);
+  var sheet = ss.getSheetByName(exact);
   if (sheet) return sheet;
 
-  sheet = ss.insertSheet(base);
+  var suffix = "_" + wantedId;
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var name = String(sheets[i].getName() || "");
+    if (name.indexOf("回答_") === 0 && name.slice(-suffix.length) === suffix) {
+      return sheets[i];
+    }
+  }
+
+  sheet = ss.insertSheet(exact);
   sheet.appendRow([
     "timestamp",
     "storeId",
@@ -712,6 +723,82 @@ function getOrCreateSurveySheet(storeId, storeName) {
     "submissionId",
   ]);
   return sheet;
+}
+
+var SURVEY_HEADER_ALIASES_ = {
+  timestamp: ["timestamp"],
+  storeId: ["storeId"],
+  storeName: ["storeName"],
+  rating: ["rating"],
+  fullName: ["fullName", "氏名", "名前"],
+  memberCode: ["memberCode", "会員番号"],
+  gender: ["gender", "性別"],
+  ageRange: ["ageRange", "年齢"],
+  email: ["email"],
+  visitDate: ["visitDate"],
+  notifyTo: ["notifyTo"],
+  positives: ["positives"],
+  useScenes: ["useScenes"],
+  freeComment: ["freeComment"],
+  generatedReview: ["generatedReview"],
+  submissionId: ["submissionId"],
+};
+
+function appendSurveyRecord_(sheet, record) {
+  var lastCol = Math.max(sheet.getLastColumn(), 16);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var colByName = {};
+  for (var i = 0; i < headers.length; i++) {
+    var key = String(headers[i] || "").trim();
+    if (key && colByName[key] == null) {
+      colByName[key] = i;
+    }
+  }
+
+  var row = [];
+  for (var c = 0; c < lastCol; c++) {
+    row.push("");
+  }
+
+  var mapped = false;
+  var names = Object.keys(SURVEY_HEADER_ALIASES_);
+  for (var n = 0; n < names.length; n++) {
+    var field = names[n];
+    var aliases = SURVEY_HEADER_ALIASES_[field];
+    var idx = -1;
+    for (var a = 0; a < aliases.length; a++) {
+      if (colByName[aliases[a]] != null) {
+        idx = colByName[aliases[a]];
+        break;
+      }
+    }
+    if (idx >= 0) {
+      row[idx] = record[field];
+      mapped = true;
+    }
+  }
+
+  if (!mapped) {
+    row = [
+      record.timestamp,
+      record.storeId,
+      record.storeName,
+      record.rating,
+      record.fullName,
+      record.memberCode,
+      record.gender,
+      record.ageRange,
+      record.email,
+      record.visitDate,
+      record.notifyTo,
+      record.positives,
+      record.useScenes,
+      record.freeComment,
+      record.generatedReview,
+      record.submissionId,
+    ];
+  }
+  sheet.appendRow(row);
 }
 
 function safeSheetName(value) {

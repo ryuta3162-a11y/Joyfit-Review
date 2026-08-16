@@ -416,21 +416,24 @@ export function ReviewFlow({
   }
 
   async function copyDraftAndOpen() {
-    if (!draft || sent || alreadyAnswered) return;
+    if (!draft || sent || alreadyAnswered || submitting) return;
     setSubmitError(null);
+    setSubmitting(true);
     void navigator.clipboard.writeText(draft).catch(() => {
       /* クリップボード制限のある環境でも、投稿導線は止めない */
     });
-    // 保存完了を待ってから open すると、ブラウザがポップアップをブロックする
-    window.open(reviewUrl, "_blank", "noopener,noreferrer");
-    if (submitting) return;
-
-    setSubmitting(true);
+    const popup = window.open("about:blank", "_blank");
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
+        if (popup && !popup.closed) popup.close();
         setSubmitError(result.error);
         return;
+      }
+      if (popup && !popup.closed) {
+        popup.location.replace(reviewUrl);
+      } else {
+        window.open(reviewUrl, "_blank", "noopener,noreferrer");
       }
       setSentKind("high");
       setSent(true);
@@ -1064,7 +1067,7 @@ export function ReviewFlow({
               <button
                 type="button"
                 onClick={() => void copyDraftAndOpen()}
-                disabled={sent || alreadyAnswered || !googlePostAgreed}
+                disabled={sent || alreadyAnswered || !googlePostAgreed || submitting}
                 className="relative z-10 h-12 w-full cursor-pointer rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
               >
                 {sent
@@ -1072,7 +1075,7 @@ export function ReviewFlow({
                   : alreadyAnswered
                     ? "回答済み"
                     : submitting
-                      ? "ページを開きました。回答を保存しています…"
+                      ? "保存してから移動します…"
                       : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
               </button>
             </div>

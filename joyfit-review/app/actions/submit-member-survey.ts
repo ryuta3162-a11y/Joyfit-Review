@@ -2,6 +2,8 @@
 
 import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
 
+export const maxDuration = 60;
+
 export type SubmitMemberSurveyInput = {
   storeId: string;
   storeName: string;
@@ -82,7 +84,7 @@ export async function submitMemberSurvey(
       method: "POST",
       redirect: "follow",
       headers: { "Content-Type": "application/json; charset=utf-8" },
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(55000),
       body: JSON.stringify({
         action: "survey",
         to,
