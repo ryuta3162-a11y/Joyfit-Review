@@ -76,6 +76,7 @@ export async function fetchCheckRespondent(
       return getParsed;
     }
 
+    // GETがJSONとして読めないときだけPOST（二重待ちを避ける）
     const postRes = await fetch(gasUrl, {
       method: "POST",
       redirect: "follow",

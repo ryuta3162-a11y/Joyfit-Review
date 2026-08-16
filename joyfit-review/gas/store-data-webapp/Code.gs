@@ -283,7 +283,7 @@ function saveSurveyResponse(data) {
   var skipAutoMail = String(data.skipAutoMail || "").toLowerCase() === "true" || data.skipAutoMail === true;
 
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(15000)) {
+  if (!lock.tryLock(8000)) {
     return { ok: false, error: "server busy" };
   }
 
@@ -593,10 +593,19 @@ function isMemberCodeRecorded(memberCode) {
   if (!memberCodeNorm) {
     return false;
   }
-  if (isMemberCodeInIndex(memberCodeNorm)) {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = "mc_" + memberCodeNorm;
+  if (cache.get(cacheKey) === "1") {
     return true;
   }
-  return isMemberCodeInAnswerSheets(memberCodeNorm);
+  ensureMemberCodeIndex();
+  if (isMemberCodeInIndex(memberCodeNorm)) {
+    cache.put(cacheKey, "1", 21600);
+    return true;
+  }
+  // 未回答が普通のケース。全「回答_*」シート走査は10〜20秒かかるためしない。
+  // インデックス漏れは rebuildMemberCodeIndex() で修復する。
+  return false;
 }
 
 function recordMemberCode(memberCode) {
@@ -605,6 +614,9 @@ function recordMemberCode(memberCode) {
     return;
   }
   getMemberCodeIndexSheet().appendRow([memberCodeNorm]);
+  try {
+    CacheService.getScriptCache().put("mc_" + memberCodeNorm, "1", 21600);
+  } catch (e) {}
 }
 
 /** エディタから実行: testCheckRespondentByMemberCode("1304002222") */

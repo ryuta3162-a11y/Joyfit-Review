@@ -240,6 +240,14 @@ export function ReviewFlow({
   }, [respondentCheckGasUrl]);
 
   useEffect(() => {
+    if (!respondentCheckGasUrl) return;
+    const digits = memberCode.replace(/\D/g, "");
+    if (digits.length >= 8) {
+      warmupRespondentCheckGas(respondentCheckGasUrl);
+    }
+  }, [memberCode, respondentCheckGasUrl]);
+
+  useEffect(() => {
     const code = memberCode.trim();
     const codeReady = /^\d{10}$/.test(code) && !/^0{10}$/.test(code);
     if (!codeReady) {
@@ -270,35 +278,38 @@ export function ReviewFlow({
     const controller = new AbortController();
     checkAbortRef.current = controller;
 
-    void (async () => {
-      const result: CheckSurveyRespondentResult = respondentCheckGasUrl
-        ? await fetchCheckRespondent(respondentCheckGasUrl, code, controller.signal)
-        : { ok: false, error: "ただいま確認をお受けできません。" };
-      if (requestId !== checkRequestIdRef.current) return;
+    const debounceTimer = window.setTimeout(() => {
+      void (async () => {
+        const result: CheckSurveyRespondentResult = respondentCheckGasUrl
+          ? await fetchCheckRespondent(respondentCheckGasUrl, code, controller.signal)
+          : { ok: false, error: "ただいま確認をお受けできません。" };
+        if (requestId !== checkRequestIdRef.current) return;
 
-      respondentCheckCache.set(code, result);
+        respondentCheckCache.set(code, result);
 
-      if (result.ok && result.eligible === false) {
-        setRespondentCheck({ status: "already" });
-        return;
-      }
-      if (result.ok) {
-        setRespondentCheck({ status: "eligible" });
-        return;
-      }
-      if (result.error === "確認を中断しました。") {
-        return;
-      }
-      setRespondentCheck({
-        status: "error",
-        errorMessage:
-          "gasOutdated" in result && result.gasOutdated
-            ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
-            : result.error || "回答状況を確認できませんでした。",
-      });
-    })();
+        if (result.ok && result.eligible === false) {
+          setRespondentCheck({ status: "already" });
+          return;
+        }
+        if (result.ok) {
+          setRespondentCheck({ status: "eligible" });
+          return;
+        }
+        if (result.error === "確認を中断しました。") {
+          return;
+        }
+        setRespondentCheck({
+          status: "error",
+          errorMessage:
+            "gasOutdated" in result && result.gasOutdated
+              ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
+              : result.error || "回答状況を確認できませんでした。",
+        });
+      })();
+    }, 180);
 
     return () => {
+      window.clearTimeout(debounceTimer);
       controller.abort();
     };
   }, [memberCode, respondentCheckGasUrl]);
@@ -394,6 +405,9 @@ export function ReviewFlow({
     if (!draft || submitting || sent) return;
     setSubmitting(true);
     setSubmitError(null);
+    void navigator.clipboard.writeText(draft).catch(() => {
+      /* クリップボード制限のある環境でも、投稿導線は止めない */
+    });
     const result = await submitSurvey(draft);
     if (!result.ok) {
       setSubmitting(false);
@@ -401,11 +415,6 @@ export function ReviewFlow({
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(draft);
-    } catch {
-      // クリップボード制限のある環境でも、投稿導線は止めない
-    }
     setSentKind("high");
     setSent(true);
     setSubmitting(false);
