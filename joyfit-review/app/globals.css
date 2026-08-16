@@ -268,3 +268,19 @@
 .survey-success-fade-up--delay-4 {
   animation-delay: 0.7s;
 }
+
+@keyframes survey-google-btn-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 24px -10px rgba(165, 53, 75, 0.55);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 14px 28px -8px rgba(165, 53, 75, 0.75);
+  }
+}
+
+.survey-google-open-btn {
+  animation: survey-google-btn-pulse 1.6s ease-in-out infinite;
+}

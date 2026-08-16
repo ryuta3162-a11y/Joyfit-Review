@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 
 import { memberFormBodyClass } from "@/components/member/member-form-styles";
@@ -37,6 +38,7 @@ export function SurveyCompletionSuccess({
 }: Props) {
   const completionRewardLabel = formatSurveyCompletionRewardLabel(rewardLabel);
   const url = reviewUrl.trim();
+  const openedRef = useRef(false);
 
   function openGoogleReview() {
     void copyReviewDraft(reviewDraft);
@@ -44,6 +46,16 @@ export function SurveyCompletionSuccess({
       window.open(url, "_blank", "noopener,noreferrer");
     }
   }
+
+  useEffect(() => {
+    if (!url || openedRef.current) return;
+    openedRef.current = true;
+    void copyReviewDraft(reviewDraft);
+    const timer = window.setTimeout(() => {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [url, reviewDraft]);
 
   return (
     <>
@@ -76,9 +88,9 @@ export function SurveyCompletionSuccess({
         </p>
 
         {url ? (
-          <div className="survey-success-fade-up survey-success-fade-up--delay-4 mx-auto mt-7 max-w-sm overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-50/80 text-left shadow-[0_1px_8px_rgba(24,24,27,0.04)]">
+          <div className="survey-success-fade-up survey-success-fade-up--delay-4 mx-auto mt-7 max-w-sm overflow-hidden rounded-2xl border-2 border-[color:var(--joyfit-red)]/35 bg-white text-left shadow-[0_8px_24px_-12px_rgba(165,53,75,0.35)]">
             <div className="px-5 pb-4 pt-5">
-              <p className="text-[15px] font-semibold leading-snug tracking-tight text-zinc-900">
+              <p className="text-[16px] font-bold leading-snug tracking-tight text-[color:var(--joyfit-red-dark)]">
                 {SURVEY_COMPLETION_REVIEW_PREFACE_TITLE}
               </p>
               <p className="mt-2 text-[14px] leading-relaxed text-zinc-700">
@@ -88,14 +100,18 @@ export function SurveyCompletionSuccess({
                 {SURVEY_COMPLETION_REVIEW_PREFACE_HINT}
               </p>
             </div>
-            <div className="border-t border-zinc-200/80 bg-white px-4 py-3">
-              <button
-                type="button"
-                onClick={openGoogleReview}
-                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(165,53,75,0.65)] transition hover:bg-[color:var(--joyfit-red-dark)]"
+            <div className="border-t border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/4 px-4 py-4">
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  void copyReviewDraft(reviewDraft);
+                }}
+                className="survey-google-open-btn inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
               >
                 {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
-              </button>
+              </a>
             </div>
           </div>
         ) : null}
