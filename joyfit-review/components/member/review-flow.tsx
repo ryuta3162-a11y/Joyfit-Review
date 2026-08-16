@@ -222,8 +222,11 @@ export function ReviewFlow({
   /** 確認APIが落ちても入力は止めない。重複のみブロックする */
   const memberVerified =
     memberCodeOk &&
-    (respondentCheck.status === "eligible" || respondentCheck.status === "error");
-  const formFieldsLocked = !memberVerified && !alreadyAnswered;
+    (respondentCheck.status === "eligible" ||
+      respondentCheck.status === "error" ||
+      respondentCheck.status === "checking");
+  const formFieldsLocked =
+    !memberCodeOk || (respondentCheck.status === "idle" && !alreadyAnswered);
 
   function getSubmissionId(): string {
     if (!submissionIdRef.current) {
@@ -276,7 +279,9 @@ export function ReviewFlow({
       return;
     }
 
-    setRespondentCheck({ status: "checking" });
+    setRespondentCheck((prev) =>
+      prev.status === "eligible" || prev.status === "already" ? prev : { status: "checking" },
+    );
     const requestId = ++checkRequestIdRef.current;
     checkAbortRef.current?.abort();
     const controller = new AbortController();
@@ -411,22 +416,24 @@ export function ReviewFlow({
   }
 
   async function copyDraftAndOpen() {
-    if (!draft || submitting || sent) return;
-    setSubmitting(true);
+    if (!draft || sent || alreadyAnswered) return;
     setSubmitError(null);
     void navigator.clipboard.writeText(draft).catch(() => {
       /* クリップボード制限のある環境でも、投稿導線は止めない */
     });
+    // 保存完了を待ってから open すると、ブラウザがポップアップをブロックする
+    window.open(reviewUrl, "_blank", "noopener,noreferrer");
+    if (submitting) return;
+
+    setSubmitting(true);
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
         setSubmitError(result.error);
         return;
       }
-
       setSentKind("high");
       setSent(true);
-      window.open(reviewUrl, "_blank", "noopener,noreferrer");
     } finally {
       setSubmitting(false);
     }
@@ -689,7 +696,7 @@ export function ReviewFlow({
                 確認しています。少々お待ちください。
               </p>
             )}
-            {memberVerified && (
+            {respondentCheck.status === "eligible" && (
               <p className="mt-1.5 text-[13px] font-medium text-[color:var(--joyfit-red-dark)]">
                 会員番号を確認しました。以下の項目に進めます。
               </p>
@@ -1054,21 +1061,20 @@ export function ReviewFlow({
                   {submitError}
                 </p>
               )}
-              <Button
+              <button
+                type="button"
                 onClick={() => void copyDraftAndOpen()}
-                disabled={
-                  submitting || sent || alreadyAnswered || !memberVerified || !googlePostAgreed
-                }
-                className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30 disabled:bg-zinc-300 disabled:text-zinc-500 disabled:opacity-100 disabled:shadow-none"
+                disabled={sent || alreadyAnswered || !googlePostAgreed}
+                className="relative z-10 h-12 w-full cursor-pointer rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
               >
-                {submitting
-                  ? "保存中…"
-                  : sent
-                    ? "移動済み"
-                    : alreadyAnswered
-                      ? "回答済み"
+                {sent
+                  ? "移動済み"
+                  : alreadyAnswered
+                    ? "回答済み"
+                    : submitting
+                      ? "ページを開きました。回答を保存しています…"
                       : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
-              </Button>
+              </button>
             </div>
           </section>
         )}
