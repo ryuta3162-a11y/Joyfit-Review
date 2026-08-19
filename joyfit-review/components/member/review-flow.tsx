@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Mail, Star } from "lucide-react";
 
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
+import { warmupSurveyGas } from "@/app/actions/warmup-survey-gas";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import {
   EMPTY_GOOGLE_POST_CONSENT,
@@ -29,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brandCssVars, getBrandTheme } from "@/lib/brand";
+import { CUSTOMER_SAVE_FAILED } from "@/lib/gas-webapp";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
@@ -110,11 +112,6 @@ function buildLowRatingGmailWebUrl(to: string, subject: string, body: string): s
     body,
   });
   return `https://mail.google.com/mail/?${params.toString()}`;
-}
-
-function isTouchPhone(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 }
 
 type RatingStarsProps = {
@@ -237,6 +234,10 @@ export function ReviewFlow({
   }
 
   useEffect(() => {
+    void warmupSurveyGas(region);
+  }, [region]);
+
+  useEffect(() => {
     if (!sent || sentKind !== "low") return;
     window.scrollTo(0, 0);
   }, [sent, sentKind]);
@@ -255,6 +256,7 @@ export function ReviewFlow({
     if (value < 4) {
       setDraft("");
     }
+    void warmupSurveyGas(region);
   }
 
   function toggleMenuPoint(point: string) {
@@ -326,6 +328,11 @@ export function ReviewFlow({
     highSubmitLockRef.current = true;
     setSubmitError(null);
     setSubmitting(true);
+    const url = reviewUrl.trim();
+    if (url) {
+      void navigator.clipboard.writeText(draft.trim()).catch(() => {});
+      window.open(url, "_blank");
+    }
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
@@ -335,14 +342,9 @@ export function ReviewFlow({
       }
       setSentKind("high");
       setSent(true);
-      const url = reviewUrl.trim();
-      if (url) {
-        void navigator.clipboard.writeText(draft.trim()).catch(() => {});
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
     } catch {
       highSubmitLockRef.current = false;
-      setSubmitError("送信に失敗しました。通信状況をご確認のうえ、再度お試しください。");
+      setSubmitError(CUSTOMER_SAVE_FAILED);
     } finally {
       setSubmitting(false);
     }
@@ -355,7 +357,7 @@ export function ReviewFlow({
       .map((v) => v.trim())
       .filter((v) => v.includes("@"));
     if (!recipients.length) {
-      setSubmitError("店舗の問い合わせ先メールが未設定です。");
+      setSubmitError("お問い合わせの準備ができませんでした。店舗スタッフまでお声がけください。");
       return null;
     }
     const to = recipients.join(",");
@@ -375,10 +377,9 @@ export function ReviewFlow({
     const mailDraft = getLowRatingContactDraft();
     if (!mailDraft) return;
 
-    const openMailInNewTab = !isTouchPhone();
-    let pendingTab: Window | null = null;
-    if (openMailInNewTab) {
-      pendingTab = window.open("about:blank", "_blank");
+    const gmailWin = window.open(mailDraft.gmailWebUrl, "_blank");
+    if (!gmailWin) {
+      window.open(mailDraft.mailtoUrl, "_blank");
     }
 
     setSubmitting(true);
@@ -386,7 +387,6 @@ export function ReviewFlow({
     try {
       const result = await submitSurvey("");
       if (!result.ok) {
-        pendingTab?.close();
         setSubmitError(result.error);
         return;
       }
@@ -394,15 +394,6 @@ export function ReviewFlow({
       setLowRatingGmailWebUrl(mailDraft.gmailWebUrl);
       setSentKind("low");
       setSent(true);
-
-      if (openMailInNewTab) {
-        const dest = mailDraft.gmailWebUrl;
-        if (pendingTab && !pendingTab.closed) {
-          pendingTab.location.replace(dest);
-        } else {
-          window.open(dest, "_blank", "noopener,noreferrer");
-        }
-      }
     } finally {
       setSubmitting(false);
     }

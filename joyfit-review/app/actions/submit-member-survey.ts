@@ -1,8 +1,14 @@
 "use server";
 
+import {
+  CUSTOMER_SAVE_FAILED,
+  CUSTOMER_SAVE_SLOW,
+  CUSTOMER_SEND_UNAVAILABLE,
+  postJsonToGasWebApp,
+} from "@/lib/gas-webapp";
 import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
 
-const GAS_SURVEY_TIMEOUT_MS = 55_000;
+const GAS_SURVEY_TIMEOUT_MS = 20_000;
 
 export type SubmitMemberSurveyInput = {
   storeId: string;
@@ -28,12 +34,8 @@ export type SubmitMemberSurveyInput = {
 
 export type SubmitMemberSurveyResult = { ok: true } | { ok: false; error: string };
 
-function mapGasSurveyError(raw: string | undefined): string | null {
-  if (!raw?.trim()) return null;
-  const msg = raw.trim();
-  if (msg === "invalid recipient") {
-    return "送信設定（GAS）が古い可能性があります。管理者に「ウェブアプリの再デプロイ」を依頼してください。";
-  }
+function mapGasSurveyError(raw: string | undefined): string {
+  const msg = raw?.trim() ?? "";
   if (msg === "memberCode must be 10-digit number") {
     return "会員番号は半角数字10桁で入力してください。";
   }
@@ -44,12 +46,9 @@ function mapGasSurveyError(raw: string | undefined): string | null {
     return "評価（星）を選択してください。";
   }
   if (msg === "already_answered") {
-    return "すでに回答済みです";
+    return "すでに回答済みです。";
   }
-  if (msg.includes("script.send_mail") || msg.includes("MailApp")) {
-    return "メール送信の権限が未設定です。GASで authorizeMailOnce を実行し、再デプロイしてください。";
-  }
-  return null;
+  return CUSTOMER_SAVE_FAILED;
 }
 
 function resolveRecipients(storeEmail: string, fallback: string): string {
@@ -65,7 +64,7 @@ export async function submitMemberSurvey(
   const region = parseReviewRegion(input.region);
   const gasUrl = getStoresGasUrl(region);
   if (!gasUrl) {
-    return { ok: false, error: "ただいま送信をお受けできません。" };
+    return { ok: false, error: CUSTOMER_SEND_UNAVAILABLE };
   }
 
   const mc = input.memberCode.trim();
@@ -79,63 +78,39 @@ export async function submitMemberSurvey(
   const defaultEmail = process.env.DEFAULT_LOW_RATING_EMAIL?.trim() ?? "";
   const to = resolveRecipients(input.storeFeedbackEmail, defaultEmail);
 
-  try {
-    const res = await fetch(gasUrl, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      signal: AbortSignal.timeout(GAS_SURVEY_TIMEOUT_MS),
-      body: JSON.stringify({
-        action: "survey",
-        to,
-        storeId: input.storeId,
-        storeName: input.storeName,
-        rating: input.rating,
-        fullName: input.fullName.trim(),
-        memberCode: input.memberCode.trim(),
-        gender: input.gender,
-        ageRange: input.ageRange,
-        email: input.email.trim(),
-        visitDate: input.visitDate,
-        positives: input.positives,
-        useScenes: input.useScenes,
-        freeComment: input.freeComment.trim(),
-        generatedReview: input.generatedReview.trim(),
-        skipAutoMail: Boolean(input.skipAutoMail),
-        submissionId: input.submissionId.trim(),
-      }),
-    });
+  const posted = await postJsonToGasWebApp(
+    gasUrl,
+    {
+      action: "survey",
+      to,
+      storeId: input.storeId,
+      storeName: input.storeName,
+      rating: input.rating,
+      fullName: input.fullName.trim(),
+      memberCode: input.memberCode.trim(),
+      gender: input.gender,
+      ageRange: input.ageRange,
+      email: input.email.trim(),
+      visitDate: input.visitDate,
+      positives: input.positives,
+      useScenes: input.useScenes,
+      freeComment: input.freeComment.trim(),
+      generatedReview: input.generatedReview.trim(),
+      skipAutoMail: Boolean(input.skipAutoMail),
+      submissionId: input.submissionId.trim(),
+    },
+    GAS_SURVEY_TIMEOUT_MS,
+  );
 
-    const text = await res.text();
-    let json: { ok?: boolean; error?: string } = {};
-    try {
-      json = JSON.parse(text) as { ok?: boolean; error?: string };
-    } catch {
-      return {
-        ok: false,
-        error:
-          "送信に失敗しました（サーバー応答が不正です）。GASの再デプロイと STORES_JSON_URL をご確認ください。",
-      };
-    }
-
-    if (!res.ok || !json.ok) {
-      const mapped = mapGasSurveyError(json.error);
-      return {
-        ok: false,
-        error:
-          mapped ??
-          `送信に失敗しました。${json.error ? `（${json.error}）` : ""} しばらくしてから再度お試しください。`,
-      };
-    }
-    return { ok: true };
-  } catch (err) {
-    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
-      return {
-        ok: false,
-        error:
-          "保存に時間がかかっています。保存済みの場合があります。画面を再読み込みせず「回答を保存する」をもう一度押してください。",
-      };
-    }
-    return { ok: false, error: "送信に失敗しました。通信状況をご確認のうえ、再度お試しください。" };
+  if ("timeout" in posted) {
+    return { ok: false, error: CUSTOMER_SAVE_SLOW };
   }
+  if ("failed" in posted) {
+    return { ok: false, error: CUSTOMER_SAVE_FAILED };
+  }
+
+  if (!posted.json.ok) {
+    return { ok: false, error: mapGasSurveyError(posted.json.error) };
+  }
+  return { ok: true };
 }

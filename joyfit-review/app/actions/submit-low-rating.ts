@@ -57,7 +57,7 @@ export async function submitLowRatingFeedback(input: {
     const res = await fetch(gasUrl, {
       method: "POST",
       redirect: "follow",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ to, subject, body }),
     });
 

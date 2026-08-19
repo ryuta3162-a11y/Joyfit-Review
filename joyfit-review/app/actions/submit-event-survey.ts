@@ -88,8 +88,7 @@ export async function submitEventSurvey(
     } catch {
       return {
         ok: false,
-        error:
-          "送信に失敗しました（サーバー応答が不正です）。GASの再デプロイをご確認ください。",
+        error: "保存できませんでした。通信の良い場所で、もう一度お試しください。",
       };
     }
 
@@ -99,7 +98,7 @@ export async function submitEventSurvey(
       }
       return {
         ok: false,
-        error: `送信に失敗しました。${json.error ? `（${json.error}）` : ""} しばらくしてから再度お試しください。`,
+        error: "保存できませんでした。通信の良い場所で、もう一度お試しください。",
       };
     }
     return { ok: true };

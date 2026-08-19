@@ -39,6 +39,12 @@ function authorizeMailOnce() {
 function doGet(e) {
   var format = e && e.parameter ? String(e.parameter.format || "").toLowerCase() : "";
   var action = e && e.parameter ? String(e.parameter.action || "").trim() : "";
+  if (action === "ping") {
+    try {
+      SpreadsheetApp.getActiveSpreadsheet().getId();
+    } catch (err) {}
+    return outputJson({ ok: true, ping: true });
+  }
   if (format === "json" && action === "checkRespondent") {
     return outputJson(
       checkSurveyRespondent({
@@ -248,7 +254,7 @@ function saveSurveyResponse(data) {
   var skipAutoMail = String(data.skipAutoMail || "").toLowerCase() === "true" || data.skipAutoMail === true;
 
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(8000)) {
+  if (!lock.tryLock(2000)) {
     return { ok: false, error: "server busy" };
   }
 
@@ -264,10 +270,6 @@ function saveSurveyResponse(data) {
         shouldNotify: false,
         sheetName: sheet.getName(),
       };
-    }
-
-    if (submissionId) {
-      recordSurveySubmissionId(submissionId, storeId, memberCode);
     }
 
     appendSurveyRecord_(sheet, {
@@ -288,6 +290,10 @@ function saveSurveyResponse(data) {
       generatedReview: String(data.generatedReview || "").trim(),
       submissionId: submissionId,
     });
+
+    if (submissionId) {
+      recordSurveySubmissionId(submissionId, storeId, memberCode);
+    }
 
     return {
       ok: true,
@@ -633,6 +639,9 @@ function cacheSurveySheetName_(storeId, sheetName) {
   try {
     CacheService.getScriptCache().put(surveySheetCacheKey_(storeId), sheetName, 21600);
   } catch (e) {}
+  try {
+    PropertiesService.getScriptProperties().setProperty(surveySheetCacheKey_(storeId), sheetName);
+  } catch (e) {}
 }
 
 function findSurveySheetByStoreId(storeId) {
@@ -644,6 +653,15 @@ function findSurveySheetByStoreId(storeId) {
       var cachedSheet = ss.getSheetByName(cachedName);
       if (cachedSheet) {
         return cachedSheet;
+      }
+    }
+  } catch (e) {}
+  try {
+    var propName = PropertiesService.getScriptProperties().getProperty(surveySheetCacheKey_(storeId));
+    if (propName) {
+      var propSheet = ss.getSheetByName(propName);
+      if (propSheet) {
+        return propSheet;
       }
     }
   } catch (e) {}

@@ -69,6 +69,12 @@ function authorizeMailOnce() {
 function doGet(e) {
   var format = e && e.parameter ? String(e.parameter.format || "").toLowerCase() : "";
   var action = e && e.parameter ? String(e.parameter.action || "").trim() : "";
+  if (action === "ping") {
+    try {
+      SpreadsheetApp.getActiveSpreadsheet().getId();
+    } catch (err) {}
+    return outputJson({ ok: true, ping: true });
+  }
   if (format === "json" && action === "checkRespondent") {
     return outputJson(
       checkSurveyRespondent({
