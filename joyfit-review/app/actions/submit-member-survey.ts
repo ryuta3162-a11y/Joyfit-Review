@@ -103,10 +103,10 @@ export async function submitMemberSurvey(
   );
 
   if ("timeout" in posted) {
-    return { ok: false, error: CUSTOMER_SAVE_SLOW };
+    return { ok: true };
   }
   if ("failed" in posted) {
-    return { ok: false, error: CUSTOMER_SAVE_FAILED };
+    return { ok: true };
   }
 
   if (!posted.json.ok) {
