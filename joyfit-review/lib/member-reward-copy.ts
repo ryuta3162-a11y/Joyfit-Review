@@ -10,6 +10,9 @@ export { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 /** 高評価アンケート：保存ボタン */
 export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "回答を保存する";
 
+/** 低評価アンケート：保存ボタン（Gmailは保存後の完了画面から） */
+export const LOW_RATING_SAVE_BUTTON_LABEL = "回答を保存する";
+
 /** 保存完了後：Googleマップでアンケート投稿（別タブ） */
 export const REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL = "アンケートをこちらからお願いします";
 

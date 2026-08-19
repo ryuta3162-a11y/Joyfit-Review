@@ -35,6 +35,7 @@ import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
+  LOW_RATING_SAVE_BUTTON_LABEL,
   getHighRatingGoogleMapHint,
   type GooglePostConsentKey,
   SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES,
@@ -220,7 +221,6 @@ export function ReviewFlow({
   /** 送信ボタン1回分のID。エラー時の再送は同じIDで冪等に処理する */
   const submissionIdRef = useRef<string | null>(null);
   const highSubmitLockRef = useRef(false);
-  const lowRatingMailAutoOpenRef = useRef(false);
 
   const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const formFieldsLocked = !memberCodeOk;
@@ -248,13 +248,6 @@ export function ReviewFlow({
     if (!sent || sentKind !== "low") return;
     window.scrollTo(0, 0);
   }, [sent, sentKind]);
-
-  useEffect(() => {
-    if (!sent || sentKind !== "low" || !lowRatingMailtoUrl) return;
-    if (!lowRatingMailAutoOpenRef.current) return;
-    lowRatingMailAutoOpenRef.current = false;
-    window.location.href = lowRatingMailtoUrl;
-  }, [sent, sentKind, lowRatingMailtoUrl]);
 
   useEffect(() => {
     setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
@@ -351,11 +344,6 @@ export function ReviewFlow({
       }
       setSentKind("high");
       setSent(true);
-      const url = reviewUrl.trim();
-      if (url) {
-        void navigator.clipboard.writeText(draft.trim()).catch(() => {});
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
     } catch {
       highSubmitLockRef.current = false;
       setSubmitError(CUSTOMER_SAVE_FAILED);
@@ -391,37 +379,18 @@ export function ReviewFlow({
     const mailDraft = getLowRatingContactDraft();
     if (!mailDraft) return;
 
-    const onPhone = isTouchPhone();
-    let pendingTab: Window | null = null;
-    if (!onPhone) {
-      pendingTab = window.open("about:blank", "_blank");
-    }
-
     setSubmitting(true);
     setSubmitError(null);
     try {
       const result = await submitSurvey("");
       if (!result.ok) {
-        pendingTab?.close();
         setSubmitError(result.error);
         return;
       }
       setLowRatingMailtoUrl(mailDraft.mailtoUrl);
       setLowRatingGmailWebUrl(mailDraft.gmailWebUrl);
       setSentKind("low");
-      if (onPhone) {
-        lowRatingMailAutoOpenRef.current = true;
-      }
       setSent(true);
-
-      if (!onPhone) {
-        const dest = mailDraft.gmailWebUrl;
-        if (pendingTab && !pendingTab.closed) {
-          pendingTab.location.replace(dest);
-        } else {
-          window.open(dest, "_blank", "noopener,noreferrer");
-        }
-      }
     } finally {
       setSubmitting(false);
     }
@@ -742,7 +711,9 @@ export function ReviewFlow({
               <p className="text-[15px] font-semibold leading-relaxed text-zinc-900">
                 ご期待に沿えず申し訳ございません
                 <br />
-                Gmailで店舗担当へご意見をお聞かせください。
+                まず回答を保存してください。
+                <br />
+                保存後、Gmailで店舗担当へご意見をお聞かせください。
               </p>
               <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-[15px] text-zinc-800">
                 現在の選択評価{" "}
@@ -766,8 +737,7 @@ export function ReviewFlow({
                 disabled={!profileComplete || submitting || sent}
                 className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
               >
-                <Mail className="h-4 w-4" />
-                {submitting ? "保存中…" : sent ? "送信済み" : "Gmailでお問い合わせ"}
+                {submitting ? "保存中…" : sent ? "保存済み" : LOW_RATING_SAVE_BUTTON_LABEL}
               </Button>
             </div>
           )}
@@ -991,7 +961,12 @@ export function ReviewFlow({
 
                 {sent ? (
                   <div className="space-y-4">
+                    <p className="text-center text-[14px] font-semibold leading-relaxed text-zinc-800">
+                      回答を保存しました
+                    </p>
                     <p className="text-center text-[13px] leading-relaxed text-zinc-500">
+                      下のボタンからGoogleマップへ進んでください。
+                      <br />
                       {SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES[0]}
                       <br />
                       {SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES[1]}
