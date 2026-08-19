@@ -396,54 +396,7 @@ export function ReviewFlow({
     }
   }
 
-  if (sent && sentKind === "low") {
-    return (
-      <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
-        <div className="joyfit-brand-header px-6 py-10 text-center text-white">
-          <div className="mx-auto max-w-sm space-y-4">
-            <h2 className="text-xl font-bold">回答を保存しました</h2>
-            <p className="text-[15px] leading-relaxed text-white/95">
-              下記お問い合わせバナーから
-              <br />
-              ご意見を送信してください。
-            </p>
-            {lowRatingMailtoUrl || lowRatingGmailWebUrl ? (
-              <div className="space-y-3">
-                {isTouchPhone() && lowRatingMailtoUrl ? (
-                  <a
-                    href={lowRatingMailtoUrl}
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
-                  >
-                    <Mail className="h-4 w-4 shrink-0" />
-                    Gmailで問い合わせる
-                  </a>
-                ) : null}
-                {!isTouchPhone() && lowRatingGmailWebUrl ? (
-                  <a
-                    href={lowRatingGmailWebUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
-                  >
-                    <Mail className="h-4 w-4 shrink-0" />
-                    Gmailで問い合わせる
-                  </a>
-                ) : null}
-                {!isTouchPhone() && lowRatingMailtoUrl ? (
-                  <a
-                    href={lowRatingMailtoUrl}
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/40 bg-transparent px-4 text-[14px] font-semibold text-white transition hover:bg-white/10"
-                  >
-                    メールアプリで開く
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* 低評価の完了画面は別ページに飛ばさず、同じフロー内で表示（下の isLowSelected セクション内） */
 
   const isFit365 = brandTheme.brand === "fit365";
   const isYoga = brandTheme.brand === "yoga";
@@ -706,14 +659,10 @@ export function ReviewFlow({
               </p>
             </>
           )}
-          {isLowSelected && (
+          {isLowSelected && !sent && (
             <div className="mt-2 space-y-4">
               <p className="text-[15px] font-semibold leading-relaxed text-zinc-900">
                 ご期待に沿えず申し訳ございません
-                <br />
-                まず回答を保存してください。
-                <br />
-                保存後、Gmailで店舗担当へご意見をお聞かせください。
               </p>
               <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-[15px] text-zinc-800">
                 現在の選択評価{" "}
@@ -722,7 +671,7 @@ export function ReviewFlow({
               <button
                 type="button"
                 onClick={() => setRating(null)}
-                disabled={formFieldsLocked || submitting || sent}
+                disabled={formFieldsLocked || submitting}
                 className="text-[13px] font-medium text-zinc-500 underline underline-offset-2 transition hover:text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 評価を選び直す
@@ -734,12 +683,49 @@ export function ReviewFlow({
               )}
               <Button
                 onClick={() => void handleLowRatingSubmit()}
-                disabled={!profileComplete || submitting || sent}
+                disabled={!profileComplete || submitting}
                 className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
               >
-                {submitting ? "保存中…" : sent ? "保存済み" : LOW_RATING_SAVE_BUTTON_LABEL}
+                {submitting ? "保存中…" : LOW_RATING_SAVE_BUTTON_LABEL}
               </Button>
             </div>
+          )}
+          {isLowSelected && sent && sentKind === "low" && (
+            <section className={`${memberFormSectionDividerClass} pt-8`}>
+              <div className="overflow-hidden rounded-2xl border-2 border-[color:var(--joyfit-red)]/35 bg-white shadow-[0_8px_24px_-12px_rgba(165,53,75,0.35)]">
+                <div className="joyfit-brand-header px-5 pb-7 pt-8 text-center text-white">
+                  <div className="survey-success-icon mx-auto" aria-hidden>
+                    <span className="survey-success-ring" />
+                    <span className="survey-success-ring survey-success-ring--delay" />
+                    <span className="survey-success-circle">
+                      <Check className="survey-success-check h-7 w-7" strokeWidth={2.75} />
+                    </span>
+                  </div>
+                  <h2 className="survey-success-fade-up mt-5 text-[18px] font-bold tracking-tight">
+                    ご協力ありがとうございました
+                  </h2>
+                  <p className="survey-success-fade-up survey-success-fade-up--delay-1 mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-white/90">
+                    回答を保存しました。
+                  </p>
+                </div>
+                <div className="space-y-5 px-5 py-6">
+                  <p className="text-[15px] font-semibold leading-relaxed text-zinc-900">
+                    ご期待に沿えず申し訳ございません。
+                    <br />
+                    店舗担当へご意見をお聞かせください。
+                  </p>
+                  {lowRatingMailtoUrl ? (
+                    <a
+                      href={lowRatingMailtoUrl}
+                      className="survey-google-open-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+                    >
+                      <Mail className="h-4 w-4 shrink-0" />
+                      Gmailで問い合わせる
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            </section>
           )}
         </section>
 
