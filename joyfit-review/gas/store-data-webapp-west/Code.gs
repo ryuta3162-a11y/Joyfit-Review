@@ -79,6 +79,12 @@ function doGet(e) {
   if (format === "json" && action === "setupWorkbook") {
     return outputJson(setupWestWorkbook());
   }
+  if (format === "json" && action === "removeGuideSheet") {
+    return outputJson(removeWestGuideSheet());
+  }
+  if (format === "json" && action === "upsertDemoStore") {
+    return outputJson(upsertWestDemoStore());
+  }
   if (format === "json" && action === "seedSampleStores") {
     return outputJson(seedWestSampleStores());
   }
@@ -103,7 +109,7 @@ function renderPointsAdminPage() {
   pointsTemplate.stores = readStoreRows();
   return pointsTemplate
     .evaluate()
-    .setTitle("ポイント付与管理 | JOYFIT")
+    .setTitle("ポイント付与管理 | WEST")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -126,6 +132,14 @@ function doPost(e) {
 
     if (action === "setupWorkbook") {
       return outputJson(setupWestWorkbook());
+    }
+
+    if (action === "removeGuideSheet") {
+      return outputJson(removeWestGuideSheet());
+    }
+
+    if (action === "upsertDemoStore") {
+      return outputJson(upsertWestDemoStore());
     }
 
     if (action === "seedSampleStores") {
@@ -277,7 +291,9 @@ function defaultSearchText(name, id, address) {
 }
 
 function parseCoordinate(raw) {
-  var n = Number(raw);
+  var text = String(raw == null ? "" : raw).trim();
+  if (!text) return null;
+  var n = Number(text);
   if (!isFinite(n)) return null;
   return n;
 }
@@ -1185,7 +1201,7 @@ function buildPointGrantStats(rows) {
 }
 
 /**
- * WEST用ブックの初期体裁。店舗行は入れず、ヘッダーとガイドだけ整える。
+ * WEST用ブックの初期体裁。店舗行は入れない。
  * エディタから1回実行してください。
  */
 function setupWestWorkbook() {
@@ -1194,15 +1210,14 @@ function setupWestWorkbook() {
     ss.rename(WEST_REGION_LABEL + " 口コミ APP");
   } catch (e) {}
 
-  var guide = ensureNamedSheet_(ss, "はじめに", 0);
-  styleGuideSheet_(guide);
+  removeWestGuideSheet_();
 
-  var stores = ensureNamedSheet_(ss, "店舗データ", 1);
+  var stores = ensureNamedSheet_(ss, "店舗データ", 0);
   styleStoreMasterSheet_(stores);
 
   // 回答シート作成前の補助シート（初回回答時にも自動作成される）
-  ensureNamedSheet_(ss, "_survey_dedup", 2);
-  ensureNamedSheet_(ss, "_survey_member_codes", 3);
+  ensureNamedSheet_(ss, "_survey_dedup", 1);
+  ensureNamedSheet_(ss, "_survey_member_codes", 2);
   styleHelperSheet_(ss.getSheetByName("_survey_dedup"), ["submissionId", "timestamp", "storeId", "memberCode"]);
   styleHelperSheet_(ss.getSheetByName("_survey_member_codes"), ["memberCode"]);
 
@@ -1219,6 +1234,66 @@ function setupWestWorkbook() {
     storeHeaders: STORE_HEADERS,
     note: "店舗行は未投入。seedWestSampleStores() で関西サンプルを投入できます。",
   };
+}
+
+function removeWestGuideSheet() {
+  return removeWestGuideSheet_();
+}
+
+function removeWestGuideSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var guide = ss.getSheetByName("はじめに");
+  if (!guide) {
+    return { ok: true, removed: false };
+  }
+  if (ss.getSheets().length <= 1) {
+    return { ok: false, error: "cannot delete the only sheet" };
+  }
+  ss.deleteSheet(guide);
+  return { ok: true, removed: true };
+}
+
+function westDemoStoreRow_() {
+  return [
+    "JOYFIT24関西",
+    "https://g.page/r/Cdo92khF2w03EAE/review",
+    "r-kusaka@okamoto-group.co.jp",
+    "kansai",
+    "テスト用店舗（店頭QR・本番一覧には出しません）",
+    "",
+    "",
+    "関西 かんさい kansai テスト sample JOYFIT24",
+    "",
+  ];
+}
+
+function upsertWestDemoStore() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+
+  var row = westDemoStoreRow_();
+  var wantedId = String(row[3]);
+  var values = sheet.getDataRange().getValues();
+  var found = -1;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][3] || "").trim() === wantedId) {
+      found = i + 1;
+      break;
+    }
+  }
+
+  var colCount = STORE_HEADERS.length;
+  if (found > 0) {
+    sheet.getRange(found, 1, 1, colCount).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+    found = sheet.getLastRow();
+  }
+
+  return { ok: true, row: found, id: wantedId, name: row[0] };
 }
 
 function seedWestSampleStores() {
@@ -1258,6 +1333,17 @@ function seedWestSampleStores() {
 function westSampleStoreRows_() {
   // 公式サイト所在地ベース。座標は駅・施設付近（プレビュー用）
   return [
+    [
+      "JOYFIT24関西",
+      "https://g.page/r/Cdo92khF2w03EAE/review",
+      "r-kusaka@okamoto-group.co.jp",
+      "kansai",
+      "テスト用店舗（店頭QR・本番一覧には出しません）",
+      "",
+      "",
+      "関西 かんさい kansai テスト sample JOYFIT24",
+      "",
+    ],
     [
       "JOYFIT24西梅田",
       "",

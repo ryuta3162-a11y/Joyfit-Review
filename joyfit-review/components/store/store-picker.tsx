@@ -166,7 +166,7 @@ export function StorePicker({ stores, brand, basePath = "" }: Props) {
 
         {showStoreUi ? (
           <div className="border-t border-zinc-100 bg-card px-5 py-5">
-            <p className="mb-3 text-sm font-bold text-zinc-900">他の店舗の口コミを投稿</p>
+            <p className="mb-3 text-sm font-bold text-zinc-900">他の店舗のアンケートに回答</p>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <Input
@@ -178,7 +178,7 @@ export function StorePicker({ stores, brand, basePath = "" }: Props) {
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
               {manualSearch ? (
-                <>店舗名で検索して、投稿する店舗を選んでください。</>
+                <>店舗名で検索して、回答する店舗を選んでください。</>
               ) : (
                 <>
                   現在地に基づき、お近くの店舗が優先して表示されます。
@@ -262,7 +262,7 @@ export function StorePicker({ stores, brand, basePath = "" }: Props) {
                   お使いの環境では位置情報を利用できません。
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  店舗名で検索して、投稿する店舗を選んでください。
+                  店舗名で検索して、回答する店舗を選んでください。
                 </p>
                 <button
                   type="button"
@@ -286,7 +286,7 @@ export function StorePicker({ stores, brand, basePath = "" }: Props) {
       {showStoreUi && nearestStore && (
         <div className="rounded-2xl border border-[color:var(--joyfit-red)]/30 bg-gradient-to-br from-[color:var(--joyfit-red)]/10 via-white to-white p-5 shadow-md">
           <p className="mt-2 text-base font-bold leading-snug text-zinc-900">
-            口コミを投稿する店舗は「{nearestStore.store.name}」で合っていますか？
+            アンケートに回答する店舗は「{nearestStore.store.name}」で合っていますか？
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link

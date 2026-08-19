@@ -7,11 +7,16 @@ export const SHARED_REWARD_BADGE_LABEL =
 
 export { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
-/** 口コミ画面：最終ボタン文言 */
-export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "回答を保存して完了する";
+/** 高評価アンケート：保存ボタン */
+export const REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL = "回答を保存する";
 
-/** 完了画面：口コミページを開き直すボタン */
-export const REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL = "Google口コミページを開く";
+/** 保存完了後：Googleマップでアンケート投稿（別タブ） */
+export const REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL = "アンケートをこちらからお願いします";
+
+/** 高評価時：Googleマップ側の星評価の案内 */
+export function getHighRatingGoogleMapHint(rating: number): string {
+  return `Googleマップでも星${rating}の評価を選択してください。`;
+}
 
 /** 特典はアンケート回答に紐づく旨（Google投稿とは切り離して案内） */
 export const SURVEY_REWARD_GRANT_NOTE = "特典はアンケート回答をもって付与されます。";
@@ -19,15 +24,17 @@ export const SURVEY_REWARD_GRANT_NOTE = "特典はアンケート回答をもっ
 /** 高評価アンケート完了画面 */
 export const SURVEY_COMPLETION_THANK_YOU = "ご協力ありがとうございます";
 export const SURVEY_COMPLETION_REWARD_NOTE = SURVEY_REWARD_GRANT_NOTE;
-export const SURVEY_COMPLETION_POINT_PENDING_NOTE =
-  "ポイント付与までには一定のお時間をいただく場合がございます。今しばらくお待ちください。";
+export const SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES: [string, string] = [
+  "ポイント付与までお時間をいただく場合がございます",
+  "今しばらくお待ちください。",
+];
 
 export const SURVEY_COMPLETION_REVIEW_PREFACE_TITLE =
-  "Google口コミご協力をお願いいたします";
-export const SURVEY_COMPLETION_REVIEW_PREFACE_BODY =
-  "作成した文面を貼り付けるだけで投稿できます。お店の励みになりますので、ぜひご協力ください。";
-export const SURVEY_COMPLETION_REVIEW_PREFACE_HINT =
-  "※口コミ文はコピー済みです。Googleの投稿欄へ貼り付けてください。";
+  "ご回答内容をご確認ください";
+export const SURVEY_COMPLETION_REVIEW_PREFACE_BODY_LINES: [string, string] = [
+  "内容を確認し、問題なければ保存してください",
+  "いただいたご意見は、お店のサービス向上に活用します",
+];
 
 /** 完了画面の特典表示用（「アンケート回答特典：」などの接頭辞を除く） */
 export function formatSurveyCompletionRewardLabel(rewardLabel: string): string {
@@ -38,7 +45,7 @@ export function formatSurveyCompletionRewardLabel(rewardLabel: string): string {
 
 /** Google口コミ投稿後の案内（2行表示用） */
 export function getGooglePostSurveyCompletionLines(): [string, string] {
-  return ["Google口コミページで投稿すると、", "アンケートは終了です。"];
+  return ["回答を保存すると、", "アンケートは終了です。"];
 }
 
 export type GooglePostConsentKey = "rating" | "draft" | "reward";
@@ -53,7 +60,7 @@ export type GooglePostConsentStep = {
   affirmLabel: string;
 };
 
-/** 投稿前の3段階同意チェック用文言 */
+/** Googleマップ投稿前の3段階同意チェック用文言 */
 export function getGooglePostConsentSteps(input: { rating: number }): GooglePostConsentStep[] {
   const completionLines = getGooglePostSurveyCompletionLines();
 
@@ -61,16 +68,16 @@ export function getGooglePostConsentSteps(input: { rating: number }): GooglePost
     {
       key: "rating",
       stepNumber: 1,
-      question: `口コミの評価は星${input.rating}で間違いありませんか？`,
-      hint: "口コミページでも、同じ星数をタップして選択してください。",
+      question: `アンケートの評価は星${input.rating}で間違いありませんか？`,
+      hint: "画面上の星の数をご確認ください。",
       affirmLabel: `はい、星${input.rating}で間違いありません`,
     },
     {
       key: "draft",
       stepNumber: 2,
-      question: "以下の文面で投稿します。お間違いないですか？",
+      question: "以下の文面で保存します。お間違いないですか？",
       hint: "必要に応じて、上の編集欄で文面を変更できます。",
-      affirmLabel: "はい、この文面で投稿します",
+      affirmLabel: "はい、この文面で保存します",
     },
     {
       key: "reward",
@@ -83,7 +90,7 @@ export function getGooglePostConsentSteps(input: { rating: number }): GooglePost
   ];
 }
 
-export const GOOGLE_POST_CONSENT_PANEL_TITLE = "投稿前の確認";
+export const GOOGLE_POST_CONSENT_PANEL_TITLE = "保存前の確認";
 export const GOOGLE_POST_CONSENT_PANEL_SUBTITLE = "3項目を確認 → チェックをしてください";
 export const GOOGLE_POST_CONSENT_PROGRESS_HINT =
   "すべての項目にチェックを入れると、ボタンが使えるようになります。";

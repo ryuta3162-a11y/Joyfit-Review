@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { Mail, Star } from "lucide-react";
+import { Check, Mail, Star } from "lucide-react";
 
-import { checkSurveyRespondent } from "@/app/actions/check-survey-respondent";
 import { submitMemberSurvey } from "@/app/actions/submit-member-survey";
-import { fetchCheckRespondent, type CheckSurveyRespondentResult, warmupRespondentCheckGas } from "@/lib/survey-respondent-check";
 import { AppGuideScreenshot } from "@/components/member/app-guide-screenshot";
 import {
   EMPTY_GOOGLE_POST_CONSENT,
@@ -15,7 +12,6 @@ import {
   isGooglePostFullyConsented,
   type GooglePostConsentState,
 } from "@/components/member/google-post-consent-panel";
-import { SurveyCompletionSuccess } from "@/components/member/survey-completion-success";
 import { MemberFormField } from "@/components/member/member-form-field";
 import {
   memberFormCardClass,
@@ -36,6 +32,13 @@ import { brandCssVars, getBrandTheme } from "@/lib/brand";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
+  REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
+  getHighRatingGoogleMapHint,
+  type GooglePostConsentKey,
+  SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES,
+  SURVEY_COMPLETION_REVIEW_PREFACE_TITLE,
+  SURVEY_COMPLETION_THANK_YOU,
+  SURVEY_REWARD_GRANT_NOTE,
 } from "@/lib/member-reward-copy";
 import {
   buildReviewDraft,
@@ -54,8 +57,6 @@ type Props = {
   /** 店舗マスタの通知先。空のときは DEFAULT_LOW_RATING_EMAIL を使用 */
   feedbackEmail: string;
   reward: StoreRewardDisplay;
-  /** 会員番号重複確認用 GAS URL（クライアントから直接照会して応答を短縮） */
-  respondentCheckGasUrl?: string;
   /** EAST / WEST。未指定時は EAST */
   region?: "east" | "west";
 };
@@ -95,10 +96,25 @@ function buildLowRatingMailBody(storeName: string): string {
 
 /** スマホのメールアプリ（Gmail含む）で下書きを開く mailto リンク */
 function buildLowRatingMailtoUrl(to: string, subject: string, body: string): string {
-  const params = new URLSearchParams();
-  params.set("subject", subject);
-  params.set("body", body);
-  return `mailto:${to}?${params.toString()}`;
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/** PCブラウザ向け。保存後も元の画面を残したまま Gmail 下書きを別タブで開く */
+function buildLowRatingGmailWebUrl(to: string, subject: string, body: string): string {
+  const params = new URLSearchParams({
+    view: "cm",
+    fs: "1",
+    tf: "1",
+    to,
+    su: subject,
+    body,
+  });
+  return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
+function isTouchPhone(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 }
 
 type RatingStarsProps = {
@@ -149,15 +165,12 @@ function RatingStars({
   );
 }
 
-const respondentCheckCache = new Map<string, CheckSurveyRespondentResult>();
-
 export function ReviewFlow({
   storeId,
   storeName,
   reviewUrl,
   feedbackEmail,
   reward,
-  respondentCheckGasUrl,
   region = "east",
 }: Props) {
   const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
@@ -193,35 +206,25 @@ export function ReviewFlow({
   const recordedVisitDate = useMemo(() => localDateIsoForRecord(), []);
   const [feedback, setFeedback] = useState("");
   const [draft, setDraft] = useState("");
-  const [googlePostConsents, setGooglePostConsents] =
-    useState<GooglePostConsentState>(EMPTY_GOOGLE_POST_CONSENT);
-  const googlePostAgreed = isGooglePostFullyConsented(googlePostConsents);
   const [sent, setSent] = useState(false);
   const [sentKind, setSentKind] = useState<"high" | "low">("high");
   const [lowRatingMailtoUrl, setLowRatingMailtoUrl] = useState<string | null>(null);
+  const [lowRatingGmailWebUrl, setLowRatingGmailWebUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [respondentCheck, setRespondentCheck] = useState<{
-    status: "idle" | "checking" | "eligible" | "already" | "error";
-    errorMessage?: string;
-  }>({ status: "idle" });
+  const [googlePostConsents, setGooglePostConsents] =
+    useState<GooglePostConsentState>(EMPTY_GOOGLE_POST_CONSENT);
   /** 送信ボタン1回分のID。エラー時の再送は同じIDで冪等に処理する */
   const submissionIdRef = useRef<string | null>(null);
-  const checkRequestIdRef = useRef(0);
-  const [checkRetryNonce, setCheckRetryNonce] = useState(0);
+  const highSubmitLockRef = useRef(false);
 
   const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
-  const alreadyAnswered = respondentCheck.status === "already";
-  const respondentCheckFailed = respondentCheck.status === "error";
-  const respondentCheckPending = respondentCheck.status === "checking";
-  /** 確認APIが落ちても入力は止めない。重複のみブロックする */
-  const memberVerified =
-    memberCodeOk &&
-    (respondentCheck.status === "eligible" ||
-      respondentCheck.status === "error" ||
-      respondentCheck.status === "checking");
-  const formFieldsLocked =
-    !memberCodeOk || (respondentCheck.status === "idle" && !alreadyAnswered);
+  const formFieldsLocked = !memberCodeOk;
+  const googlePostReady = isGooglePostFullyConsented(googlePostConsents);
+
+  function toggleGooglePostConsent(key: GooglePostConsentKey) {
+    setGooglePostConsents((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   function getSubmissionId(): string {
     if (!submissionIdRef.current) {
@@ -233,115 +236,24 @@ export function ReviewFlow({
     return submissionIdRef.current;
   }
 
-  const checkAbortRef = useRef<AbortController | null>(null);
-
   useEffect(() => {
-    if (respondentCheckGasUrl) {
-      warmupRespondentCheckGas(respondentCheckGasUrl);
-    }
-  }, [respondentCheckGasUrl]);
-
-  useEffect(() => {
-    if (!respondentCheckGasUrl) return;
-    const digits = memberCode.replace(/\D/g, "");
-    if (digits.length >= 8) {
-      warmupRespondentCheckGas(respondentCheckGasUrl);
-    }
-  }, [memberCode, respondentCheckGasUrl]);
-
-  useEffect(() => {
-    const code = memberCode.trim();
-    const codeReady = /^\d{10}$/.test(code) && !/^0{10}$/.test(code);
-    if (!codeReady) {
-      setRespondentCheck({ status: "idle" });
-      return;
-    }
-
-    const cached = respondentCheckCache.get(code);
-    if (cached) {
-      if (cached.ok && cached.eligible === false) {
-        setRespondentCheck({ status: "already" });
-      } else if (cached.ok) {
-        setRespondentCheck({ status: "eligible" });
-      } else {
-        setRespondentCheck({
-          status: "error",
-          errorMessage: cached.gasOutdated
-            ? "重複確認が利用できません。GASを最新の Code.gs で「新しいバージョン」として再デプロイしてください。"
-            : cached.error || "回答状況を確認できませんでした。",
-        });
-      }
-      return;
-    }
-
-    setRespondentCheck((prev) =>
-      prev.status === "eligible" || prev.status === "already" ? prev : { status: "checking" },
-    );
-    const requestId = ++checkRequestIdRef.current;
-    checkAbortRef.current?.abort();
-    const controller = new AbortController();
-    checkAbortRef.current = controller;
-
-    const debounceTimer = window.setTimeout(() => {
-      void (async () => {
-        let result: CheckSurveyRespondentResult = respondentCheckGasUrl
-          ? await fetchCheckRespondent(respondentCheckGasUrl, code, controller.signal)
-          : { ok: false, error: "confirm-via-server" };
-
-        if (requestId !== checkRequestIdRef.current) return;
-
-        if (!result.ok && result.error !== "確認を中断しました。") {
-          result = await checkSurveyRespondent({ memberCode: code, region });
-        }
-        if (requestId !== checkRequestIdRef.current) return;
-
-        if (result.ok) {
-          respondentCheckCache.set(code, result);
-        }
-
-        if (result.ok && result.eligible === false) {
-          setRespondentCheck({ status: "already" });
-          return;
-        }
-        if (result.ok) {
-          setRespondentCheck({ status: "eligible" });
-          return;
-        }
-        if (result.error === "確認を中断しました。") {
-          return;
-        }
-        setRespondentCheck({
-          status: "error",
-          errorMessage: "会員番号の確認ができませんでしたが、入力は続けられます。",
-        });
-      })();
-    }, 180);
-
-    return () => {
-      window.clearTimeout(debounceTimer);
-      controller.abort();
-    };
-  }, [memberCode, respondentCheckGasUrl, region, checkRetryNonce]);
+    if (!sent || sentKind !== "low") return;
+    window.scrollTo(0, 0);
+  }, [sent, sentKind]);
 
   useEffect(() => {
     setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
-  }, [draft]);
-
-  useEffect(() => {
-    if (!sent) return;
-    window.scrollTo(0, 0);
-  }, [sent]);
+  }, [draft, rating]);
 
   const isHigh = useMemo(() => (rating ?? 0) >= 4, [rating]);
   const canBuildGoogleDraft = (rating ?? 0) >= 4;
   const isLowSelected = rating !== null && !isHigh;
 
   function selectRating(value: number) {
-    if (formFieldsLocked || alreadyAnswered || respondentCheckPending) return;
+    if (formFieldsLocked) return;
     setRating(value);
     if (value < 4) {
       setDraft("");
-      setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
     }
   }
 
@@ -364,7 +276,6 @@ export function ReviewFlow({
 
   const allPositives = useMemo(() => [...menuPoints, ...envPoints], [menuPoints, envPoints]);
   const profileComplete =
-    memberVerified &&
     fullName.trim() &&
     gender &&
     ageRange &&
@@ -373,7 +284,7 @@ export function ReviewFlow({
     memberCodeOk;
 
   function buildDraft() {
-    if (!rating || !profileComplete || alreadyAnswered) return;
+    if (!rating || !profileComplete) return;
 
     const body = buildReviewDraft({
       service: menuPoints,
@@ -388,12 +299,6 @@ export function ReviewFlow({
 
   async function submitSurvey(payloadReview: string) {
     if (!rating || !profileComplete) return { ok: false as const, error: "必須項目を入力してください。" };
-    if (alreadyAnswered) {
-      return { ok: false as const, error: "すでに回答済みです" };
-    }
-    if (!memberVerified) {
-      return { ok: false as const, error: "会員番号の確認が完了していません。" };
-    }
     return submitMemberSurvey({
       storeId,
       storeName,
@@ -415,19 +320,28 @@ export function ReviewFlow({
     });
   }
 
-  async function copyDraftAndOpen() {
-    if (!draft || sent || alreadyAnswered || submitting) return;
+  async function saveHighRatingSurvey() {
+    if (!draft || sent || submitting || !googlePostReady) return;
+    if (highSubmitLockRef.current) return;
+    highSubmitLockRef.current = true;
     setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
+        highSubmitLockRef.current = false;
         setSubmitError(result.error);
         return;
       }
       setSentKind("high");
       setSent(true);
+      const url = reviewUrl.trim();
+      if (url) {
+        void navigator.clipboard.writeText(draft.trim()).catch(() => {});
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch {
+      highSubmitLockRef.current = false;
       setSubmitError("送信に失敗しました。通信状況をご確認のうえ、再度お試しください。");
     } finally {
       setSubmitting(false);
@@ -452,6 +366,7 @@ export function ReviewFlow({
       subject,
       body,
       mailtoUrl: buildLowRatingMailtoUrl(to, subject, body),
+      gmailWebUrl: buildLowRatingGmailWebUrl(to, subject, body),
     };
   }
 
@@ -460,65 +375,76 @@ export function ReviewFlow({
     const mailDraft = getLowRatingContactDraft();
     if (!mailDraft) return;
 
+    const openMailInNewTab = !isTouchPhone();
+    let pendingTab: Window | null = null;
+    if (openMailInNewTab) {
+      pendingTab = window.open("about:blank", "_blank");
+    }
+
     setSubmitting(true);
     setSubmitError(null);
     try {
       const result = await submitSurvey("");
       if (!result.ok) {
+        pendingTab?.close();
         setSubmitError(result.error);
         return;
       }
       setLowRatingMailtoUrl(mailDraft.mailtoUrl);
+      setLowRatingGmailWebUrl(mailDraft.gmailWebUrl);
       setSentKind("low");
       setSent(true);
+
+      if (openMailInNewTab) {
+        const dest = mailDraft.gmailWebUrl;
+        if (pendingTab && !pendingTab.closed) {
+          pendingTab.location.replace(dest);
+        } else {
+          window.open(dest, "_blank", "noopener,noreferrer");
+        }
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (sent) {
-    return (
-      <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
-        {sentKind === "high" ? (
-          <SurveyCompletionSuccess
-            rewardLabel={reward.rewardLabel}
-            reviewUrl={reviewUrl}
-            reviewDraft={draft}
-          />
-        ) : (
-          <div className="joyfit-brand-header px-6 py-10 text-center text-white">
-            <div className="mx-auto max-w-sm space-y-4">
-              <h2 className="text-xl font-bold">回答を保存しました</h2>
-              <p className="text-[15px] leading-relaxed text-white/95">
-                下記お問い合わせバナーから
-                <br />
-                ご意見を送信してください。
-              </p>
-              {lowRatingMailtoUrl ? (
-                <a
-                  href={lowRatingMailtoUrl}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
-                >
-                  <Mail className="h-4 w-4 shrink-0" />
-                  メールアプリで問い合わせる
-                </a>
-              ) : null}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (alreadyAnswered) {
+  if (sent && sentKind === "low") {
     return (
       <div data-brand={brandTheme.brand} className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 py-10 text-center text-white">
-          <p className="text-4xl">✓</p>
-          <h2 className="mt-4 text-xl font-bold">すでに回答済みです</h2>
-          <p className="mx-auto mt-3 max-w-xs text-[15px] text-white/95">
-            ご協力ありがとうございました。
-          </p>
+          <div className="mx-auto max-w-sm space-y-4">
+            <h2 className="text-xl font-bold">回答を保存しました</h2>
+            <p className="text-[15px] leading-relaxed text-white/95">
+              下記お問い合わせバナーから
+              <br />
+              ご意見を送信してください。
+            </p>
+            {lowRatingGmailWebUrl || lowRatingMailtoUrl ? (
+              <div className="space-y-3">
+                {lowRatingGmailWebUrl ? (
+                  <a
+                    href={lowRatingGmailWebUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
+                  >
+                    <Mail className="h-4 w-4 shrink-0" />
+                    Gmailで問い合わせる
+                  </a>
+                ) : null}
+                {lowRatingMailtoUrl ? (
+                  <a
+                    href={lowRatingMailtoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/40 bg-transparent px-4 text-[14px] font-semibold text-white transition hover:bg-white/10"
+                  >
+                    メールアプリで開く
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     );
@@ -534,12 +460,12 @@ export function ReviewFlow({
       className={`${memberFormCardClass} text-foreground`}
       style={brandVars}
     >
-      {submitting ? (
+      {submitting && (isLowSelected || (draft && isHigh)) ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/55 px-6">
           <div className="w-full max-w-sm rounded-2xl bg-white px-6 py-8 text-center shadow-xl">
             <p className="text-lg font-bold text-zinc-900">回答を保存しています</p>
             <p className="mt-2 text-[14px] leading-relaxed text-zinc-500">
-              この画面のまま完了するまでお待ちください。Googleは次の画面から開けます。
+              この画面のまま、完了するまでお待ちください。
             </p>
           </div>
         </div>
@@ -696,42 +622,12 @@ export function ReviewFlow({
                 setMemberCode(event.target.value.replace(/\D/g, "").slice(0, 10))
               }
             />
-            {respondentCheckPending && memberCodeOk && (
-              <p className="mt-1.5 text-[13px] text-muted-foreground">
-                確認しています。少々お待ちください。
-              </p>
-            )}
-            {respondentCheck.status === "eligible" && (
-              <p className="mt-1.5 text-[13px] font-medium text-[color:var(--joyfit-red-dark)]">
-                会員番号を確認しました。以下の項目に進めます。
-              </p>
-            )}
-            {respondentCheckFailed && respondentCheck.errorMessage && (
-              <div className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-950">
-                <p>{respondentCheck.errorMessage}</p>
-                <button
-                  type="button"
-                  className="mt-1 font-medium underline underline-offset-2"
-                  onClick={() => {
-                    respondentCheckCache.delete(memberCode.trim());
-                    setCheckRetryNonce((n) => n + 1);
-                  }}
-                >
-                  もう一度確認する
-                </button>
-              </div>
-            )}
           </MemberFormField>
 
           <div
             className={`space-y-5 transition-opacity ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
             aria-disabled={formFieldsLocked}
           >
-            {!memberVerified && memberCodeOk && !respondentCheckPending && !alreadyAnswered && (
-              <p className="text-[13px] text-muted-foreground">
-                会員番号の確認が完了すると、名前・評価などの入力欄が使えるようになります。
-              </p>
-            )}
 
           <MemberFormField label="名前（フルネーム）" required>
             <Input
@@ -753,7 +649,7 @@ export function ReviewFlow({
                 <button
                   key={item}
                   type="button"
-                  onClick={() => memberVerified && setGender(item)}
+                  onClick={() => setGender(item)}
                   disabled={formFieldsLocked}
                   className={memberFormChoiceClass(gender === item)}
                 >
@@ -796,7 +692,7 @@ export function ReviewFlow({
         <section
           className={`${memberFormSectionDividerClass} text-center ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
         >
-          <p className={`mb-4 ${memberFormSectionTitleClass}`}>口コミ評価（星をタップ）</p>
+          <p className={`mb-4 ${memberFormSectionTitleClass}`}>アンケート評価（星をタップ）</p>
           {!isLowSelected ? (
             <RatingStars
               rating={rating ?? 0}
@@ -811,7 +707,7 @@ export function ReviewFlow({
                 {highRatingThankYouMessage(rating)}
               </p>
               <p className="mt-1.5 text-[13px] text-zinc-500">
-                投稿時は同じ評価（星{rating}）を選択してください。
+                {getHighRatingGoogleMapHint(rating)}
               </p>
             </>
           )}
@@ -841,17 +737,11 @@ export function ReviewFlow({
               )}
               <Button
                 onClick={() => void handleLowRatingSubmit()}
-                disabled={!profileComplete || submitting || sent || alreadyAnswered}
+                disabled={!profileComplete || submitting || sent}
                 className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
               >
                 <Mail className="h-4 w-4" />
-                {submitting
-                  ? "保存中…"
-                  : sent
-                    ? "送信済み"
-                    : alreadyAnswered
-                      ? "回答済み"
-                      : "Gmailでお問い合わせ"}
+                {submitting ? "保存中…" : sent ? "送信済み" : "Gmailでお問い合わせ"}
               </Button>
             </div>
           )}
@@ -862,7 +752,7 @@ export function ReviewFlow({
             className={`${memberFormSectionDividerClass} ${formFieldsLocked ? "pointer-events-none opacity-45" : ""}`}
           >
             <div>
-              <p className={memberFormSectionTitleClass}>口コミの材料を選んでください</p>
+              <p className={memberFormSectionTitleClass}>よかった点を選んでください</p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                 ①②③の順に、それぞれ最大{MAX_PICKS_PER_SECTION}つずつタップしてください。
               </p>
@@ -995,91 +885,116 @@ export function ReviewFlow({
 
             <Button
               onClick={buildDraft}
-              disabled={!profileComplete || !reviewPicksReady || submitting || alreadyAnswered}
+              disabled={!profileComplete || !reviewPicksReady || submitting}
               className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:ring-2 focus-visible:ring-zinc-400/40"
             >
-              口コミ用に文章を作成する
+              アンケート内容を確認する
             </Button>
-            {!reviewPicksReady && memberVerified && profileComplete && (
+            {!reviewPicksReady && profileComplete && (
               <p className="text-[13px] text-muted-foreground">
                 ※ ①②③それぞれ1つ以上選ぶと、文章を作成できます。
               </p>
             )}
-            {!memberVerified && (
-              <p className="text-[13px] text-muted-foreground">※ 先に会員番号の確認を完了してください。</p>
-            )}
-            {memberVerified && !profileComplete && (
+            {!profileComplete && memberCodeOk && (
               <p className="text-[13px] text-muted-foreground">※ 会員情報の必須項目を入力してください。</p>
             )}
           </section>
         )}
 
         {draft && isHigh && (
-          <section className={`${memberFormSectionDividerClass} space-y-8`}>
-            <div className="text-center">
-              <div className="flex flex-col items-center gap-1">
-                <Image
-                  src="/google-logo.png"
-                  alt="Google ロゴ"
-                  width={140}
-                  height={46}
-                  className="h-auto w-[140px]"
-                />
-              </div>
-              <div className="mt-4">
-                <RatingStars rating={rating ?? 0} emptyStarClass="text-zinc-400" />
-              </div>
-              <p className="mt-4 text-sm font-semibold text-zinc-900">
-                {highRatingThankYouMessage(rating ?? 0)}
-              </p>
-              <p className="mt-1.5 text-[13px] text-zinc-500">
-                投稿時は同じ評価（星{rating}）を選択してください。
-              </p>
-              <div className="mt-5 border-t border-zinc-100 pt-5">
-                <p
-                  className="flex w-full items-center justify-center rounded-lg border-2 border-[color:var(--joyfit-red-dark)] bg-[color:var(--joyfit-red)] px-4 py-3.5 text-center text-sm font-bold leading-snug text-white shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_20px_rgba(0,0,0,0.12)] md:text-[15px]"
-                  role="status"
-                >
-                  コピー用文面〔こちらで添削可能です〕
+          <section className={`${memberFormSectionDividerClass} pt-8`}>
+            <div className="overflow-hidden rounded-2xl border-2 border-[color:var(--joyfit-red)]/35 bg-white shadow-[0_8px_24px_-12px_rgba(165,53,75,0.35)]">
+              <div className="joyfit-brand-header px-5 pb-7 pt-8 text-center text-white">
+                <div className="survey-success-icon mx-auto" aria-hidden>
+                  <span className="survey-success-ring" />
+                  <span className="survey-success-ring survey-success-ring--delay" />
+                  <span className="survey-success-circle">
+                    <Check className="survey-success-check h-7 w-7" strokeWidth={2.75} />
+                  </span>
+                </div>
+                <h2 className="survey-success-fade-up mt-5 text-[18px] font-bold tracking-tight">
+                  {sent ? SURVEY_COMPLETION_THANK_YOU : SURVEY_COMPLETION_REVIEW_PREFACE_TITLE}
+                </h2>
+                <p className="survey-success-fade-up survey-success-fade-up--delay-1 mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-white/90">
+                  {sent ? "回答を保存しました。" : SURVEY_REWARD_GRANT_NOTE}
                 </p>
               </div>
-              <Textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                rows={7}
-                className={`mt-3 ${memberFormTextareaClass} leading-[1.75]`}
-              />
-            </div>
 
-            <div className="mt-8 space-y-5">
-              <GooglePostConsentPanel
-                rating={rating ?? 0}
-                draft={draft}
-                consents={googlePostConsents}
-                onToggle={(key) =>
-                  setGooglePostConsents((prev) => ({ ...prev, [key]: !prev[key] }))
-                }
-              />
+              <div className="space-y-5 px-5 py-6">
+                <div className="text-center">
+                  <div className="mt-1">
+                    <RatingStars rating={rating ?? 0} emptyStarClass="text-zinc-400" />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-zinc-900">
+                    {highRatingThankYouMessage(rating ?? 0)}
+                  </p>
+                  {!sent ? (
+                    <p className="mt-1.5 text-[13px] text-zinc-500">
+                      {getHighRatingGoogleMapHint(rating ?? 0)}
+                    </p>
+                  ) : null}
+                </div>
 
-              {submitError && (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[14px] font-semibold leading-relaxed text-destructive">
-                  保存できませんでした。{submitError}
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={() => void copyDraftAndOpen()}
-                disabled={sent || alreadyAnswered || !googlePostAgreed || submitting}
-                className="relative z-10 h-12 w-full cursor-pointer rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--joyfit-red)]/30 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
-              >
-                {sent
-                  ? "移動済み"
-                  : alreadyAnswered
-                    ? "回答済み"
-                    : submitting
-                      ? "保存中…"
-                      : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
-              </button>
+                <div>
+                  <p className="mb-2 text-[12px] font-bold tracking-wide text-[color:var(--joyfit-red-dark)]">
+                    ご回答内容の確認（修正できます）
+                  </p>
+                  <Textarea
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    readOnly={sent}
+                    rows={7}
+                    className={`${memberFormTextareaClass} leading-[1.75]`}
+                  />
+                </div>
+
+                {!sent ? (
+                  <GooglePostConsentPanel
+                    rating={rating ?? 0}
+                    draft={draft}
+                    consents={googlePostConsents}
+                    onToggle={toggleGooglePostConsent}
+                  />
+                ) : null}
+
+                {submitError && (
+                  <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[14px] font-semibold leading-relaxed text-destructive">
+                    保存できませんでした。{submitError}
+                  </p>
+                )}
+
+                {sent ? (
+                  <div className="space-y-4">
+                    <p className="text-center text-[13px] leading-relaxed text-zinc-500">
+                      {SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES[0]}
+                      <br />
+                      {SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES[1]}
+                    </p>
+                    {reviewUrl.trim() ? (
+                      <a
+                        href={reviewUrl.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(draft.trim()).catch(() => {});
+                        }}
+                        className="survey-google-open-btn inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+                      >
+                        {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
+                      </a>
+                    ) : null}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void saveHighRatingSurvey()}
+                    disabled={submitting || !googlePostReady}
+                    className="survey-google-open-btn relative z-10 h-12 w-full cursor-pointer rounded-xl border-0 bg-[color:var(--joyfit-red)] text-[15px] font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
+                  >
+                    {submitting ? "保存中…" : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
+                  </button>
+                )}
+              </div>
             </div>
           </section>
         )}

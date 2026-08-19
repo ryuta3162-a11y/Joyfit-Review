@@ -10,6 +10,7 @@ export type { CheckSurveyRespondentResult };
 
 export async function checkSurveyRespondent(input: {
   memberCode: string;
+  storeId: string;
   region?: ReviewRegion | string;
 }): Promise<CheckSurveyRespondentResult> {
   const gasUrl = getStoresGasUrl(parseReviewRegion(input.region));
@@ -17,5 +18,5 @@ export async function checkSurveyRespondent(input: {
     return { ok: false, error: "ただいま確認をお受けできません。" };
   }
 
-  return fetchCheckRespondent(gasUrl, input.memberCode);
+  return fetchCheckRespondent(gasUrl, input.memberCode, input.storeId);
 }

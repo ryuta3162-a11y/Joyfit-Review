@@ -3,9 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { ReviewFlow } from "@/components/member/review-flow";
 import { detectBrandFromStore, parseBrandParam } from "@/lib/brand";
-import { getStoresGasUrl } from "@/lib/region";
 import { getStoreRewardDisplay } from "@/lib/store-reward";
+import { resolveGoogleWriteReviewUrl } from "@/lib/google-review-url";
 import { fetchStoresRemote, getStoreByIdRemote } from "@/lib/stores-remote";
+import { isWestSampleStoreId } from "@/lib/west-sample-store";
 
 type Props = {
   params: Promise<{ brand: string; storeId: string }>;
@@ -20,6 +21,10 @@ export default async function WestBrandMemberStorePage({ params }: Props) {
   if (!brand || brand === "yoga") notFound();
 
   const normalizedId = String(storeId || "").trim();
+  if (isWestSampleStoreId(normalizedId)) {
+    redirect("/west/sample");
+  }
+
   let store = await getStoreByIdRemote(normalizedId, REGION);
 
   if (!store) {
@@ -48,10 +53,9 @@ export default async function WestBrandMemberStorePage({ params }: Props) {
       <ReviewFlow
         storeId={store.id}
         storeName={store.name}
-        reviewUrl={store.googleReviewUrl}
+        reviewUrl={await resolveGoogleWriteReviewUrl(store.googleReviewUrl)}
         feedbackEmail={store.feedbackEmail}
         reward={reward}
-        respondentCheckGasUrl={getStoresGasUrl(REGION)}
         region={REGION}
       />
     </MemberPageShell>

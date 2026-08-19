@@ -100,11 +100,11 @@ export default async function WestBrandHomePage({ params }: Props) {
             </li>
             <li className="flex gap-2">
               <span className={stepBadgeClass}>2</span>
-              <span>お客様情報・評価をタップ→口コミを自動生成</span>
+              <span>お客様情報・評価を入力してアンケートに回答</span>
             </li>
             <li className="flex gap-2">
               <span className={stepBadgeClass}>3</span>
-              <span>Google口コミ投稿でアンケート終了</span>
+              <span>回答を保存してアンケート終了</span>
             </li>
           </ul>
 

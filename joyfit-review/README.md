@@ -55,6 +55,7 @@ npm run build
 ### WEST（関西・西日本）
 - `/west` … WEST ブランド選択
 - `/west/joyfit` `/west/fit365` … 各ブランド入口（WESTにYOGAは無し）
+- `/west/sample` … 発表・社内確認用のテスト店舗（JOYFIT24関西）。店頭一覧には出ない
 - 店舗データは **別スプレッドシート／別 GAS**（`STORES_JSON_URL_WEST`）
 
 店内 POP・QR には EAST なら `/joyfit`、WEST なら `/west/joyfit` などを直接記載。

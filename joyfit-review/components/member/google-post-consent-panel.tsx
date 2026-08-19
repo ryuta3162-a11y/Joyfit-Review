@@ -134,7 +134,9 @@ export function GooglePostConsentPanel({ rating, draft, consents, onToggle }: Pr
               {step.key === "rating" && (
                 <>
                   <ConsentStars rating={rating} />
-                  <p className="text-center text-[14px] text-zinc-500">投稿時も星{rating}を選択</p>
+                  <p className="text-center text-[14px] text-zinc-500">
+                    Googleマップでも星{rating}を選択
+                  </p>
                 </>
               )}
 

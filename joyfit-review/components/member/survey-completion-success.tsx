@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 
 import { memberFormBodyClass } from "@/components/member/member-form-styles";
 import {
   formatSurveyCompletionRewardLabel,
   REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
-  SURVEY_COMPLETION_POINT_PENDING_NOTE,
-  SURVEY_COMPLETION_REVIEW_PREFACE_BODY,
-  SURVEY_COMPLETION_REVIEW_PREFACE_HINT,
+  SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES,
+  SURVEY_COMPLETION_REVIEW_PREFACE_BODY_LINES,
   SURVEY_COMPLETION_REVIEW_PREFACE_TITLE,
   SURVEY_COMPLETION_REWARD_NOTE,
   SURVEY_COMPLETION_THANK_YOU,
@@ -38,24 +36,6 @@ export function SurveyCompletionSuccess({
 }: Props) {
   const completionRewardLabel = formatSurveyCompletionRewardLabel(rewardLabel);
   const url = reviewUrl.trim();
-  const openedRef = useRef(false);
-
-  function openGoogleReview() {
-    void copyReviewDraft(reviewDraft);
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  }
-
-  useEffect(() => {
-    if (!url || openedRef.current) return;
-    openedRef.current = true;
-    void copyReviewDraft(reviewDraft);
-    const timer = window.setTimeout(() => {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, [url, reviewDraft]);
 
   return (
     <>
@@ -84,7 +64,9 @@ export function SurveyCompletionSuccess({
         </div>
 
         <p className="survey-success-fade-up survey-success-fade-up--delay-3 mx-auto mt-5 max-w-sm text-[13px] leading-relaxed text-zinc-500">
-          {SURVEY_COMPLETION_POINT_PENDING_NOTE}
+          {SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES[0]}
+          <br />
+          {SURVEY_COMPLETION_POINT_PENDING_NOTE_LINES[1]}
         </p>
 
         {url ? (
@@ -94,10 +76,9 @@ export function SurveyCompletionSuccess({
                 {SURVEY_COMPLETION_REVIEW_PREFACE_TITLE}
               </p>
               <p className="mt-2 text-[14px] leading-relaxed text-zinc-700">
-                {SURVEY_COMPLETION_REVIEW_PREFACE_BODY}
-              </p>
-              <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-                {SURVEY_COMPLETION_REVIEW_PREFACE_HINT}
+                {SURVEY_COMPLETION_REVIEW_PREFACE_BODY_LINES[0]}
+                <br />
+                {SURVEY_COMPLETION_REVIEW_PREFACE_BODY_LINES[1]}
               </p>
             </div>
             <div className="border-t border-[color:var(--joyfit-red)]/15 bg-[color:var(--joyfit-red)]/4 px-4 py-4">

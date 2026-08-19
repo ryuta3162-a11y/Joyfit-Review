@@ -3,12 +3,17 @@ export type CheckSurveyRespondentResult =
   | { ok: true; eligible: false; matchedBy: "memberCode" }
   | { ok: false; error: string; gasOutdated?: boolean };
 
-export function buildCheckRespondentUrl(gasUrl: string, memberCode: string): string {
+export function buildCheckRespondentUrl(
+  gasUrl: string,
+  memberCode: string,
+  storeId: string,
+): string {
   const base = gasUrl.replace(/\/$/, "");
   const params = new URLSearchParams({
     format: "json",
     action: "checkRespondent",
     memberCode,
+    storeId,
   });
   return `${base}?${params.toString()}`;
 }
@@ -49,15 +54,20 @@ export function parseCheckRespondentResponse(json: unknown): CheckSurveyResponde
 export async function fetchCheckRespondent(
   gasUrl: string,
   memberCode: string,
+  storeId: string,
   signal?: AbortSignal,
 ): Promise<CheckSurveyRespondentResult> {
   const code = memberCode.trim().replace(/\D/g, "").slice(0, 10);
+  const sid = storeId.trim();
+  if (!sid) {
+    return { ok: false, error: "店舗情報がありません。" };
+  }
   if (!/^\d{10}$/.test(code) || /^0{10}$/.test(code)) {
     return { ok: true, eligible: true };
   }
 
   try {
-    const getRes = await fetch(buildCheckRespondentUrl(gasUrl, code), {
+    const getRes = await fetch(buildCheckRespondentUrl(gasUrl, code, sid), {
       method: "GET",
       redirect: "follow",
       cache: "no-store",
@@ -88,6 +98,7 @@ export async function fetchCheckRespondent(
       body: JSON.stringify({
         action: "checkRespondent",
         memberCode: code,
+        storeId: sid,
       }),
       cache: "no-store",
       signal,

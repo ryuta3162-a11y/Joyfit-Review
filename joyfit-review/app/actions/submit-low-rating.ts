@@ -39,7 +39,7 @@ export async function submitLowRatingFeedback(input: {
   }
 
   const body = [
-    "【JOYFIT 口コミアプリ】低評価フィードバック",
+    "【JOYFIT アンケート】低評価フィードバック",
     "",
     "店舗名: " + input.storeName,
     "店舗ID: " + input.storeId,

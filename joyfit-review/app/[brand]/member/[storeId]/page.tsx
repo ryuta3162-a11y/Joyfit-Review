@@ -3,8 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { ReviewFlow } from "@/components/member/review-flow";
 import { detectBrandFromStore, parseBrandParam } from "@/lib/brand";
-import { getStoresGasUrl } from "@/lib/region";
 import { getStoreRewardDisplay } from "@/lib/store-reward";
+import { resolveGoogleWriteReviewUrl } from "@/lib/google-review-url";
 import { fetchStoresRemote, getStoreByIdRemote } from "@/lib/stores-remote";
 
 type Props = {
@@ -45,10 +45,9 @@ export default async function BrandMemberStorePage({ params }: Props) {
       <ReviewFlow
         storeId={store.id}
         storeName={store.name}
-        reviewUrl={store.googleReviewUrl}
+        reviewUrl={await resolveGoogleWriteReviewUrl(store.googleReviewUrl)}
         feedbackEmail={store.feedbackEmail}
         reward={reward}
-        respondentCheckGasUrl={getStoresGasUrl("east")}
         region="east"
       />
     </MemberPageShell>
