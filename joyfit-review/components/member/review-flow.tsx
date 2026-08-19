@@ -98,7 +98,8 @@ function buildLowRatingMailBody(storeName: string): string {
 
 /** スマホのメールアプリ（Gmail含む）で下書きを開く mailto リンク */
 function buildLowRatingMailtoUrl(to: string, subject: string, body: string): string {
-  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const params = new URLSearchParams({ subject, body });
+  return `mailto:${to}?${params.toString()}`;
 }
 
 /** PCブラウザ向け。保存後も元の画面を残したまま Gmail 下書きを別タブで開く */
@@ -112,6 +113,11 @@ function buildLowRatingGmailWebUrl(to: string, subject: string, body: string): s
     body,
   });
   return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
+function isTouchPhone(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 }
 
 type RatingStarsProps = {
@@ -214,6 +220,7 @@ export function ReviewFlow({
   /** 送信ボタン1回分のID。エラー時の再送は同じIDで冪等に処理する */
   const submissionIdRef = useRef<string | null>(null);
   const highSubmitLockRef = useRef(false);
+  const lowRatingMailAutoOpenRef = useRef(false);
 
   const memberCodeOk = useMemo(() => /^\d{10}$/.test(memberCode.trim()), [memberCode]);
   const formFieldsLocked = !memberCodeOk;
@@ -241,6 +248,13 @@ export function ReviewFlow({
     if (!sent || sentKind !== "low") return;
     window.scrollTo(0, 0);
   }, [sent, sentKind]);
+
+  useEffect(() => {
+    if (!sent || sentKind !== "low" || !lowRatingMailtoUrl) return;
+    if (!lowRatingMailAutoOpenRef.current) return;
+    lowRatingMailAutoOpenRef.current = false;
+    window.location.href = lowRatingMailtoUrl;
+  }, [sent, sentKind, lowRatingMailtoUrl]);
 
   useEffect(() => {
     setGooglePostConsents(EMPTY_GOOGLE_POST_CONSENT);
@@ -328,11 +342,6 @@ export function ReviewFlow({
     highSubmitLockRef.current = true;
     setSubmitError(null);
     setSubmitting(true);
-    const url = reviewUrl.trim();
-    if (url) {
-      void navigator.clipboard.writeText(draft.trim()).catch(() => {});
-      window.open(url, "_blank");
-    }
     try {
       const result = await submitSurvey(draft);
       if (!result.ok) {
@@ -342,6 +351,11 @@ export function ReviewFlow({
       }
       setSentKind("high");
       setSent(true);
+      const url = reviewUrl.trim();
+      if (url) {
+        void navigator.clipboard.writeText(draft.trim()).catch(() => {});
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch {
       highSubmitLockRef.current = false;
       setSubmitError(CUSTOMER_SAVE_FAILED);
@@ -377,9 +391,10 @@ export function ReviewFlow({
     const mailDraft = getLowRatingContactDraft();
     if (!mailDraft) return;
 
-    const gmailWin = window.open(mailDraft.gmailWebUrl, "_blank");
-    if (!gmailWin) {
-      window.open(mailDraft.mailtoUrl, "_blank");
+    const onPhone = isTouchPhone();
+    let pendingTab: Window | null = null;
+    if (!onPhone) {
+      pendingTab = window.open("about:blank", "_blank");
     }
 
     setSubmitting(true);
@@ -387,13 +402,26 @@ export function ReviewFlow({
     try {
       const result = await submitSurvey("");
       if (!result.ok) {
+        pendingTab?.close();
         setSubmitError(result.error);
         return;
       }
       setLowRatingMailtoUrl(mailDraft.mailtoUrl);
       setLowRatingGmailWebUrl(mailDraft.gmailWebUrl);
       setSentKind("low");
+      if (onPhone) {
+        lowRatingMailAutoOpenRef.current = true;
+      }
       setSent(true);
+
+      if (!onPhone) {
+        const dest = mailDraft.gmailWebUrl;
+        if (pendingTab && !pendingTab.closed) {
+          pendingTab.location.replace(dest);
+        } else {
+          window.open(dest, "_blank", "noopener,noreferrer");
+        }
+      }
     } finally {
       setSubmitting(false);
     }
@@ -410,9 +438,18 @@ export function ReviewFlow({
               <br />
               ご意見を送信してください。
             </p>
-            {lowRatingGmailWebUrl || lowRatingMailtoUrl ? (
+            {lowRatingMailtoUrl || lowRatingGmailWebUrl ? (
               <div className="space-y-3">
-                {lowRatingGmailWebUrl ? (
+                {isTouchPhone() && lowRatingMailtoUrl ? (
+                  <a
+                    href={lowRatingMailtoUrl}
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/50 bg-white px-4 text-[15px] font-semibold text-[color:var(--joyfit-red-dark)] shadow-sm transition hover:bg-white/95"
+                  >
+                    <Mail className="h-4 w-4 shrink-0" />
+                    Gmailで問い合わせる
+                  </a>
+                ) : null}
+                {!isTouchPhone() && lowRatingGmailWebUrl ? (
                   <a
                     href={lowRatingGmailWebUrl}
                     target="_blank"
@@ -423,11 +460,9 @@ export function ReviewFlow({
                     Gmailで問い合わせる
                   </a>
                 ) : null}
-                {lowRatingMailtoUrl ? (
+                {!isTouchPhone() && lowRatingMailtoUrl ? (
                   <a
                     href={lowRatingMailtoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/40 bg-transparent px-4 text-[14px] font-semibold text-white transition hover:bg-white/10"
                   >
                     メールアプリで開く
