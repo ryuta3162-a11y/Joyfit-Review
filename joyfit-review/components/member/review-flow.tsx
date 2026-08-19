@@ -714,9 +714,11 @@ export function ReviewFlow({
                     <br />
                     店舗担当へご意見をお聞かせください。
                   </p>
-                  {lowRatingMailtoUrl ? (
+                  {(lowRatingGmailWebUrl || lowRatingMailtoUrl) ? (
                     <a
-                      href={lowRatingMailtoUrl}
+                      href={isTouchPhone() ? (lowRatingMailtoUrl ?? lowRatingGmailWebUrl!) : (lowRatingGmailWebUrl ?? lowRatingMailtoUrl!)}
+                      target={isTouchPhone() ? undefined : "_blank"}
+                      rel={isTouchPhone() ? undefined : "noopener noreferrer"}
                       className="survey-google-open-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
                     >
                       <Mail className="h-4 w-4 shrink-0" />
