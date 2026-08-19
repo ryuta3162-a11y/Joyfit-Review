@@ -256,7 +256,7 @@ function saveSurveyResponse(data) {
   var respondentFullName = String(data.fullName || "").trim();
 
   try {
-    if (submissionId && isSubmissionIdRecorded(submissionId) && isMemberCodeOnSheet_(sheet, memberCode)) {
+    if (submissionId && isSubmissionIdRecorded(submissionId)) {
       return {
         ok: true,
         duplicate: true,
@@ -264,6 +264,10 @@ function saveSurveyResponse(data) {
         shouldNotify: false,
         sheetName: sheet.getName(),
       };
+    }
+
+    if (submissionId) {
+      recordSurveySubmissionId(submissionId, storeId, memberCode);
     }
 
     appendSurveyRecord_(sheet, {
@@ -284,11 +288,6 @@ function saveSurveyResponse(data) {
       generatedReview: String(data.generatedReview || "").trim(),
       submissionId: submissionId,
     });
-    SpreadsheetApp.flush();
-
-    if (submissionId) {
-      recordSurveySubmissionId(submissionId, storeId, memberCode);
-    }
 
     return {
       ok: true,
@@ -403,18 +402,40 @@ function getSurveyDedupSheet() {
   return sheet;
 }
 
+function submissionIdCacheKey_(submissionId) {
+  return "sid_" + String(submissionId || "").slice(0, 80);
+}
+
+function submissionIdCachePut_(submissionId) {
+  if (!submissionId) {
+    return;
+  }
+  try {
+    CacheService.getScriptCache().put(submissionIdCacheKey_(submissionId), "1", 21600);
+  } catch (e) {}
+}
+
 function isSubmissionIdRecorded(submissionId) {
   if (!submissionId) {
     return false;
   }
+  try {
+    if (CacheService.getScriptCache().get(submissionIdCacheKey_(submissionId)) === "1") {
+      return true;
+    }
+  } catch (e) {}
   var sheet = getSurveyDedupSheet();
   var lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
     return false;
   }
-  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var windowSize = 200;
+  var startRow = Math.max(2, lastRow - windowSize + 1);
+  var numRows = lastRow - startRow + 1;
+  var values = sheet.getRange(startRow, 1, numRows, 1).getValues();
   for (var i = 0; i < values.length; i++) {
     if (String(values[i][0] || "") === submissionId) {
+      submissionIdCachePut_(submissionId);
       return true;
     }
   }
@@ -425,6 +446,7 @@ function recordSurveySubmissionId(submissionId, storeId, memberCode) {
   if (!submissionId) {
     return;
   }
+  submissionIdCachePut_(submissionId);
   getSurveyDedupSheet().appendRow([submissionId, new Date(), storeId, memberCode]);
 }
 
@@ -600,14 +622,38 @@ function testCheckRespondentByMemberCode(memberCode, storeId) {
   return result;
 }
 
+function surveySheetCacheKey_(storeId) {
+  return "sh_" + safeSheetName(storeId).slice(0, 80);
+}
+
+function cacheSurveySheetName_(storeId, sheetName) {
+  if (!storeId || !sheetName) {
+    return;
+  }
+  try {
+    CacheService.getScriptCache().put(surveySheetCacheKey_(storeId), sheetName, 21600);
+  } catch (e) {}
+}
+
 function findSurveySheetByStoreId(storeId) {
   var wantedId = safeSheetName(storeId);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  try {
+    var cachedName = CacheService.getScriptCache().get(surveySheetCacheKey_(storeId));
+    if (cachedName) {
+      var cachedSheet = ss.getSheetByName(cachedName);
+      if (cachedSheet) {
+        return cachedSheet;
+      }
+    }
+  } catch (e) {}
+
   var suffix = "_" + wantedId;
   var sheets = ss.getSheets();
   for (var i = 0; i < sheets.length; i++) {
     var name = String(sheets[i].getName() || "");
     if (name.indexOf("回答_") === 0 && name.slice(-suffix.length).toLowerCase() === suffix.toLowerCase()) {
+      cacheSurveySheetName_(storeId, name);
       return sheets[i];
     }
   }
@@ -619,7 +665,10 @@ function getOrCreateSurveySheet(storeId, storeName) {
   var wantedId = safeSheetName(storeId);
   var exact = ("回答_" + safeSheetName(storeName) + "_" + wantedId).slice(0, 90);
   var sheet = ss.getSheetByName(exact);
-  if (sheet) return sheet;
+  if (sheet) {
+    cacheSurveySheetName_(storeId, exact);
+    return sheet;
+  }
 
   sheet = findSurveySheetByStoreId(storeId);
   if (sheet) return sheet;
@@ -643,6 +692,7 @@ function getOrCreateSurveySheet(storeId, storeName) {
     "generatedReview",
     "submissionId",
   ]);
+  cacheSurveySheetName_(storeId, exact);
   return sheet;
 }
 
@@ -666,63 +716,24 @@ var SURVEY_HEADER_ALIASES_ = {
 };
 
 function appendSurveyRecord_(sheet, record) {
-  var lastCol = Math.max(sheet.getLastColumn(), 16);
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var colByName = {};
-  for (var i = 0; i < headers.length; i++) {
-    var key = String(headers[i] || "").trim();
-    if (key) {
-      colByName[key] = i;
-    }
-  }
-
-  var mappedCols = [];
-  var names = Object.keys(SURVEY_HEADER_ALIASES_);
-  for (var n = 0; n < names.length; n++) {
-    var field = names[n];
-    var aliases = SURVEY_HEADER_ALIASES_[field];
-    var idx = -1;
-    for (var a = 0; a < aliases.length; a++) {
-      if (colByName[aliases[a]] != null) {
-        idx = colByName[aliases[a]];
-      }
-    }
-    if (idx >= 0) {
-      mappedCols.push({ col: idx + 1, value: record[field] });
-    }
-  }
-
-  var newRow = sheet.getLastRow() + 1;
-  if (!mappedCols.length) {
-    sheet.getRange(newRow, 1, 1, 16).setValues([[
-      record.timestamp,
-      record.storeId,
-      record.storeName,
-      record.rating,
-      record.fullName,
-      record.memberCode,
-      record.gender,
-      record.ageRange,
-      record.email,
-      record.visitDate,
-      record.notifyTo,
-      record.positives,
-      record.useScenes,
-      record.freeComment,
-      record.generatedReview,
-      record.submissionId,
-    ]]);
-    return;
-  }
-
-  var rowValues = [];
-  for (var c = 0; c < lastCol; c++) {
-    rowValues.push("");
-  }
-  for (var m = 0; m < mappedCols.length; m++) {
-    rowValues[mappedCols[m].col - 1] = mappedCols[m].value;
-  }
-  sheet.getRange(newRow, 1, 1, lastCol).setValues([rowValues]);
+  sheet.appendRow([
+    record.timestamp,
+    record.storeId,
+    record.storeName,
+    record.rating,
+    record.fullName,
+    record.memberCode,
+    record.gender,
+    record.ageRange,
+    record.email,
+    record.visitDate,
+    record.notifyTo,
+    record.positives,
+    record.useScenes,
+    record.freeComment,
+    record.generatedReview,
+    record.submissionId,
+  ]);
 }
 
 function isMemberCodeOnSheet_(sheet, memberCode) {

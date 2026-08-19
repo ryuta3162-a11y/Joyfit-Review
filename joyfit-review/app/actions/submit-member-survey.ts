@@ -2,6 +2,8 @@
 
 import { getStoresGasUrl, parseReviewRegion, type ReviewRegion } from "@/lib/region";
 
+const GAS_SURVEY_TIMEOUT_MS = 55_000;
+
 export type SubmitMemberSurveyInput = {
   storeId: string;
   storeName: string;
@@ -82,7 +84,7 @@ export async function submitMemberSurvey(
       method: "POST",
       redirect: "follow",
       headers: { "Content-Type": "application/json; charset=utf-8" },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(GAS_SURVEY_TIMEOUT_MS),
       body: JSON.stringify({
         action: "survey",
         to,
@@ -130,7 +132,8 @@ export async function submitMemberSurvey(
     if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
       return {
         ok: false,
-        error: "保存に時間がかかっています。画面を再読み込みせず、「回答を保存する」をもう一度押してください。",
+        error:
+          "保存に時間がかかっています。保存済みの場合があります。画面を再読み込みせず「回答を保存する」をもう一度押してください。",
       };
     }
     return { ok: false, error: "送信に失敗しました。通信状況をご確認のうえ、再度お試しください。" };
