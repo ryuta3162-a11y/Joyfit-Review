@@ -39,7 +39,7 @@ const stars = [1, 2, 3, 4, 5] as const;
 
 const LABEL = {
   other: "その他",
-  igTrigger: "インスグラムで告知を見たため",
+  igTrigger: "インスタグラムで告知を見たため",
   pilatesAgain: "もう一度！マシンピラティス体験",
   yogaTrial: "ヨガ体験",
 } as const;
