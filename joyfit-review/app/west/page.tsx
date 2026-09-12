@@ -6,7 +6,6 @@ import { BrandSelectorLogo } from "@/components/joyfit/header-logo";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
 import { BRAND_THEMES } from "@/lib/brand";
-import { STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 
 const cards: Array<{
   brand: "joyfit" | "fit365";
@@ -14,11 +13,11 @@ const cards: Array<{
 }> = [
   {
     brand: "joyfit",
-    description: "JOYFIT24・JOYFIT24ジムLITE（関西・西日本）",
+    description: "JOYFIT24・JOYFIT24ジムLITE 各店舗のアンケート",
   },
   {
     brand: "fit365",
-    description: "FIT365（関西・西日本）",
+    description: "FIT365 各店舗のアンケート",
   },
 ];
 
@@ -27,18 +26,14 @@ export default function WestBrandSelectorPage() {
     <MemberPageShell>
       <div className={memberFormCardClass}>
         <div className="bg-zinc-50/60 px-6 pb-6 pt-7 text-center">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">WEST / 関西・西日本</p>
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-zinc-500">
+            JOYFIT / FIT365
+          </p>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
             アンケートページ
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-zinc-600">
-            ご利用ブランドを選択してください。
-          </p>
-          <p className="mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-zinc-500">
-            {STORE_REWARD_VARIES_NOTE}
-          </p>
-          <p className="mx-auto mt-2 max-w-sm text-[11px] leading-relaxed text-zinc-400">
-            ※ EAST（関東など）とは別のデータです
+            ご利用ブランドを選択してください。特典内容は店舗によって異なる場合がございます
           </p>
         </div>
 
@@ -100,12 +95,6 @@ export default function WestBrandSelectorPage() {
               </Link>
             );
           })}
-        </div>
-
-        <div className="border-t border-zinc-100 px-6 py-4 text-center">
-          <Link href="/" className="text-[12px] font-medium text-zinc-500 underline-offset-2 hover:underline">
-            EAST（関東など）はこちら
-          </Link>
         </div>
       </div>
     </MemberPageShell>

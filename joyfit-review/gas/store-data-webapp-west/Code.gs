@@ -5,15 +5,14 @@
  * スプレッドシート: WEST口コミ　APP
  * 初期セットアップ: エディタで setupWestWorkbook() を1回実行
  *   または GET ?format=json&action=setupWorkbook
+ *   住所・緯度復元: GET ?format=json&action=restoreWestStoreGeo
  *
  * デプロイ: ウェブアプリ
  * - 実行: 自分
  * - アクセス: 全員（または組織内）
- * URL を Next.js の STORES_JSON_URL（WEST用）に設定（GET/POST 共通）
+ * URL を Next.js の STORES_JSON_URL_WEST に設定（GET/POST 共通）
  *
- * ポイント付与管理画面: 同じウェブアプリ URL に ?page=points を付けて開く
- *   例: https://script.google.com/.../exec?page=points
- *   V列 = ポイント付与済チェック（回答シート A〜P 列はそのまま）
+ * ポイント付与管理: 別GAS（社内専用 points-admin-west）。このプロジェクトには置かない。
  *
  * シート名: 店舗データ
  *
@@ -94,38 +93,17 @@ function doGet(e) {
   if (format === "json" && action === "seedSampleStores") {
     return outputJson(seedWestSampleStores());
   }
+  if (format === "json" && action === "restoreWestStoreGeo") {
+    return outputJson(restoreWestStoreGeoFromCatalog());
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
   }
 
-  var page = e && e.parameter ? String(e.parameter.page || "").trim().toLowerCase() : "";
-
-  // 会員向け GAS 版（index.html がある場合のみ）。本番は Vercel を使用。
-  if (page === "survey" || page === "member") {
-    return renderMemberSurveyPage();
-  }
-
-  // ポイント付与管理（?page=points または URL 直下）
-  return renderPointsAdminPage();
-}
-
-function renderPointsAdminPage() {
-  var pointsTemplate = HtmlService.createTemplateFromFile("points");
-  pointsTemplate.stores = readStoreRows();
-  return pointsTemplate
-    .evaluate()
-    .setTitle("ポイント付与管理 | WEST")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-function renderMemberSurveyPage() {
-  var template = HtmlService.createTemplateFromFile("index");
-  template.stores = readStoreRows();
-  return template
-    .evaluate()
-    .setTitle("JOYFIT 口コミサポート")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  // ブラウザで直開きする画面は置かない（店舗JSON・保存は format=json / doPost）
+  // ポイント付与は points-admin-west（社内専用）へ分離済み
+  return HtmlService.createHtmlOutput("").setTitle("JOYFIT WEST");
 }
 
 function doPost(e) {
@@ -1261,14 +1239,14 @@ function removeWestGuideSheet_() {
 
 function westDemoStoreRow_() {
   return [
-    "JOYFIT24関西",
+    "JOYFIT24サンプル",
     "https://g.page/r/Cdo92khF2w03EAE/review",
     "r-kusaka@okamoto-group.co.jp",
     "kansai",
     "テスト用店舗（店頭QR・本番一覧には出しません）",
     "",
     "",
-    "関西 かんさい kansai テスト sample JOYFIT24",
+    "サンプル sample テスト kansai JOYFIT24",
     "",
   ];
 }
@@ -1340,14 +1318,14 @@ function westSampleStoreRows_() {
   // 公式サイト所在地ベース。座標は駅・施設付近（プレビュー用）
   return [
     [
-      "JOYFIT24関西",
+      "JOYFIT24サンプル",
       "https://g.page/r/Cdo92khF2w03EAE/review",
       "r-kusaka@okamoto-group.co.jp",
       "kansai",
       "テスト用店舗（店頭QR・本番一覧には出しません）",
       "",
       "",
-      "関西 かんさい kansai テスト sample JOYFIT24",
+      "サンプル sample テスト kansai JOYFIT24",
       "",
     ],
     [
@@ -1624,4 +1602,393 @@ function styleHelperSheet_(sheet, headers) {
   for (var i = 0; i < headers.length; i++) {
     sheet.setColumnWidth(i + 1, 160);
   }
+}
+
+/**
+ * WEST「店舗データ」を EAST と同じ列規則に直す。
+ * A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用 | I 特典文言
+ * 既存の店舗名は残し、列ずれ（D=住所になっている状態）を補正する。
+ *
+ * Apps Script エディタでこの関数を1回実行。
+ */
+function fixWestStoreMasterToEastLayout() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+
+  var values = sheet.getDataRange().getValues();
+  if (!values.length) {
+    return { ok: false, error: "empty sheet" };
+  }
+
+  var startIndex = 0;
+  if (isHeaderRow(String(values[0][0] || "").trim())) {
+    startIndex = 1;
+  }
+
+  var headerRow = startIndex === 1 ? values[0] : [];
+  var headerD = String(headerRow[3] || "").trim();
+  var headerLooksMisaligned =
+    headerD.indexOf("住所") !== -1 ||
+    headerD.indexOf("address") !== -1 ||
+    (headerD && headerD.indexOf("店舗ID") === -1 && headerD.indexOf("ID") === -1);
+
+  var fixed = [];
+  var usedIds = {};
+
+  for (var i = startIndex; i < values.length; i++) {
+    var row = values[i];
+    var name = String(row[0] || "").trim();
+    if (!name) continue;
+
+    var url = String(row[1] || "").trim();
+    var c = String(row[2] || "").trim();
+    var d = String(row[3] || "").trim();
+    var e = String(row[4] || "").trim();
+    var f = String(row[5] || "").trim();
+    var g = String(row[6] || "").trim();
+    var h = String(row[7] || "").trim();
+    var iCol = String(row[8] || "").trim();
+
+    var email = "";
+    var storeId = "";
+    var address = "";
+    var lat = "";
+    var lng = "";
+    var search = "";
+    var reward = "";
+
+    var dLooksAddress = looksLikeAddressText_(d);
+    var eLooksLat = parseCoordinate(e) != null;
+    var rowMisaligned =
+      headerLooksMisaligned ||
+      (dLooksAddress && eLooksLat) ||
+      (dLooksAddress && !e && parseCoordinate(f) != null);
+
+    if (rowMisaligned) {
+      // 誤レイアウト: A名 B URL Cメール D住所 E緯度 F経度 G特典（店舗ID・検索用なし）
+      email = c.indexOf("@") >= 0 ? c : "";
+      address = d;
+      lat = e;
+      lng = f;
+      reward = g;
+      storeId = suggestStoreIdFromName_(name, i + 1, usedIds);
+      search = defaultSearchText(name, storeId, address);
+    } else if (c.indexOf("@") >= 0 || !c) {
+      // 正レイアウト（または C 空）
+      email = c.indexOf("@") >= 0 ? c : "";
+      if (dLooksAddress && eLooksLat) {
+        address = d;
+        lat = e;
+        lng = f;
+        reward = g || h || iCol;
+        storeId = suggestStoreIdFromName_(name, i + 1, usedIds);
+        search = defaultSearchText(name, storeId, address);
+      } else {
+        storeId = isStableStoreId_(d) ? d : suggestStoreIdFromName_(name, i + 1, usedIds);
+        address = e;
+        lat = f;
+        lng = g;
+        search = h || defaultSearchText(name, storeId, address);
+        reward = iCol;
+      }
+    } else {
+      // 旧レイアウト: C=店舗ID D=検索用
+      storeId = isStableStoreId_(c) ? c : suggestStoreIdFromName_(name, i + 1, usedIds);
+      search = d || defaultSearchText(name, storeId, "");
+    }
+
+    usedIds[String(storeId).toLowerCase()] = true;
+
+    fixed.push([
+      name,
+      url,
+      email,
+      storeId,
+      address,
+      lat === "" || lat == null ? "" : lat,
+      lng === "" || lng == null ? "" : lng,
+      search,
+      reward,
+    ]);
+  }
+
+  // ヘッダー＋体裁を EAST と同じ9列に書き直し
+  var colCount = STORE_HEADERS.length;
+  var last = Math.max(sheet.getLastRow(), 1);
+  var lastCol = Math.max(sheet.getLastColumn(), colCount);
+  if (sheet.getFilter()) {
+    sheet.getFilter().remove();
+  }
+  sheet.clear();
+  sheet.setFrozenRows(1);
+  sheet.setTabColor(WEST_COLOR.primary);
+  sheet.getRange(1, 1, 1, colCount).setValues([STORE_HEADERS]);
+  sheet
+    .getRange(1, 1, 1, colCount)
+    .setBackground(WEST_COLOR.primaryDark)
+    .setFontColor(WEST_COLOR.white)
+    .setFontFamily("Meiryo")
+    .setFontWeight("bold")
+    .setFontSize(11)
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
+  sheet.setRowHeight(1, 34);
+
+  if (fixed.length) {
+    sheet.getRange(2, 1, fixed.length, colCount).setValues(fixed);
+    sheet
+      .getRange(2, 1, fixed.length, colCount)
+      .setFontFamily("Meiryo")
+      .setFontSize(10)
+      .setFontColor(WEST_COLOR.ink)
+      .setVerticalAlignment("middle")
+      .setWrap(true);
+    for (var r = 2; r <= fixed.length + 1; r++) {
+      if (r % 2 === 0) {
+        sheet.getRange(r, 1, 1, colCount).setBackground(WEST_COLOR.zebra);
+      } else {
+        sheet.getRange(r, 1, 1, colCount).setBackground(WEST_COLOR.white);
+      }
+    }
+  }
+
+  var widths = [220, 280, 220, 140, 260, 100, 100, 220, 260];
+  for (var w = 0; w < widths.length; w++) {
+    sheet.setColumnWidth(w + 1, widths[w]);
+  }
+
+  sheet.getRange(1, 1, Math.max(fixed.length + 1, 1), colCount).createFilter();
+  sheet.getRange(1, 1).setNote(
+    WEST_REGION_LABEL +
+      "\nEASTと同じ列規則です。\nA店舗名 | BレビューURL | C低評価通知メール | D店舗ID | E住所 | F緯度 | G経度 | H検索用 | I特典文言\nB列（レビューURL）が入っている店舗だけサイト一覧に出ます。",
+  );
+
+  // 余分な右列を片付け
+  if (lastCol > colCount) {
+    try {
+      sheet.deleteColumns(colCount + 1, lastCol - colCount);
+    } catch (err) {}
+  }
+  if (last > fixed.length + 1) {
+    try {
+      sheet.deleteRows(fixed.length + 2, last - fixed.length - 1);
+    } catch (err2) {}
+  }
+
+  return {
+    ok: true,
+    count: fixed.length,
+    ids: fixed.map(function (r) {
+      return r[3];
+    }),
+  };
+}
+
+function looksLikeAddressText_(text) {
+  var s = String(text || "").trim();
+  if (!s) return false;
+  if (isStableStoreId_(s)) return false;
+  return (
+    s.indexOf("都") !== -1 ||
+    s.indexOf("道") !== -1 ||
+    s.indexOf("府") !== -1 ||
+    s.indexOf("県") !== -1 ||
+    s.indexOf("市") !== -1 ||
+    s.indexOf("区") !== -1 ||
+    s.indexOf("町") !== -1 ||
+    s.indexOf("村") !== -1 ||
+    s.indexOf("テスト") !== -1 ||
+    s.indexOf("丁目") !== -1 ||
+    s.indexOf("〒") !== -1
+  );
+}
+
+function isStableStoreId_(text) {
+  var s = String(text || "").trim();
+  if (!s) return false;
+  if (s.length > 40) return false;
+  // 英数字・ハイフン・アンダースコア中心（住所っぽい日本語は弾く）
+  return /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(s);
+}
+
+/** 店名から安定IDを作る（既存のよく使う店は固定マップ） */
+function suggestStoreIdFromName_(name, rowNumber, usedIds) {
+  var map = {
+    JOYFIT24関西: "kansai",
+    JOYFIT24サンプル: "kansai",
+    JOYFIT24駒川: "komagawa",
+    JOYFIT24東淡路: "higashiawaji",
+    名古屋中村公園: "nagoya-nakamura",
+    名古屋太閤通: "nagoya-taikodori",
+    名古屋本郷: "nagoya-hongo",
+    JOYFIT上本町: "uehonmachi",
+    JOYFIT上新庄: "kamishinjo",
+    JOYFITなんば元町: "namba-motomachi",
+    JOYFIT天六別館: "tenroku-bekkan",
+    JOYFIT野田阪神: "noda-hanshin",
+    FIT365天満橋: "temmabashi",
+    FIT365門真打越: "kadomauchikoshi",
+    FIT365南海堺東: "sakaihigashi",
+    "FIT365神戸エコール・リラ": "ecolelilas",
+  };
+
+  var base = map[name];
+  if (!base) {
+    base =
+      String(name || "")
+        .replace(/JOYFIT24?/gi, "")
+        .replace(/FIT365/gi, "")
+        .replace(/ジムLITE/gi, "")
+        .replace(/[^\u3040-\u30ff\u4e00-\u9fff a-zA-Z0-9_-]/g, "")
+        .trim() || "store" + rowNumber;
+    // 日本語だけの場合は row ベースの英数字ID
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(base)) {
+      base = "store" + rowNumber;
+    }
+  }
+
+  var id = base.toLowerCase();
+  var n = 2;
+  while (usedIds[id]) {
+    id = base.toLowerCase() + "-" + n;
+    n++;
+  }
+  return id;
+}
+
+/**
+ * 列修正後に空になった E〜H（住所・緯度・経度・検索用）を店舗IDで補完する。
+ * A〜D・B・C は既存値を優先。I列の誤入力（特典以外の文言）は空に戻す。
+ * Apps Script エディタで1回実行。
+ */
+function restoreWestStoreGeoFromCatalog() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+
+  var catalog = westStoreGeoCatalog_();
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    return { ok: false, error: "no data rows" };
+  }
+
+  var startIndex = isHeaderRow(String(values[0][0] || "").trim()) ? 1 : 0;
+  var updated = 0;
+
+  for (var i = startIndex; i < values.length; i++) {
+    var row = values[i];
+    var name = String(row[0] || "").trim();
+    if (!name) continue;
+
+    var id = String(row[3] || "").trim().toLowerCase();
+    var ref = catalog[id];
+    if (!ref) continue;
+
+    var changed = false;
+
+    if (!String(row[4] || "").trim() && ref.address) {
+      row[4] = ref.address;
+      changed = true;
+    }
+    if ((row[5] === "" || row[5] == null) && ref.latitude != null) {
+      row[5] = ref.latitude;
+      changed = true;
+    }
+    if ((row[6] === "" || row[6] == null) && ref.longitude != null) {
+      row[6] = ref.longitude;
+      changed = true;
+    }
+    if (!String(row[7] || "").trim() && ref.searchText) {
+      row[7] = ref.searchText;
+      changed = true;
+    } else if (String(row[7] || "").trim() && ref.searchText && String(row[7]).indexOf(ref.searchText.split(" ")[0]) < 0) {
+      row[7] = ref.searchText;
+      changed = true;
+    }
+
+    var reward = String(row[8] || "").trim();
+    if (reward && reward.indexOf("特典") < 0 && reward.indexOf("ポイント") < 0 && reward.indexOf("P付与") < 0) {
+      row[8] = "";
+      changed = true;
+    }
+
+    if (changed) {
+      sheet.getRange(i + 1, 1, 1, STORE_HEADERS.length).setValues([row.slice(0, STORE_HEADERS.length)]);
+      updated++;
+    }
+  }
+
+  return { ok: true, updated: updated };
+}
+
+/** 公式サイト所在地ベース（プレビュー・近く順ソート用） */
+function westStoreGeoCatalog_() {
+  var list = [
+    {
+      id: "nagoya-nakamura",
+      address: "愛知県名古屋市中村区豊国通1丁目19-1 YgK Nakamura 2F・3F",
+      latitude: 35.1678,
+      longitude: 136.8819,
+      searchText: "名古屋中村公園 なごやなかむらこうえん nagoya-nakamura 中村公園 愛知",
+    },
+    {
+      id: "nagoya-taikodori",
+      address: "愛知県名古屋市中村区太閤1丁目23番地14号 1F・2F",
+      latitude: 35.1707,
+      longitude: 136.8816,
+      searchText: "名古屋太閤通 たいこうどおり nagoya-taikodori 名古屋駅 愛知",
+    },
+    {
+      id: "uehonmachi",
+      address: "大阪府大阪市天王寺区上本町6丁目4-3 白鳥ビル2F",
+      latitude: 34.6655,
+      longitude: 135.5195,
+      searchText: "上本町 うえほんまち uehonmachi 天王寺 大阪",
+    },
+    {
+      id: "kamishinjo",
+      address: "大阪府大阪市東淀川区瑞光1-11-29 新高ビル2F・3F・4F",
+      latitude: 34.754,
+      longitude: 135.52,
+      searchText: "上新庄 かみしんじょう kamishinjo 阪急 大阪",
+    },
+    {
+      id: "namba-motomachi",
+      address: "大阪府大阪市浪速区元町3-1-4 なんばAKビル1F",
+      latitude: 34.6635,
+      longitude: 135.4965,
+      searchText: "なんば元町 なんばもとまち namba-motomachi 難波 大阪",
+    },
+    {
+      id: "tenroku-bekkan",
+      address: "大阪府大阪市北区天神橋7丁目12-14",
+      latitude: 34.7105,
+      longitude: 135.5105,
+      searchText: "天六別館 てんろくべっかん tenroku-bekkan 天神橋 大阪",
+    },
+    {
+      id: "noda-hanshin",
+      address: "大阪府大阪市福島区鷺洲3丁目10-9 相互ビル2F",
+      latitude: 34.693,
+      longitude: 135.475,
+      searchText: "野田阪神 のだはんしん noda-hanshin 福島 大阪",
+    },
+    {
+      id: "higashiawaji",
+      address: "大阪府大阪市東淀川区東淡路4丁目30-2",
+      latitude: 34.7393085,
+      longitude: 135.5159785,
+      searchText: "東淡路 ひがしあわじ higashiawaji 東淀川 大阪",
+    },
+  ];
+
+  var map = {};
+  for (var i = 0; i < list.length; i++) {
+    map[list[i].id] = list[i];
+  }
+  return map;
 }

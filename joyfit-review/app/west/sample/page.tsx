@@ -28,7 +28,7 @@ export default async function WestSampleStorePage() {
   return (
     <MemberPageShell>
       <p className="mx-auto mb-3 max-w-md rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-[13px] leading-relaxed text-amber-950">
-        WESTテスト用ページです。店頭QR・店舗一覧には出ません。送信すると WEST のスプレッドシートに回答が残ります。
+        WESTスタッフ試験用です（JOYFIT24サンプル）。店頭QR・店舗一覧には出ません。送信すると WEST のスプレッドシートに回答が残ります。
       </p>
       <ReviewFlow
         storeId={store.id}

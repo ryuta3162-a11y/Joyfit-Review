@@ -1,9 +1,9 @@
 import type { StoreMasterRow } from "@/lib/store-master";
 
-/** WEST 発表・社内確認用。店頭QRの本番一覧には出さない */
+/** WEST スタッフ試験用。店頭QR・店舗一覧には出さない（id=kansai） */
 export const WEST_SAMPLE_STORE_ID = "kansai";
 
-export const WEST_SAMPLE_STORE_NAME = "JOYFIT24関西";
+export const WEST_SAMPLE_STORE_NAME = "JOYFIT24サンプル";
 
 /**
  * 口コミURL未設定のため、動作確認用に EAST・経堂の投稿URLを仮置き。
@@ -15,7 +15,7 @@ export const WEST_SAMPLE_REVIEW_URL =
 export const WEST_SAMPLE_STORE: StoreMasterRow = {
   id: WEST_SAMPLE_STORE_ID,
   name: WEST_SAMPLE_STORE_NAME,
-  searchText: "関西 かんさい kansai テスト sample JOYFIT24",
+  searchText: "サンプル sample テスト kansai JOYFIT24",
   googleReviewUrl: WEST_SAMPLE_REVIEW_URL,
   feedbackEmail: "r-kusaka@okamoto-group.co.jp",
   address: "テスト用店舗（店頭QR・本番一覧には出しません）",

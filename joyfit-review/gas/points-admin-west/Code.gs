@@ -1,17 +1,16 @@
 /**
- * EAST ポイント付与管理（社内専用）
+ * WEST ポイント付与管理（社内専用）
  *
  * 会員向けの公開GASとは別プロジェクト。
- * データブック: 現行 EAST口コミ APP（会員回答の本番）
- * バックアップ用クローン先: DEST_SPREADSHEET_ID
+ * データブック: WEST口コミ APP
  *
  * デプロイ: ウェブアプリ
  * - 実行: 自分
  * - アクセス: 岡本グループ内（DOMAIN）
  */
 
-var SOURCE_SPREADSHEET_ID = "13_E8m3vQa_61hcoMAPb7XZTyVDVtQ9O7rkVDNtHQvRM";
-var DEST_SPREADSHEET_ID = "1t4RHRXLoxxxqUZHTvFhqfnUn5jH8G_t2usBbGj_I3vM";
+var SOURCE_SPREADSHEET_ID = "1OibrErQsRQYVsqCs6E9SdiQYOGs3KlMVgTyLOfw4IH8";
+var DEST_SPREADSHEET_ID = "1OibrErQsRQYVsqCs6E9SdiQYOGs3KlMVgTyLOfw4IH8";
 var CLONE_BATCH_SIZE = 12;
 
 var POINT_GRANT_CHECK_COL = 22;
@@ -28,7 +27,7 @@ function doGet() {
   pointsTemplate.storesJson = storePickerJson_();
   return pointsTemplate
     .evaluate()
-    .setTitle("EAST /ENJOYポイント付与")
+    .setTitle("WEST /ENJOYポイント付与")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 

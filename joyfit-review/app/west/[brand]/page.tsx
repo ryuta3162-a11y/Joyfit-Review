@@ -51,7 +51,7 @@ export default async function WestBrandHomePage({ params }: Props) {
           <Fit365Header
             title={
               <h1 className="whitespace-nowrap text-[1.45rem] font-bold tracking-tight md:text-[1.7rem]">
-                FIT365 アンケート（WEST）
+                FIT365 アンケートページ
               </h1>
             }
           >
@@ -66,10 +66,7 @@ export default async function WestBrandHomePage({ params }: Props) {
         ) : (
           <div className="joyfit-brand-header px-6 pb-9 pt-8 text-center text-white md:pt-10">
             <JoyfitHeaderLogo brand={brand} />
-            <p className="relative z-[1] mt-3 text-[11px] font-semibold tracking-[0.18em] text-white/80">
-              WEST / 関西・西日本
-            </p>
-            <h1 className="relative z-[1] mt-2 text-2xl font-bold tracking-tight md:text-[1.65rem]">
+            <h1 className="relative z-[1] mt-5 text-2xl font-bold tracking-tight md:text-[1.65rem]">
               アンケートページ
             </h1>
             <div className="relative z-[1] mt-6 text-center">
