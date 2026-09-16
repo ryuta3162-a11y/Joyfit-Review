@@ -92,14 +92,23 @@ export async function submitTodaClosingSurvey(
     try {
       json = JSON.parse(text) as { ok?: boolean; error?: string };
     } catch {
-      return { ok: true, saved: false };
+      return {
+        ok: false,
+        error: "回答の保存に失敗しました。通信状況をご確認のうえ、再度お試しください。",
+      };
     }
 
     if (!res.ok || !json.ok) {
-      return { ok: true, saved: false };
+      return {
+        ok: false,
+        error: "回答の保存に失敗しました。通信状況をご確認のうえ、再度お試しください。",
+      };
     }
     return { ok: true, saved: true };
   } catch {
-    return { ok: true, saved: false };
+    return {
+      ok: false,
+      error: "回答の保存に失敗しました。通信状況をご確認のうえ、再度お試しください。",
+    };
   }
 }

@@ -182,7 +182,9 @@ function PageHeader({
 export function TodaClosingSurvey({ store }: Props) {
   const theme = BRAND_THEMES[store.brand];
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
-  const googleReviewUrl = store.googleReviewUrl;
+  const googleReviewUrl = store.googleReviewUrl.trim();
+  const mapsUrl = store.mapsUrl.trim();
+  const canPostGoogle = Boolean(googleReviewUrl);
   const joinOptions = store.showJoinCampaign ? JOIN_OPTIONS_CAMPAIGN : JOIN_OPTIONS_DEFAULT;
   const submissionIdRef = useRef(newSubmissionId());
 
@@ -291,12 +293,12 @@ export function TodaClosingSurvey({ store }: Props) {
     }
 
     setDraft(generatedReview);
-    if (rating >= 4 && googleReviewUrl.trim()) {
-      try {
-        await navigator.clipboard.writeText(generatedReview);
-      } catch {
-        /* ignore */
-      }
+    try {
+      await navigator.clipboard.writeText(generatedReview);
+    } catch {
+      /* ignore */
+    }
+    if (rating >= 4 && googleReviewUrl) {
       window.open(googleReviewUrl, "_blank", "noopener,noreferrer");
     }
     setSent(true);
@@ -350,7 +352,7 @@ export function TodaClosingSurvey({ store }: Props) {
   }
 
   if (sent) {
-    const goGoogle = rating !== null && rating >= 4 && googleReviewUrl.trim();
+    const goGoogle = rating !== null && rating >= 4 && canPostGoogle;
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 pb-10 pt-12 text-center text-white">
@@ -363,11 +365,13 @@ export function TodaClosingSurvey({ store }: Props) {
           <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
             {goGoogle
               ? "口コミ文をコピーしました。Googleマップへ投稿をお願いします。"
-              : "ご入力完了後にスタッフをお呼びください。"}
+              : shownDraft
+                ? "回答を保存し、口コミ文をコピーしました。"
+                : "ご入力完了後にスタッフをお呼びください。"}
           </p>
         </div>
         <div className="px-6 py-8 text-center">
-          {goGoogle && shownDraft ? (
+          {shownDraft ? (
             <div className="mx-auto max-w-sm text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
                 口コミ文面（コピー済み）
@@ -375,17 +379,37 @@ export function TodaClosingSurvey({ store }: Props) {
               <pre className="whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
                 {shownDraft}
               </pre>
-              <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-                Googleマップでも星{rating}の評価を選択してください。
-              </p>
-              <a
-                href={googleReviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white transition hover:bg-[color:var(--joyfit-red-dark)]"
-              >
-                Google口コミを投稿する
-              </a>
+              {goGoogle ? (
+                <>
+                  <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
+                    Googleマップでも星{rating}の評価を選択してください。
+                  </p>
+                  <a
+                    href={googleReviewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white transition hover:bg-[color:var(--joyfit-red-dark)]"
+                  >
+                    Google口コミを投稿する
+                  </a>
+                </>
+              ) : canPostGoogle ? null : (
+                <>
+                  <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
+                    新店のため、Googleの口コミ投稿ページがまだ公開されていないことがあります。文面はコピー済みです。
+                  </p>
+                  {mapsUrl ? (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-[15px] font-semibold text-zinc-800 transition hover:bg-zinc-50"
+                    >
+                      Googleマップを開く
+                    </a>
+                  ) : null}
+                </>
+              )}
             </div>
           ) : (
             <p className="text-[14px] leading-relaxed text-zinc-600">
@@ -643,7 +667,7 @@ export function TodaClosingSurvey({ store }: Props) {
           >
             {submitting
               ? "送信中…"
-              : rating !== null && rating >= 4
+              : rating !== null && rating >= 4 && canPostGoogle
                 ? "保存してGoogle口コミへ"
                 : "回答を保存する"}
           </Button>

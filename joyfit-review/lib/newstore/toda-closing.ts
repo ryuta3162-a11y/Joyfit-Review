@@ -12,7 +12,9 @@ export type ClosingStore = {
   id: string;
   name: string;
   brand: Brand;
+  /** 空なら Google 口コミ投稿フォームはまだ使わない */
   googleReviewUrl: string;
+  mapsUrl: string;
   appInstallUrl: string;
   appInstallBody: string;
   appInstallLinkLabel: string;
@@ -27,6 +29,7 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     name: "JOYFIT24経堂",
     brand: "joyfit",
     googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
+    mapsUrl: "https://g.page/r/Cdo92khF2w03EAE",
     appInstallUrl: "https://procedure.joyfit.jp/qrcode2/index.html",
     appInstallBody: "JOYFITアプリよりご入会手続きが可能でございます。",
     appInstallLinkLabel: "アプリ登録はこちら",
@@ -38,8 +41,8 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     id: "todaniizo",
     name: "FIT365 戸田新曽",
     brand: "fit365",
-    googleReviewUrl:
-      "https://search.google.com/local/writereview?cid=1273082332638051101",
+    googleReviewUrl: "",
+    mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
     appInstallUrl: "https://fit365.jp/pr_app/",
     appInstallBody: "FIT365アプリよりご入会手続きが可能でございます。",
     appInstallLinkLabel: "アプリインストールはこちら",
