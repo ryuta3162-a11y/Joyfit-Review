@@ -597,6 +597,8 @@ function applyAnswerTabColor_(sheet, brandLabel) {
     sheet.setTabColor(color);
   } catch (e) {}
 }
+
+function clearStoreDataRowColors() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("店舗データ");
   if (!sheet) {
