@@ -63,6 +63,9 @@ function doGet(e) {
   if (format === "json" && action === "rebuildStoreMaster") {
     return outputJson(rebuildStoreMasterForStaff());
   }
+  if (format === "json" && action === "debugStoreSheet") {
+    return outputJson(debugStoreSheet_());
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
@@ -252,7 +255,6 @@ function rebuildStoreMasterForStaff() {
     return { ok: false, error: "店舗データ sheet missing" };
   }
 
-  // 直前の失敗で空になっている場合は最新バックアップから戻す
   ensureStoreDataNotEmpty_(ss, sheet);
 
   var collected = collectStoreMasterRows_(sheet);
@@ -266,9 +268,9 @@ function rebuildStoreMasterForStaff() {
 
   var backupName = backupStoreDataSheet_(sheet);
   try {
-    writeStoreMasterLayout_(sheet, collected);
+    replaceStoreMasterSheet_(ss, collected);
   } catch (err) {
-    restoreStoreDataFromBackup_(ss, sheet, backupName);
+    restoreStoreDataFromBackup_(ss, ss.getSheetByName("店舗データ") || sheet, backupName);
     return {
       ok: false,
       error: String(err),
@@ -368,6 +370,9 @@ function collectStoreMasterRows_(sheet) {
     var h = String(row[7] || "").trim();
     var rewardLabel = String(row[8] || "").trim();
     var brandRaw = String(row[9] || "").trim();
+    if (brandRaw === "ブランド" || brandRaw === STORE_BRAND_HEADER) {
+      brandRaw = "";
+    }
 
     // 旧パネル（L/M）やフィルタ残骸を拾わない
     if (!googleReviewUrl && !c && !d && !e) {
@@ -426,12 +431,13 @@ function writeStoreMasterLayout_(sheet, rows) {
   sheet.clear();
   sheet.clearConditionalFormatRules();
   sheet.setFrozenRows(0);
+  SpreadsheetApp.flush();
 
   // --- ダッシュボード（1〜5行目）---
   sheet.getRange("A1").setValue("EAST 口コミ｜店舗マスタ");
   sheet.getRange("A1").setFontWeight("bold").setFontSize(14);
   sheet.getRange("A2").setValue(
-    "使い方: 6行目がヘッダー／7行目〜が店舗データ。J列でブランド選択 → フィルタで絞り込み。色は JOYFIT=赤系 / FIT365=ピンク / YOGA=青緑。",
+    "使い方: 6行目がヘッダー／7行目〜が店舗データ。J列はブランド（JOYFIT / FIT365 / YOGA）。フィルタで絞り込み可能。色は JOYFIT=赤系 / FIT365=ピンク / YOGA=青緑。",
   );
   sheet.getRange("A2").setWrap(true);
   sheet.setRowHeight(2, 42);
@@ -459,41 +465,65 @@ function writeStoreMasterLayout_(sheet, rows) {
   sheet.getRange("A5").setValue("");
 
   // --- ヘッダー（6行目）---
-  sheet.getRange(STORE_HEADER_ROW, 1, 1, STORE_HEADERS.length).setValues([STORE_HEADERS]);
-  sheet
-    .getRange(STORE_HEADER_ROW, 1, 1, STORE_HEADERS.length)
-    .setFontWeight("bold")
-    .setBackground("#334155")
-    .setFontColor("#FFFFFF");
+  sheet.getRange("A6:J6").setValues([STORE_HEADERS]);
+  sheet.getRange("A6:J6").setFontWeight("bold").setBackground("#334155").setFontColor("#FFFFFF");
 
   // --- データ（7行目〜）---
-  if (rows.length) {
-    sheet.getRange(STORE_DATA_START_ROW, 1, rows.length, STORE_HEADERS.length).setValues(rows);
-
-    try {
-      var rule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(STORE_BRAND_OPTIONS, true)
-        .setAllowInvalid(true)
-        .build();
-      sheet.getRange(STORE_DATA_START_ROW, STORE_BRAND_COL, rows.length, 1).setDataValidation(rule);
-    } catch (e1) {}
-
-    // 条件付き書式が環境によっては失敗するため、行ごとに色を塗る
-    for (var r = 0; r < rows.length; r++) {
-      var brandLabel = String(rows[r][STORE_BRAND_COL - 1] || "JOYFIT");
-      var bg = STORE_BRAND_COLOR[brandLabel] || STORE_BRAND_COLOR.JOYFIT;
-      sheet.getRange(STORE_DATA_START_ROW + r, 1, 1, STORE_HEADERS.length).setBackground(bg);
-    }
+  if (!rows || !rows.length) {
+    throw new Error("writeStoreMasterLayout_: rows empty");
   }
 
+  // 列数を必ず10に揃える
+  var normalized = [];
+  for (var i = 0; i < rows.length; i++) {
+    var src = rows[i] || [];
+    var line = [];
+    for (var c = 0; c < STORE_HEADERS.length; c++) {
+      line.push(src[c] == null ? "" : src[c]);
+    }
+    if (!line[9] || line[9] === "ブランド") {
+      line[9] = detectStoreBrandLabelFromName_(String(line[0] || ""));
+    }
+    normalized.push(line);
+  }
+
+  var endRow = STORE_DATA_START_ROW + normalized.length - 1;
+  sheet.getRange("A7:J" + endRow).setValues(normalized);
+  SpreadsheetApp.flush();
+
+  // ブランド色（少し濃いめ）
+  var joyfitRows = [];
+  var fitRows = [];
+  var yogaRows = [];
+  for (var r = 0; r < normalized.length; r++) {
+    var brandLabel = String(normalized[r][9] || "JOYFIT");
+    var absRow = STORE_DATA_START_ROW + r;
+    if (brandLabel === "FIT365") fitRows.push(absRow);
+    else if (brandLabel === "YOGA") yogaRows.push(absRow);
+    else joyfitRows.push(absRow);
+  }
+  paintBrandRows_(sheet, joyfitRows, STORE_BRAND_COLOR.JOYFIT);
+  paintBrandRows_(sheet, fitRows, STORE_BRAND_COLOR.FIT365);
+  paintBrandRows_(sheet, yogaRows, STORE_BRAND_COLOR.YOGA);
+  SpreadsheetApp.flush();
+
   try {
-    var filterLastRow = Math.max(STORE_HEADER_ROW, STORE_DATA_START_ROW + Math.max(rows.length, 1) - 1);
-    sheet
-      .getRange(STORE_HEADER_ROW, 1, filterLastRow - STORE_HEADER_ROW + 1, STORE_HEADERS.length)
-      .createFilter();
+    sheet.getRange("A6:J" + endRow).createFilter();
   } catch (e2) {}
 
   sheet.setFrozenRows(STORE_HEADER_ROW);
+  SpreadsheetApp.flush();
+
+  // 書き込み後チェック
+  var checkName = String(sheet.getRange("A7").getValue() || "").trim();
+  var checkUrl = String(sheet.getRange("B7").getValue() || "").trim();
+  var checkBrand = String(sheet.getRange("J7").getValue() || "").trim();
+  if (!checkName || !checkUrl) {
+    throw new Error("writeStoreMasterLayout_: A7/B7 empty after write");
+  }
+  if (!checkBrand) {
+    throw new Error("writeStoreMasterLayout_: J7 brand empty after write");
+  }
 
   sheet.setColumnWidth(1, 220);
   sheet.setColumnWidth(2, 280);
@@ -505,6 +535,46 @@ function writeStoreMasterLayout_(sheet, rows) {
   sheet.setColumnWidth(8, 180);
   sheet.setColumnWidth(9, 200);
   sheet.setColumnWidth(10, 100);
+}
+
+/**
+ * 検証ルール等が残った旧シートを捨て、新規シートに差し替える。
+ */
+function replaceStoreMasterSheet_(ss, rows) {
+  var tempName = "_店舗データ_rebuild_tmp";
+  var existingTemp = ss.getSheetByName(tempName);
+  if (existingTemp) {
+    ss.deleteSheet(existingTemp);
+  }
+
+  var neu = ss.insertSheet(tempName);
+  writeStoreMasterLayout_(neu, rows);
+
+  var old = ss.getSheetByName("店舗データ");
+  if (old) {
+    var trashName = ("_店舗データ_old_" + Utilities.formatDate(new Date(), "Asia/Tokyo", "HHmmss")).slice(0, 90);
+    old.setName(trashName);
+    try {
+      ss.deleteSheet(old);
+    } catch (eDel) {
+      try {
+        old.hideSheet();
+      } catch (eHide) {}
+    }
+  }
+
+  neu.setName("店舗データ");
+  try {
+    ss.setActiveSheet(neu);
+    ss.moveActiveSheet(1);
+  } catch (eMove) {}
+}
+
+function paintBrandRows_(sheet, rowNumbers, color) {
+  if (!rowNumbers || !rowNumbers.length) return;
+  for (var i = 0; i < rowNumbers.length; i++) {
+    sheet.getRange("A" + rowNumbers[i] + ":J" + rowNumbers[i]).setBackground(color);
+  }
 }
 
 function normalizeStoreBrandLabel_(value) {
@@ -544,6 +614,45 @@ function brandToApi_(label) {
   if (label === "FIT365") return "fit365";
   if (label === "YOGA") return "yoga";
   return "joyfit";
+}
+
+function debugStoreSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "missing" };
+  }
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var a1 = sheet.getRange(1, 1).getValue();
+  var a6 = sheet.getRange(6, 1).getValue();
+  var a7 = sheet.getRange(7, 1).getValue();
+  var b7 = sheet.getRange(7, 2).getValue();
+  var j7 = sheet.getRange(7, 10).getValue();
+  var values = sheet.getDataRange().getValues();
+  var headerIndex = findStoreHeaderRowIndex_(values);
+  var sample = [];
+  for (var i = 0; i < Math.min(values.length, 12); i++) {
+    sample.push({
+      row: i + 1,
+      a: String(values[i][0] || ""),
+      b: String(values[i][1] || "").slice(0, 40),
+      j: String(values[i][9] || ""),
+    });
+  }
+  return {
+    ok: true,
+    lastRow: lastRow,
+    lastCol: lastCol,
+    a1: String(a1 || ""),
+    a6: String(a6 || ""),
+    a7: String(a7 || ""),
+    b7: String(b7 || "").slice(0, 60),
+    j7: String(j7 || ""),
+    headerIndex: headerIndex,
+    readCount: readStoreRows().length,
+    sample: sample,
+  };
 }
 
 function isHeaderRow(cellA) {
