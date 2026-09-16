@@ -144,71 +144,90 @@ function readStoreRows() {
   var headerIndex = -1;
   var maxScan = Math.min(values.length, 30);
   for (var h = 0; h < maxScan; h++) {
-    if (isHeaderRow(String(values[h][0] || "").trim())) {
-      headerIndex = h;
-      break;
+    var rowH = values[h] || [];
+    for (var c = 0; c < rowH.length; c++) {
+      var cell = String(rowH[c] || "").trim();
+      if (cell === "店舗名" || cell.indexOf("店舗名") === 0) {
+        headerIndex = h;
+        break;
+      }
     }
+    if (headerIndex >= 0) break;
   }
-  var startIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
 
-  var out = [];
-  for (var i = startIndex; i < values.length; i++) {
-    var row = values[i];
-    var name = String(row[0] || "").trim();
-    if (!name || isHeaderRow(name)) {
-      continue;
+  var col = {
+    brand: -1,
+    name: 0,
+    url: 1,
+    email: 2,
+    id: 3,
+    address: 4,
+    lat: 5,
+    lng: 6,
+    search: 7,
+    reward: 8,
+  };
+  if (headerIndex >= 0) {
+    var headerRow = values[headerIndex];
+    var idx = {};
+    for (var i = 0; i < headerRow.length; i++) {
+      var key = String(headerRow[i] || "").trim();
+      if (key && idx[key] == null) idx[key] = i;
     }
+    if (idx["ブランド"] != null) col.brand = idx["ブランド"];
+    if (idx["店舗名"] != null) col.name = idx["店舗名"];
+    if (idx["レビューURL"] != null) col.url = idx["レビューURL"];
+    if (idx["低評価通知メール"] != null) col.email = idx["低評価通知メール"];
+    if (idx["店舗ID"] != null) col.id = idx["店舗ID"];
+    if (idx["住所"] != null) col.address = idx["住所"];
+    if (idx["緯度"] != null) col.lat = idx["緯度"];
+    if (idx["経度"] != null) col.lng = idx["経度"];
+    if (idx["検索用"] != null) col.search = idx["検索用"];
+    if (idx["特典文言"] != null) col.reward = idx["特典文言"];
+  }
+
+  var startIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
+  var out = [];
+  for (var r = startIndex; r < values.length; r++) {
+    var row = values[r];
+    var name = String(row[col.name] || "").trim();
+    if (!name) continue;
     if (
       name === "JOYFIT" ||
       name === "FIT365" ||
       name === "YOGA" ||
       name === "合計" ||
       name === "ブランド" ||
-      (name.indexOf("EAST") === 0 && name.indexOf("店舗") >= 0) ||
-      name.indexOf("使い方") === 0
+      name === "店舗名" ||
+      (name.indexOf("EAST") === 0 && name.indexOf("店舗") >= 0)
     ) {
       continue;
     }
-    var googleReviewUrl = String(row[1] || "").trim();
-    if (!googleReviewUrl) {
-      continue;
-    }
-    var c = String(row[2] || "").trim();
-    var d = String(row[3] || "").trim();
-    var e = String(row[4] || "").trim();
-    var f = String(row[5] || "").trim();
-    var g = String(row[6] || "").trim();
-    var h = String(row[7] || "").trim();
-    var rewardLabel = String(row[8] || "").trim();
+    var googleReviewUrl = String(row[col.url] || "").trim();
+    if (!googleReviewUrl) continue;
 
-    var feedbackEmail = "";
-    var id = "";
-    var searchText = "";
-    var address = "";
-    var latitude = null;
-    var longitude = null;
+    var email = String(row[col.email] || "").trim();
+    var id = String(row[col.id] || "").trim();
+    var address = String(row[col.address] || "").trim();
+    var searchText = String(row[col.search] || "").trim();
+    var rewardLabel = String(row[col.reward] || "").trim();
 
-    if (c.indexOf("@") >= 0 || !c) {
-      feedbackEmail = c.indexOf("@") >= 0 ? c : "";
-      id = d || "row" + (i + 1);
-      address = e;
-      latitude = parseCoordinate(f);
-      longitude = parseCoordinate(g);
-      searchText = h || defaultSearchText(name, id, address);
-    } else {
-      id = c || "row" + (i + 1);
-      searchText = d || defaultSearchText(name, id, "");
+    if (email && email.indexOf("@") < 0 && !id) {
+      id = email;
+      email = "";
     }
+    if (!id) id = "row" + (r + 1);
+    if (!searchText) searchText = defaultSearchText(name, id, address);
 
     out.push({
       id: id,
       name: name,
       searchText: searchText,
       googleReviewUrl: googleReviewUrl,
-      feedbackEmail: feedbackEmail,
+      feedbackEmail: email.indexOf("@") >= 0 ? email : "",
       address: address,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: parseCoordinate(row[col.lat]),
+      longitude: parseCoordinate(row[col.lng]),
       rewardLabel: rewardLabel,
     });
   }
@@ -221,7 +240,7 @@ function isHeaderRow(cellA) {
     return false;
   }
   var t = String(cellA).trim();
-  return t === "店舗名" || t === "名前" || t.indexOf("店舗名") === 0;
+  return t === "店舗名" || t === "名前" || t.indexOf("店舗名") === 0 || t === "ブランド";
 }
 
 function defaultSearchText(name, id, address) {
