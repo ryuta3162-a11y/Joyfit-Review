@@ -48,8 +48,9 @@ export function getStoreRewardDisplay(input: {
   storeId: string;
   storeName: string;
   rewardLabelFromSheet?: string;
+  brand?: Brand | null;
 }): StoreRewardDisplay {
-  const brand = detectBrandFromStore(input.storeName);
+  const brand = input.brand || detectBrandFromStore(input.storeName);
   const fromSheet = input.rewardLabelFromSheet?.trim();
   if (fromSheet) {
     return {

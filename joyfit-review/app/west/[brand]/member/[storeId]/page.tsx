@@ -46,6 +46,7 @@ export default async function WestBrandMemberStorePage({ params }: Props) {
     storeId: store.id,
     storeName: store.name,
     rewardLabelFromSheet: store.rewardLabel,
+    brand: storeBrand,
   });
 
   return (
@@ -57,6 +58,7 @@ export default async function WestBrandMemberStorePage({ params }: Props) {
         feedbackEmail={store.feedbackEmail}
         reward={reward}
         region={REGION}
+        brand={storeBrand}
       />
     </MemberPageShell>
   );

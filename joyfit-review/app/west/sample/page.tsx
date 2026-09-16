@@ -23,6 +23,7 @@ export default async function WestSampleStorePage() {
     storeId: store.id,
     storeName: store.name,
     rewardLabelFromSheet: store.rewardLabel,
+    brand: "joyfit",
   });
 
   return (
@@ -37,6 +38,7 @@ export default async function WestSampleStorePage() {
         feedbackEmail={store.feedbackEmail}
         reward={reward}
         region="west"
+        brand="joyfit"
       />
     </MemberPageShell>
   );

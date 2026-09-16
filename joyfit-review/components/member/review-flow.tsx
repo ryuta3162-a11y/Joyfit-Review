@@ -29,7 +29,7 @@ import {
 } from "@/components/member/member-form-styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { brandCssVars, getBrandTheme } from "@/lib/brand";
+import { brandCssVars, getBrandTheme, type Brand } from "@/lib/brand";
 import { CUSTOMER_SAVE_FAILED } from "@/lib/gas-webapp";
 import { type StoreRewardDisplay } from "@/lib/store-reward";
 import {
@@ -62,6 +62,8 @@ type Props = {
   reward: StoreRewardDisplay;
   /** EAST / WEST。未指定時は EAST */
   region?: "east" | "west";
+  /** スプレッドシートのブランド列。店舗名から接頭辞を外したあとの判定用 */
+  brand?: Brand;
 };
 
 const stars = [1, 2, 3, 4, 5];
@@ -176,8 +178,9 @@ export function ReviewFlow({
   feedbackEmail,
   reward,
   region = "east",
+  brand,
 }: Props) {
-  const brandTheme = useMemo(() => getBrandTheme(storeName), [storeName]);
+  const brandTheme = useMemo(() => getBrandTheme(storeName, brand), [storeName, brand]);
   const brandVars = useMemo(() => brandCssVars(brandTheme), [brandTheme]);
   const pathPrefix = region === "west" ? "/west" : "";
   const surveyVariant = brandTheme.brand === "yoga" ? "yoga" : "gym";

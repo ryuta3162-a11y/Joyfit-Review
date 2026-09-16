@@ -25,7 +25,9 @@ export function isYogaStore(storeName: string): boolean {
   const hasYoga = normalized.includes("yoga") || normalized.includes("ヨガ");
   const hasHibarigaoka =
     normalized.includes("ひばりが丘") || normalized.includes("ひばりヶ丘");
-  return hasYoga && hasHibarigaoka;
+  if (hasYoga && hasHibarigaoka) return true;
+  // 店舗名からブランド接頭辞を外したあと（例: 「ひばりが丘」のみ）
+  return normalized === "ひばりが丘" || normalized === "ひばりヶ丘";
 }
 
 /**
@@ -128,7 +130,8 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
   },
 };
 
-export function getBrandTheme(storeName: string): BrandTheme {
+export function getBrandTheme(storeName: string, brand?: Brand | null): BrandTheme {
+  if (brand) return BRAND_THEMES[brand];
   return BRAND_THEMES[detectBrandFromStore(storeName)];
 }
 

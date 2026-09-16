@@ -38,6 +38,7 @@ export default async function BrandMemberStorePage({ params }: Props) {
     storeId: store.id,
     storeName: store.name,
     rewardLabelFromSheet: store.rewardLabel,
+    brand: storeBrand,
   });
 
   return (
@@ -49,6 +50,7 @@ export default async function BrandMemberStorePage({ params }: Props) {
         feedbackEmail={store.feedbackEmail}
         reward={reward}
         region="east"
+        brand={storeBrand}
       />
     </MemberPageShell>
   );
