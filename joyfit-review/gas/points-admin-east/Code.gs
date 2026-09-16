@@ -83,7 +83,11 @@ function storePickerJson_() {
   var stores = readStoreRows();
   var out = [];
   for (var i = 0; i < stores.length; i++) {
-    out.push({ id: stores[i].id, name: stores[i].name });
+    out.push({
+      id: stores[i].id,
+      name: stores[i].name,
+      brandLabel: stores[i].brandLabel || "",
+    });
   }
   return JSON.stringify(out);
 }
