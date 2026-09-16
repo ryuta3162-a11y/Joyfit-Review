@@ -65,6 +65,9 @@ function doGet(e) {
   if (format === "json" && action === "rebuildStoreMaster") {
     return outputJson(rebuildStoreMasterForStaff());
   }
+  if (format === "json" && action === "clearStoreRowColors") {
+    return outputJson(clearStoreDataRowColors());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -507,19 +510,7 @@ function writeStoreMasterLayout_(sheet, rows) {
     } catch (eVal2) {}
   }
 
-  var joyfitRows = [];
-  var fitRows = [];
-  var yogaRows = [];
-  for (var r = 0; r < normalized.length; r++) {
-    var brandLabel = String(normalized[r][0] || "JOYFIT");
-    var absRow = STORE_DATA_START_ROW + r;
-    if (brandLabel === "FIT365") fitRows.push(absRow);
-    else if (brandLabel === "YOGA") yogaRows.push(absRow);
-    else joyfitRows.push(absRow);
-  }
-  paintBrandRows_(sheet, joyfitRows, STORE_BRAND_COLOR.JOYFIT);
-  paintBrandRows_(sheet, fitRows, STORE_BRAND_COLOR.FIT365);
-  paintBrandRows_(sheet, yogaRows, STORE_BRAND_COLOR.YOGA);
+  // データ行の全面色分けは見づらいため付けない（上段カウントとヘッダーのみ色付き）
   SpreadsheetApp.flush();
 
   try {
@@ -546,6 +537,26 @@ function writeStoreMasterLayout_(sheet, rows) {
   sheet.setColumnWidth(8, 90);
   sheet.setColumnWidth(9, 180);
   sheet.setColumnWidth(10, 200);
+}
+
+/** 既存シートのデータ行背景色だけ外す（中身は触らない） */
+function clearStoreDataRowColors() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+  var values = sheet.getDataRange().getValues();
+  var headerIndex = findStoreHeaderRowIndex_(values);
+  var startRow = headerIndex >= 0 ? headerIndex + 2 : 2; // 1-based sheet row after header
+  var lastRow = sheet.getLastRow();
+  var lastCol = Math.max(sheet.getLastColumn(), 10);
+  if (lastRow < startRow) {
+    return { ok: true, cleared: 0 };
+  }
+  sheet.getRange(startRow, 1, lastRow - startRow + 1, lastCol).setBackground(null);
+  sheet.clearConditionalFormatRules();
+  return { ok: true, cleared: lastRow - startRow + 1, startRow: startRow };
 }
 
 /**
