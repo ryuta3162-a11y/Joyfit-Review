@@ -74,6 +74,9 @@ function doGet(e) {
   if (format === "json" && action === "cleanupStoreBackups") {
     return outputJson(cleanupStoreBackupSheets_());
   }
+  if (format === "json" && action === "migrateAnswerSheetsToBrand") {
+    return outputJson(migrateAnswerSheetsToBrand_());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -182,6 +185,46 @@ var STORE_BRAND_COLOR = {
   FIT365: "#F0A0BC",
   YOGA: "#7EC8C8",
 };
+
+/** ブランド別回答シート（店舗横断。storeId / storeName でフィルタ） */
+var SURVEY_BRAND_SHEET_NAMES = {
+  JOYFIT: "回答シート_JOYFIT",
+  FIT365: "回答シート_FIT365",
+  YOGA: "回答シート_YOGA",
+};
+
+var SURVEY_STANDARD_HEADERS = [
+  "timestamp",
+  "storeId",
+  "storeName",
+  "rating",
+  "fullName",
+  "memberCode",
+  "gender",
+  "ageRange",
+  "email",
+  "visitDate",
+  "notifyTo",
+  "positives",
+  "useScenes",
+  "freeComment",
+  "generatedReview",
+  "submissionId",
+];
+
+function isBrandAnswerSheetName_(name) {
+  return String(name || "").indexOf("回答シート_") === 0;
+}
+
+function isLegacyAnswerSheetName_(name) {
+  var n = String(name || "");
+  return n.indexOf("回答_") === 0 && !isBrandAnswerSheetName_(n);
+}
+
+function brandAnswerSheetName_(brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  return SURVEY_BRAND_SHEET_NAMES[brand] || SURVEY_BRAND_SHEET_NAMES.JOYFIT;
+}
 
 function findStoreHeaderRowIndex_(values) {
   var maxScan = Math.min(values.length, 30);
@@ -611,17 +654,23 @@ function colorAnswerSheetsByBrand() {
     brandById[sid] = stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name);
   }
 
-  var counts = { JOYFIT: 0, FIT365: 0, YOGA: 0, other: 0 };
+  var counts = { JOYFIT: 0, FIT365: 0, YOGA: 0, other: 0, legacy: 0 };
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
     var sh = sheets[s];
     var name = String(sh.getName() || "");
-    if (name.indexOf("回答_") !== 0) continue;
-
-    var brand = detectBrandFromAnswerSheetName_(name, brandById);
+    var brand = "";
+    if (isBrandAnswerSheetName_(name)) {
+      brand = normalizeStoreBrandLabel_(name.replace(/^回答シート_/, "")) || "JOYFIT";
+      applyAnswerTabColor_(sh, brand);
+      if (counts[brand] != null) counts[brand]++;
+      else counts.other++;
+      continue;
+    }
+    if (!isLegacyAnswerSheetName_(name)) continue;
+    brand = detectBrandFromAnswerSheetName_(name, brandById);
     applyAnswerTabColor_(sh, brand);
-    if (counts[brand] != null) counts[brand]++;
-    else counts.other++;
+    counts.legacy++;
   }
 
   return {
@@ -632,7 +681,7 @@ function colorAnswerSheetsByBrand() {
       FIT365: STORE_BRAND_COLOR.FIT365,
       YOGA: STORE_BRAND_COLOR.YOGA,
     },
-    note: "回答_* タブを JOYFIT=赤系 / FIT365=ピンク / YOGA=青緑 で色分けしました。",
+    note: "回答シート_* を JOYFIT=赤系 / FIT365=ピンク / YOGA=青緑 で色分けしました。",
   };
 }
 
@@ -832,10 +881,11 @@ function checkSurveyRespondent(data) {
       return { ok: false, error: "storeId is required" };
     }
     var sheet = findSurveySheetByStoreId(storeId);
-    if (!sheet) {
-      return { ok: true, eligible: true };
+    if (sheet && isMemberCodeOnSheet_(sheet, memberCodeNorm, storeId)) {
+      return { ok: true, eligible: false, matchedBy: "memberCode" };
     }
-    if (isMemberCodeOnSheet_(sheet, memberCodeNorm)) {
+    var legacy = findLegacySurveySheetByStoreId_(storeId);
+    if (legacy && isMemberCodeOnSheet_(legacy, memberCodeNorm, storeId)) {
       return { ok: true, eligible: false, matchedBy: "memberCode" };
     }
     return { ok: true, eligible: true };
@@ -1142,7 +1192,8 @@ function rebuildMemberCodeIndex() {
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
     var sh = sheets[s];
-    if (String(sh.getName() || "").indexOf("回答_") !== 0) {
+    var name = String(sh.getName() || "");
+    if (!isBrandAnswerSheetName_(name) && !isLegacyAnswerSheetName_(name)) {
       continue;
     }
     var codes = readMemberCodesFromAnswerSheet(sh);
@@ -1176,7 +1227,8 @@ function isMemberCodeInAnswerSheets(memberCodeNorm) {
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
     var sh = sheets[s];
-    if (String(sh.getName() || "").indexOf("回答_") !== 0) {
+    var name = String(sh.getName() || "");
+    if (!isBrandAnswerSheetName_(name) && !isLegacyAnswerSheetName_(name)) {
       continue;
     }
     var codes = readMemberCodesFromAnswerSheet(sh);
@@ -1258,9 +1310,17 @@ function cacheSurveySheetName_(storeId, sheetName) {
 function findSurveySheetByStoreId(storeId) {
   var wantedId = safeSheetName(storeId);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var brand = resolveBrandForStore_(storeId, "");
+  var brandName = brandAnswerSheetName_(brand);
+  var brandSheet = ss.getSheetByName(brandName);
+  if (brandSheet) {
+    cacheSurveySheetName_(storeId, brandName);
+    return brandSheet;
+  }
+
   try {
     var cachedName = CacheService.getScriptCache().get(surveySheetCacheKey_(storeId));
-    if (cachedName) {
+    if (cachedName && !isBrandAnswerSheetName_(cachedName)) {
       var cachedSheet = ss.getSheetByName(cachedName);
       if (cachedSheet) {
         return cachedSheet;
@@ -1269,65 +1329,322 @@ function findSurveySheetByStoreId(storeId) {
   } catch (e) {}
   try {
     var propName = PropertiesService.getScriptProperties().getProperty(surveySheetCacheKey_(storeId));
-    if (propName) {
+    if (propName && !isBrandAnswerSheetName_(propName)) {
       var propSheet = ss.getSheetByName(propName);
       if (propSheet) {
         return propSheet;
       }
     }
-  } catch (e) {}
+  } catch (e2) {}
 
+  return findLegacySurveySheetByStoreId_(wantedId);
+}
+
+function findLegacySurveySheetByStoreId_(storeId) {
+  var wantedId = safeSheetName(storeId);
+  if (!wantedId) return null;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var suffix = "_" + wantedId;
   var sheets = ss.getSheets();
   for (var i = 0; i < sheets.length; i++) {
     var name = String(sheets[i].getName() || "");
-    if (name.indexOf("回答_") === 0 && name.slice(-suffix.length).toLowerCase() === suffix.toLowerCase()) {
-      cacheSurveySheetName_(storeId, name);
+    if (
+      isLegacyAnswerSheetName_(name) &&
+      name.slice(-suffix.length).toLowerCase() === suffix.toLowerCase()
+    ) {
       return sheets[i];
     }
   }
   return null;
 }
 
+function resolveBrandForStore_(storeId, storeName) {
+  var sid = String(storeId || "")
+    .trim()
+    .toLowerCase();
+  if (sid) {
+    var stores = readStoreRows();
+    for (var i = 0; i < stores.length; i++) {
+      if (String(stores[i].id || "").trim().toLowerCase() === sid) {
+        return stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name);
+      }
+    }
+  }
+  return detectStoreBrandLabelFromName_(storeName) || "JOYFIT";
+}
+
 function getOrCreateSurveySheet(storeId, storeName) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var wantedId = safeSheetName(storeId);
-  var exact = ("回答_" + safeSheetName(storeName) + "_" + wantedId).slice(0, 90);
-  var sheet = ss.getSheetByName(exact);
-  if (sheet) {
-    cacheSurveySheetName_(storeId, exact);
-    applyAnswerTabColor_(sheet, detectStoreBrandLabelFromName_(storeName));
-    return sheet;
-  }
-
-  sheet = findSurveySheetByStoreId(storeId);
-  if (sheet) {
-    applyAnswerTabColor_(sheet, detectStoreBrandLabelFromName_(storeName));
-    return sheet;
-  }
-
-  sheet = ss.insertSheet(exact);
-  sheet.appendRow([
-    "timestamp",
-    "storeId",
-    "storeName",
-    "rating",
-    "fullName",
-    "memberCode",
-    "gender",
-    "ageRange",
-    "email",
-    "visitDate",
-    "notifyTo",
-    "positives",
-    "useScenes",
-    "freeComment",
-    "generatedReview",
-    "submissionId",
-  ]);
-  applyAnswerTabColor_(sheet, detectStoreBrandLabelFromName_(storeName));
-  cacheSurveySheetName_(storeId, exact);
+  var brand = resolveBrandForStore_(storeId, storeName);
+  var sheetName = brandAnswerSheetName_(brand);
+  var sheet = getOrCreateBrandAnswerSheet_(brand);
+  cacheSurveySheetName_(storeId, sheetName);
   return sheet;
+}
+
+function getOrCreateBrandAnswerSheet_(brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  var sheetName = brandAnswerSheetName_(brand);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(SURVEY_STANDARD_HEADERS.slice());
+    try {
+      ss.setActiveSheet(sheet);
+      ss.moveActiveSheet(1);
+    } catch (eMove) {}
+  }
+  applyAnswerTabColor_(sheet, brand);
+  return sheet;
+}
+
+/**
+ * 既存 回答_* をブランド3シートへ統合し、旧タブは非表示バックアップにする。
+ */
+function migrateAnswerSheetsToBrand_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var stores = readStoreRows();
+  var brandById = {};
+  for (var i = 0; i < stores.length; i++) {
+    var sid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!sid) continue;
+    brandById[sid] = stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name);
+  }
+
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+  var targets = {};
+  var existingIds = {};
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var target = getOrCreateBrandAnswerSheet_(brand);
+    targets[brand] = target;
+    existingIds[brand] = loadSubmissionIdSet_(target);
+  }
+
+  var migratedSheets = 0;
+  var migratedRows = 0;
+  var skippedDupes = 0;
+  var hidden = [];
+  var sheets = ss.getSheets();
+
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    var name = String(sh.getName() || "");
+    if (!isLegacyAnswerSheetName_(name)) continue;
+
+    var brand = detectBrandFromAnswerSheetName_(name, brandById);
+    var targetSheet = targets[brand] || targets.JOYFIT;
+    var result = appendLegacyAnswerRowsToBrand_(sh, targetSheet, existingIds[brand] || existingIds.JOYFIT);
+    migratedSheets++;
+    migratedRows += result.added;
+    skippedDupes += result.skipped;
+    try {
+      sh.hideSheet();
+      hidden.push(name);
+    } catch (eHide) {}
+  }
+
+  for (var t = 0; t < brands.length; t++) {
+    ensureBrandSheetFilter_(targets[brands[t]]);
+  }
+
+  try {
+    rebuildMemberCodeIndex();
+  } catch (eIdx) {}
+
+  return {
+    ok: true,
+    migratedSheets: migratedSheets,
+    migratedRows: migratedRows,
+    skippedDupes: skippedDupes,
+    hiddenCount: hidden.length,
+    sheets: {
+      JOYFIT: SURVEY_BRAND_SHEET_NAMES.JOYFIT,
+      FIT365: SURVEY_BRAND_SHEET_NAMES.FIT365,
+      YOGA: SURVEY_BRAND_SHEET_NAMES.YOGA,
+    },
+    note: "回答をブランド3シートへ統合し、旧 回答_* は非表示にしました。",
+  };
+}
+
+function loadSubmissionIdSet_(sheet) {
+  var set = {};
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var col = 16;
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i] || "").trim() === "submissionId") {
+      col = i + 1;
+      break;
+    }
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return set;
+  var values = sheet.getRange(2, col, lastRow - 1, 1).getValues();
+  for (var r = 0; r < values.length; r++) {
+    var id = String(values[r][0] || "").trim();
+    if (id) set[id] = true;
+  }
+  return set;
+}
+
+function appendLegacyAnswerRowsToBrand_(source, target, submissionIdSet) {
+  var lastRow = source.getLastRow();
+  var lastCol = source.getLastColumn();
+  if (lastRow <= 1 || lastCol < 1) {
+    return { added: 0, skipped: 0 };
+  }
+  var headers = source.getRange(1, 1, 1, lastCol).getValues()[0];
+  var colMap = {};
+  for (var h = 0; h < headers.length; h++) {
+    var key = String(headers[h] || "").trim();
+    if (key && colMap[key] == null) colMap[key] = h;
+  }
+
+  function colOf(names, fallback) {
+    for (var i = 0; i < names.length; i++) {
+      if (colMap[names[i]] != null) return colMap[names[i]];
+    }
+    return fallback;
+  }
+
+  var idx = {
+    timestamp: colOf(["timestamp"], 0),
+    storeId: colOf(["storeId"], 1),
+    storeName: colOf(["storeName"], 2),
+    rating: colOf(["rating"], 3),
+    fullName: colOf(["fullName", "氏名", "名前"], 4),
+    memberCode: colOf(["memberCode", "会員番号"], 5),
+    gender: colOf(["gender", "性別"], 6),
+    ageRange: colOf(["ageRange", "年齢"], 7),
+    email: colOf(["email"], 8),
+    visitDate: colOf(["visitDate"], 9),
+    notifyTo: colOf(["notifyTo"], 10),
+    positives: colOf(["positives"], 11),
+    useScenes: colOf(["useScenes"], 12),
+    freeComment: colOf(["freeComment"], 13),
+    generatedReview: colOf(["generatedReview"], 14),
+    submissionId: colOf(["submissionId"], 15),
+    granted: colOf(["ポイント付与済"], 21),
+    grantedAt: colOf(["付与日時"], 22),
+  };
+
+  var values = source.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var out = [];
+  var skipped = 0;
+  for (var r = 0; r < values.length; r++) {
+    var row = values[r];
+    var empty = true;
+    for (var c = 0; c < row.length; c++) {
+      if (row[c] !== "" && row[c] != null) {
+        empty = false;
+        break;
+      }
+    }
+    if (empty) continue;
+
+    var submissionId = String(row[idx.submissionId] || "").trim();
+    if (submissionId && submissionIdSet[submissionId]) {
+      skipped++;
+      continue;
+    }
+
+    var outRow = [];
+    outRow[0] = row[idx.timestamp];
+    outRow[1] = row[idx.storeId];
+    outRow[2] = row[idx.storeName];
+    outRow[3] = row[idx.rating];
+    outRow[4] = row[idx.fullName];
+    outRow[5] = row[idx.memberCode];
+    outRow[6] = row[idx.gender];
+    outRow[7] = row[idx.ageRange];
+    outRow[8] = row[idx.email];
+    outRow[9] = row[idx.visitDate];
+    outRow[10] = row[idx.notifyTo];
+    outRow[11] = row[idx.positives];
+    outRow[12] = row[idx.useScenes];
+    outRow[13] = row[idx.freeComment];
+    outRow[14] = row[idx.generatedReview];
+    outRow[15] = submissionId;
+    // ポイント付与列（points-admin が Q=22 / R=23 を参照）
+    for (var pad = 16; pad < 21; pad++) outRow[pad] = "";
+    outRow[21] = idx.granted >= 0 ? row[idx.granted] : "";
+    outRow[22] = idx.grantedAt >= 0 ? row[idx.grantedAt] : "";
+    out.push(outRow);
+    if (submissionId) submissionIdSet[submissionId] = true;
+  }
+
+  if (out.length) {
+    // ヘッダーにポイント列を確保
+    var tLastCol = Math.max(target.getLastColumn(), 23);
+    if (tLastCol < 23) {
+      target.getRange(1, 22).setValue("ポイント付与済");
+      target.getRange(1, 23).setValue("付与日時");
+    } else {
+      var th = String(target.getRange(1, 22).getValue() || "").trim();
+      if (!th) target.getRange(1, 22).setValue("ポイント付与済");
+      var th2 = String(target.getRange(1, 23).getValue() || "").trim();
+      if (!th2) target.getRange(1, 23).setValue("付与日時");
+    }
+    var startRow = target.getLastRow() + 1;
+    target.getRange(startRow, 1, out.length, 23).setValues(out);
+  }
+  return { added: out.length, skipped: skipped };
+}
+
+function ensureBrandSheetFilter_(sheet) {
+  try {
+    var existing = sheet.getFilter();
+    if (existing) existing.remove();
+  } catch (e) {}
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var lastCol = Math.max(sheet.getLastColumn(), SURVEY_STANDARD_HEADERS.length);
+  try {
+    sheet.getRange(1, 1, lastRow, lastCol).createFilter();
+  } catch (e2) {}
+}
+
+function isMemberCodeOnSheet_(sheet, memberCode, storeId) {
+  var memberCodeNorm = normalizeMemberCode(memberCode);
+  if (!memberCodeNorm) {
+    return false;
+  }
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var col = 6;
+  var storeCol = 0;
+  for (var i = 0; i < headers.length; i++) {
+    var key = String(headers[i] || "").trim();
+    if (key === "memberCode" || key === "会員番号") {
+      col = i + 1;
+    }
+    if (key === "storeId" || key === "店舗ID" || key === "店舗Id") {
+      storeCol = i + 1;
+    }
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return false;
+  }
+  var width = Math.max(col, storeCol, 1);
+  var values = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+  var wantStore = String(storeId || "")
+    .trim()
+    .toLowerCase();
+  for (var r = 0; r < values.length; r++) {
+    if (wantStore && storeCol > 0) {
+      var rowStore = String(values[r][storeCol - 1] || "")
+        .trim()
+        .toLowerCase();
+      if (rowStore && rowStore !== wantStore) continue;
+    }
+    if (normalizeMemberCode(values[r][col - 1]) === memberCodeNorm) {
+      return true;
+    }
+  }
+  return false;
 }
 
 var SURVEY_HEADER_ALIASES_ = {
@@ -1368,33 +1685,6 @@ function appendSurveyRecord_(sheet, record) {
     record.generatedReview,
     record.submissionId,
   ]);
-}
-
-function isMemberCodeOnSheet_(sheet, memberCode) {
-  var memberCodeNorm = normalizeMemberCode(memberCode);
-  if (!memberCodeNorm) {
-    return false;
-  }
-  var lastCol = Math.max(sheet.getLastColumn(), 1);
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var col = 6;
-  for (var i = 0; i < headers.length; i++) {
-    var key = String(headers[i] || "").trim();
-    if (key === "memberCode" || key === "会員番号") {
-      col = i + 1;
-    }
-  }
-  var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) {
-    return false;
-  }
-  var values = sheet.getRange(2, col, lastRow - 1, 1).getValues();
-  for (var r = 0; r < values.length; r++) {
-    if (normalizeMemberCode(values[r][0]) === memberCodeNorm) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function safeSheetName(value) {

@@ -19,6 +19,53 @@ var POINT_GRANT_AT_COL = 23;
 var POINT_GRANT_HEADER = "ポイント付与済";
 var POINT_GRANT_AT_HEADER = "付与日時";
 
+var SURVEY_BRAND_SHEET_NAMES = {
+  JOYFIT: "回答シート_JOYFIT",
+  FIT365: "回答シート_FIT365",
+  YOGA: "回答シート_YOGA",
+};
+
+function isBrandAnswerSheetName_(name) {
+  return String(name || "").indexOf("回答シート_") === 0;
+}
+
+function isLegacyAnswerSheetName_(name) {
+  var n = String(name || "");
+  return n.indexOf("回答_") === 0 && !isBrandAnswerSheetName_(n);
+}
+
+function detectStoreBrandLabelFromName_(storeName) {
+  var name = String(storeName || "");
+  var normalized = name.replace(/\s+/g, "").toLowerCase();
+  if (
+    (normalized.indexOf("yoga") >= 0 || normalized.indexOf("ヨガ") >= 0) &&
+    (normalized.indexOf("ひばりが丘") >= 0 || normalized.indexOf("ひばりヶ丘") >= 0)
+  ) {
+    return "YOGA";
+  }
+  if (/fit365/i.test(name)) {
+    return "FIT365";
+  }
+  return "JOYFIT";
+}
+
+function normalizeStoreBrandLabel_(value) {
+  var raw = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+  if (!raw) return "";
+  if (raw === "FIT365" || raw.indexOf("FIT365") === 0) return "FIT365";
+  if (raw === "YOGA" || raw.indexOf("YOGA") >= 0) return "YOGA";
+  if (raw === "JOYFIT" || raw.indexOf("JOYFIT") === 0) return "JOYFIT";
+  return "";
+}
+
+function brandAnswerSheetName_(brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  return SURVEY_BRAND_SHEET_NAMES[brand] || SURVEY_BRAND_SHEET_NAMES.JOYFIT;
+}
+
 function getWorkbook() {
   return SpreadsheetApp.openById(SOURCE_SPREADSHEET_ID);
 }
@@ -229,6 +276,10 @@ function readStoreRows() {
       latitude: parseCoordinate(row[col.lat]),
       longitude: parseCoordinate(row[col.lng]),
       rewardLabel: rewardLabel,
+      brandLabel:
+        col.brand >= 0
+          ? normalizeStoreBrandLabel_(row[col.brand]) || detectStoreBrandLabelFromName_(name)
+          : detectStoreBrandLabelFromName_(name),
     });
   }
 
@@ -366,6 +417,9 @@ function getPointGrantStoresForWeb() {
 
 function getPointGrantRowsForWeb(storeId) {
   try {
+    var sid = String(storeId || "")
+      .trim()
+      .toLowerCase();
     var sheet = findSurveySheetByStoreId(storeId);
     if (!sheet) {
       return { ok: false, error: "この店舗の回答シートが見つかりません。" };
@@ -384,6 +438,9 @@ function getPointGrantRowsForWeb(storeId) {
       var row = values[i];
       var rowIndex = i + 2;
       var fields = coerceSurveyRowFields_(row, cols);
+      if (sid && fields.storeId && String(fields.storeId).trim().toLowerCase() !== sid) {
+        continue;
+      }
       if (!fields.fullName && !fields.memberCode && !fields.timestamp && !fields.timestampRaw) {
         continue;
       }
@@ -500,27 +557,35 @@ function findSurveySheetByStoreId(storeId) {
     return null;
   }
   var ss = getWorkbook();
+  var stores = readStoreRows();
+  var brand = "JOYFIT";
+  var matched = null;
+  for (var i = 0; i < stores.length; i++) {
+    if (String(stores[i].id || "").trim().toLowerCase() === sid) {
+      matched = stores[i];
+      brand = stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name);
+      break;
+    }
+  }
+  var brandSheet = ss.getSheetByName(brandAnswerSheetName_(brand));
+  if (brandSheet) {
+    return brandSheet;
+  }
+
   var sheets = ss.getSheets();
   var suffix = "_" + sid;
   for (var s = 0; s < sheets.length; s++) {
     var sh = sheets[s];
     var name = sh.getName();
-    if (name.indexOf("回答_") !== 0) {
+    if (!isLegacyAnswerSheetName_(name)) {
       continue;
     }
     if (name.toLowerCase().slice(-suffix.length) === suffix) {
       return sh;
     }
   }
-  var stores = readStoreRows();
-  for (var i = 0; i < stores.length; i++) {
-    if (String(stores[i].id || "").trim().toLowerCase() !== sid) {
-      continue;
-    }
-    var expected = ("回答_" + safeSheetName(stores[i].name) + "_" + safeSheetName(stores[i].id)).slice(
-      0,
-      90,
-    );
+  if (matched) {
+    var expected = ("回答_" + safeSheetName(matched.name) + "_" + safeSheetName(matched.id)).slice(0, 90);
     var byName = ss.getSheetByName(expected);
     if (byName) {
       return byName;
