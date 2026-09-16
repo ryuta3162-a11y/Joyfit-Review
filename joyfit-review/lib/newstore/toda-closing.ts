@@ -178,7 +178,7 @@ export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
 
   if (input.positives.length) {
     lines.push(
-      `${formatEnumPhrases(input.positives)}が特に良かったです。`,
+      `${formatEnumPhrases(input.positives)}と感じました。`,
     );
   }
 
