@@ -540,6 +540,7 @@
       };
 
       var BOOTSTRAP_STORES = <?!= storesJson ?>;
+      var ANSWER_STATS = <?!= answerStatsJson ?>;
 
       init();
 
@@ -580,31 +581,39 @@
 
       function updateHeroStoreMeta() {
         if (!els.heroStoreMeta) return;
-        var n = state.stores.length;
-        var joyfit = 0;
-        var fit365 = 0;
-        var yoga = 0;
-        state.stores.forEach(function (s) {
-          var b = String(s.brandLabel || s.brand || "").toUpperCase();
-          if (b.indexOf("FIT365") >= 0) fit365++;
-          else if (b.indexOf("YOGA") >= 0) yoga++;
-          else joyfit++;
-        });
-        if (!n) {
-          els.heroStoreMeta.textContent = "登録店舗: 0店舗（店舗データを確認してください）";
+        var stats = ANSWER_STATS || {};
+        var storesWith = Number(stats.storesWithAnswers || 0);
+        var rows = Number(stats.answerRows || 0);
+        var registered = Number(stats.registeredStores || state.stores.length || 0);
+        var bb = stats.byBrand || {};
+        var j = bb.JOYFIT || {};
+        var f = bb.FIT365 || {};
+        var y = bb.YOGA || {};
+        if (!storesWith && !rows) {
+          els.heroStoreMeta.textContent =
+            "口コミ回答データ: 0店舗（店舗マスタ " + registered + " 店舗）";
           return;
         }
         els.heroStoreMeta.innerHTML =
-          "登録店舗 <strong>" +
-          n +
+          "口コミ回答あり <strong>" +
+          storesWith +
           "</strong> 店舗" +
+          "・回答 <strong>" +
+          rows +
+          "</strong> 件" +
           "（JOYFIT " +
-          joyfit +
-          " / FIT365 " +
-          fit365 +
-          " / YOGA " +
-          yoga +
-          "）";
+          (j.stores || 0) +
+          "店/" +
+          (j.rows || 0) +
+          "件 / FIT365 " +
+          (f.stores || 0) +
+          "店/" +
+          (f.rows || 0) +
+          "件 / YOGA " +
+          (y.stores || 0) +
+          "店/" +
+          (y.rows || 0) +
+          "件）";
       }
 
       function onStoreChange() {

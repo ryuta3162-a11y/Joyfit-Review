@@ -73,10 +73,138 @@ function getWorkbook() {
 function doGet() {
   var pointsTemplate = HtmlService.createTemplateFromFile("points");
   pointsTemplate.storesJson = storePickerJson_();
+  pointsTemplate.answerStatsJson = answerStatsJson_();
   return pointsTemplate
     .evaluate()
     .setTitle("EAST /ENJOYポイント付与")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function answerStatsJson_() {
+  return JSON.stringify(countAnswerDataStats_());
+}
+
+/**
+ * ブランド回答シートから「回答がある店舗数」「回答行数」を集計。
+ */
+function countAnswerDataStats_() {
+  var ss = getWorkbook();
+  var registered = readStoreRows().length;
+  var storeIds = {};
+  var rowCount = 0;
+  var byBrand = {
+    JOYFIT: { storeIds: {}, rows: 0 },
+    FIT365: { storeIds: {}, rows: 0 },
+    YOGA: { storeIds: {}, rows: 0 },
+  };
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brand]);
+    if (!sheet) continue;
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) continue;
+    var lastCol = Math.max(sheet.getLastColumn(), 6);
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var storeIdCol = 2;
+    for (var h = 0; h < headers.length; h++) {
+      if (String(headers[h] || "").trim() === "storeId") {
+        storeIdCol = h + 1;
+        break;
+      }
+    }
+    var width = Math.max(storeIdCol, lastCol);
+    var values = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+    for (var r = 0; r < values.length; r++) {
+      var row = values[r];
+      if (!answerRowHasData_(row)) continue;
+      rowCount++;
+      byBrand[brand].rows++;
+      var sid = String(row[storeIdCol - 1] || "")
+        .trim()
+        .toLowerCase();
+      if (!sid || !isLikelyStoreIdForStats_(sid)) continue;
+      storeIds[sid] = true;
+      byBrand[brand].storeIds[sid] = true;
+    }
+  }
+
+  // 旧 回答_*（非表示）にだけ残っている店舗を加算（ブランドシート未反映の保険）
+  addLegacyAnswerStoreCounts_(ss, storeIds, byBrand, function (brand, sid, rows) {
+    if (rows <= 0) return;
+    rowCount += rows;
+    byBrand[brand].rows += rows;
+    storeIds[sid] = true;
+    byBrand[brand].storeIds[sid] = true;
+  });
+
+  function countKeys(obj) {
+    var n = 0;
+    for (var k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) n++;
+    }
+    return n;
+  }
+
+  return {
+    registeredStores: registered,
+    storesWithAnswers: countKeys(storeIds),
+    answerRows: rowCount,
+    byBrand: {
+      JOYFIT: { stores: countKeys(byBrand.JOYFIT.storeIds), rows: byBrand.JOYFIT.rows },
+      FIT365: { stores: countKeys(byBrand.FIT365.storeIds), rows: byBrand.FIT365.rows },
+      YOGA: { stores: countKeys(byBrand.YOGA.storeIds), rows: byBrand.YOGA.rows },
+    },
+  };
+}
+
+function isLikelyStoreIdForStats_(storeId) {
+  var sid = String(storeId || "")
+    .trim()
+    .toLowerCase();
+  if (!sid) return false;
+  if (sid.indexOf("joyfit") >= 0 || sid.indexOf("fit365") >= 0 || sid.indexOf("yoga") >= 0) {
+    return false;
+  }
+  return /^[a-z0-9][a-z0-9_-]{0,40}$/.test(sid);
+}
+
+function answerRowHasData_(row) {
+  if (!row || !row.length) return false;
+  var scan = Math.min(row.length, 16);
+  for (var c = 0; c < scan; c++) {
+    var v = row[c];
+    if (v !== "" && v != null) return true;
+  }
+  return false;
+}
+
+function addLegacyAnswerStoreCounts_(ss, storeIds, byBrand, onLegacyRows) {
+  var stores = readStoreRows();
+  var brandById = {};
+  for (var i = 0; i < stores.length; i++) {
+    var sid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!sid) continue;
+    brandById[sid] = normalizeStoreBrandLabel_(stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name)) || "JOYFIT";
+  }
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    var name = String(sh.getName() || "");
+    if (!isLegacyAnswerSheetName_(name)) continue;
+    var m = name.match(/_([a-z0-9-]+)$/i);
+    if (!m) continue;
+    var sid2 = String(m[1]).toLowerCase();
+    if (!isLikelyStoreIdForStats_(sid2)) continue;
+    if (storeIds[sid2]) continue;
+    var rows = Math.max(0, sh.getLastRow() - 1);
+    if (rows <= 0) continue;
+    var brand = brandById[sid2] || "JOYFIT";
+    if (onLegacyRows) onLegacyRows(brand, sid2, rows);
+  }
 }
 
 function storePickerJson_() {
