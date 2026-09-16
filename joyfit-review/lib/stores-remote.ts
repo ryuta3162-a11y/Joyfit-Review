@@ -58,6 +58,16 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
     "特典文言",
     "特典",
   ]);
+  const brandRaw = pickString(r, ["brand", "ブランド", "brandLabel"]);
+  const brandNorm = brandRaw.trim().toLowerCase().replace(/\s+/g, "");
+  const brand =
+    brandNorm === "fit365"
+      ? ("fit365" as const)
+      : brandNorm === "yoga"
+        ? ("yoga" as const)
+        : brandNorm === "joyfit" || brandNorm === "joyfit24"
+          ? ("joyfit" as const)
+          : undefined;
 
   if (!name || !id) return null;
 
@@ -71,6 +81,7 @@ function normalizeRemoteRow(raw: unknown): StoreMasterRow | null {
     latitude,
     longitude,
     rewardLabel,
+    brand,
   };
 }
 

@@ -6,7 +6,7 @@ import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import { StartReviewCta } from "@/components/member/start-review-cta";
 import { memberFormCardClass } from "@/components/member/member-form-styles";
-import { BRAND_THEMES, brandCssVars, detectBrandFromStore, parseBrandParam } from "@/lib/brand";
+import { BRAND_THEMES, brandCssVars, parseBrandParam, resolveStoreBrand } from "@/lib/brand";
 import { getBrandTopRewardDisplay, STORE_REWARD_VARIES_NOTE } from "@/lib/store-reward";
 import { fetchStoresRemote } from "@/lib/stores-remote";
 
@@ -31,7 +31,7 @@ export default async function BrandHomePage({ params }: Props) {
   let yogaStoreName = "YOGAひばりが丘";
   if (isYoga) {
     const stores = await fetchStoresRemote();
-    const yogaStores = stores.filter((store) => detectBrandFromStore(store.name) === "yoga");
+    const yogaStores = stores.filter((store) => resolveStoreBrand(store) === "yoga");
     if (yogaStores.length >= 1) {
       yogaDirectHref = `/yoga/member/${yogaStores[0].id}`;
       yogaStoreName = yogaStores[0].name;

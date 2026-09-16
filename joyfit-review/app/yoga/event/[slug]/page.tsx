@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PilatesTrialEventSurvey } from "@/components/event/pilates-trial-event-survey";
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
-import { detectBrandFromStore } from "@/lib/brand";
+import { resolveStoreBrand } from "@/lib/brand";
 import { PILATES_TRIAL_EVENT } from "@/lib/event-pilates-trial-202609";
 import { fetchStoresRemote, getStoreByIdRemote } from "@/lib/stores-remote";
 
@@ -19,7 +19,7 @@ export default async function YogaEventSurveyPage({ params }: Props) {
     const stores = await fetchStoresRemote();
     store =
       stores.find((s) => s.id.trim().toLowerCase() === PILATES_TRIAL_EVENT.reviewStoreId) ||
-      stores.find((s) => detectBrandFromStore(s.name) === "yoga");
+      stores.find((s) => resolveStoreBrand(s) === "yoga");
   }
 
   const reviewUrl = store?.googleReviewUrl?.trim() || "";

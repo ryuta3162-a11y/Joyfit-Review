@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { StorePicker } from "@/components/store/store-picker";
-import { detectBrandFromStore, parseBrandParam } from "@/lib/brand";
+import { parseBrandParam, resolveStoreBrand } from "@/lib/brand";
 import { fetchStoresRemote } from "@/lib/stores-remote";
 
 type Props = {
@@ -15,7 +15,7 @@ export default async function BrandSelectStorePage({ params }: Props) {
   if (!brand) notFound();
 
   const stores = await fetchStoresRemote("east");
-  const filtered = stores.filter((store) => detectBrandFromStore(store.name) === brand);
+  const filtered = stores.filter((store) => resolveStoreBrand(store) === brand);
 
   // YOGA は1店舗のみのため、店舗選択・位置情報を挟まずアンケートへ直行
   if (brand === "yoga" && filtered.length >= 1) {

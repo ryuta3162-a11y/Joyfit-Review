@@ -11,7 +11,10 @@
  * シート名: 店舗データ
  *
  * 【推奨レイアウト】1行目ヘッダー例:
- *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用 | I 特典文言（任意）
+ *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用 | I 特典文言（任意） | J ブランド
+ *
+ * J列ブランドはプルダウン（JOYFIT / FIT365 / YOGA）。LPのブランド振り分けに使う。
+ * 体裁整備: GET ?format=json&action=formatStoreBrands
  *
  * 【互換】C列にメールが無い旧データ:
  *   A 店舗名 | B URL | C 店舗ID | D 検索用
@@ -52,6 +55,9 @@ function doGet(e) {
         storeId: e.parameter.storeId,
       }),
     );
+  }
+  if (format === "json" && action === "formatStoreBrands") {
+    return outputJson(formatStoreBrandSheet());
   }
   if (format === "json") {
     var rows = readStoreRows();
@@ -141,6 +147,7 @@ function readStoreRows() {
     var g = String(row[6] || "").trim();
     var h = String(row[7] || "").trim();
     var rewardLabel = String(row[8] || "").trim();
+    var brandRaw = String(row[9] || "").trim();
 
     var feedbackEmail = "";
     var id = "";
@@ -161,6 +168,8 @@ function readStoreRows() {
       searchText = d || defaultSearchText(name, id, "");
     }
 
+    var brand = normalizeStoreBrandLabel_(brandRaw) || detectStoreBrandLabelFromName_(name);
+
     out.push({
       id: id,
       name: name,
@@ -171,10 +180,166 @@ function readStoreRows() {
       latitude: latitude,
       longitude: longitude,
       rewardLabel: rewardLabel,
+      brand: brandToApi_(brand),
+      brandLabel: brand,
     });
   }
 
   return out;
+}
+
+var STORE_BRAND_COL = 10; // J列
+var STORE_BRAND_HEADER = "ブランド";
+var STORE_BRAND_OPTIONS = ["JOYFIT", "FIT365", "YOGA"];
+var STORE_BRAND_COLOR = {
+  JOYFIT: "#F8E9EC",
+  FIT365: "#FCE4EC",
+  YOGA: "#E7F6F6",
+};
+
+/**
+ * 店舗データのブランド列・色分け・店舗数パネル・フィルタを整備する。
+ * A〜I列の位置は変えず、J列以降だけ追加する。
+ */
+function formatStoreBrandSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var lastCol = Math.max(sheet.getLastColumn(), STORE_BRAND_COL);
+  var header = String(sheet.getRange(1, 1).getValue() || "").trim();
+  var startRow = isHeaderRow(header) ? 2 : 1;
+
+  if (isHeaderRow(header)) {
+    sheet.getRange(1, STORE_BRAND_COL).setValue(STORE_BRAND_HEADER);
+  } else {
+    // ヘッダーが無い場合でも J1 にラベルを置く
+    sheet.getRange(1, STORE_BRAND_COL).setValue(STORE_BRAND_HEADER);
+    startRow = 2;
+  }
+
+  var filled = 0;
+  if (lastRow >= startRow) {
+    var names = sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).getValues();
+    var brands = sheet.getRange(startRow, STORE_BRAND_COL, lastRow - startRow + 1, 1).getValues();
+    var outBrands = [];
+    for (var i = 0; i < names.length; i++) {
+      var name = String(names[i][0] || "").trim();
+      if (!name) {
+        outBrands.push([brands[i][0] || ""]);
+        continue;
+      }
+      var current = normalizeStoreBrandLabel_(brands[i][0]);
+      var next = current || detectStoreBrandLabelFromName_(name);
+      outBrands.push([next]);
+      filled++;
+    }
+    sheet.getRange(startRow, STORE_BRAND_COL, outBrands.length, 1).setValues(outBrands);
+
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(STORE_BRAND_OPTIONS, true)
+      .setAllowInvalid(false)
+      .setHelpText("JOYFIT / FIT365 / YOGA から選択")
+      .build();
+    sheet.getRange(startRow, STORE_BRAND_COL, Math.max(outBrands.length, 1), 1).setDataValidation(rule);
+  }
+
+  // 条件付き書式（行全体の薄い色）
+  sheet.clearConditionalFormatRules();
+  var formatRange = sheet.getRange(startRow, 1, Math.max(lastRow - startRow + 1, 1), Math.max(lastCol, STORE_BRAND_COL));
+  var rules = [];
+  for (var b = 0; b < STORE_BRAND_OPTIONS.length; b++) {
+    var label = STORE_BRAND_OPTIONS[b];
+    rules.push(
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied('=$J' + startRow + '="' + label + '"')
+        .setBackground(STORE_BRAND_COLOR[label])
+        .setRanges([formatRange])
+        .build(),
+    );
+  }
+  sheet.setConditionalFormatRules(rules);
+
+  // 右上に店舗数パネル（数式）
+  sheet.getRange("L1").setValue("ブランド別店舗数");
+  sheet.getRange("L1").setFontWeight("bold");
+  sheet.getRange("L2").setValue("JOYFIT");
+  sheet.getRange("M2").setFormula('=COUNTIF(J:J,"JOYFIT")');
+  sheet.getRange("L3").setValue("FIT365");
+  sheet.getRange("M3").setFormula('=COUNTIF(J:J,"FIT365")');
+  sheet.getRange("L4").setValue("YOGA");
+  sheet.getRange("M4").setFormula('=COUNTIF(J:J,"YOGA")');
+  sheet.getRange("L5").setValue("合計");
+  sheet.getRange("L5").setFontWeight("bold");
+  sheet.getRange("M5").setFormula("=M2+M3+M4");
+  sheet.getRange("M5").setFontWeight("bold");
+  sheet.getRange("L2").setBackground(STORE_BRAND_COLOR.JOYFIT);
+  sheet.getRange("L3").setBackground(STORE_BRAND_COLOR.FIT365);
+  sheet.getRange("L4").setBackground(STORE_BRAND_COLOR.YOGA);
+  sheet.getRange("L1:M5").setBorder(true, true, true, true, true, true);
+
+  // フィルタ（J列で JOYFIT / FIT365 を切り替え）
+  var existingFilter = sheet.getFilter();
+  if (existingFilter) {
+    existingFilter.remove();
+  }
+  var filterLastRow = Math.max(sheet.getLastRow(), startRow);
+  sheet.getRange(1, 1, filterLastRow, STORE_BRAND_COL).createFilter();
+
+  sheet.setFrozenRows(1);
+  sheet.setColumnWidth(STORE_BRAND_COL, 100);
+  sheet.setColumnWidth(12, 140);
+  sheet.setColumnWidth(13, 70);
+
+  return {
+    ok: true,
+    filled: filled,
+    brandCol: "J",
+    countsFormula: "M2:M5",
+    note: "J列プルダウンと色分け、右上の店舗数、フィルタを設定しました。フィルタでブランド切替できます。",
+  };
+}
+
+function normalizeStoreBrandLabel_(value) {
+  var raw = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+  if (!raw) return "";
+  if (raw === "FIT365" || raw.indexOf("FIT365") === 0 || raw.indexOf("フィット365") >= 0) {
+    return "FIT365";
+  }
+  if (raw === "YOGA" || raw.indexOf("YOGA") >= 0 || raw.indexOf("ヨガ") >= 0) {
+    return "YOGA";
+  }
+  if (raw === "JOYFIT" || raw.indexOf("JOYFIT") === 0 || raw.indexOf("ジョイフィット") >= 0) {
+    return "JOYFIT";
+  }
+  return "";
+}
+
+function detectStoreBrandLabelFromName_(storeName) {
+  var name = String(storeName || "");
+  var normalized = name.replace(/\s+/g, "").toLowerCase();
+  if (
+    (normalized.indexOf("yoga") >= 0 || normalized.indexOf("ヨガ") >= 0) &&
+    (normalized.indexOf("ひばりが丘") >= 0 || normalized.indexOf("ひばりヶ丘") >= 0)
+  ) {
+    return "YOGA";
+  }
+  if (/fit365/i.test(name)) {
+    return "FIT365";
+  }
+  return "JOYFIT";
+}
+
+function brandToApi_(label) {
+  if (label === "FIT365") return "fit365";
+  if (label === "YOGA") return "yoga";
+  return "joyfit";
 }
 
 function isHeaderRow(cellA) {

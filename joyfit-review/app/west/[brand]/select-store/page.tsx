@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { StorePicker } from "@/components/store/store-picker";
-import { detectBrandFromStore, parseBrandParam } from "@/lib/brand";
+import { parseBrandParam, resolveStoreBrand } from "@/lib/brand";
 import { fetchStoresRemote } from "@/lib/stores-remote";
 import { isWestSampleStoreId } from "@/lib/west-sample-store";
 
@@ -21,7 +21,7 @@ export default async function WestBrandSelectStorePage({ params }: Props) {
   const stores = await fetchStoresRemote(REGION);
   const filtered = stores.filter(
     (store) =>
-      !isWestSampleStoreId(store.id) && detectBrandFromStore(store.name) === brand,
+      !isWestSampleStoreId(store.id) && resolveStoreBrand(store) === brand,
   );
 
   return (

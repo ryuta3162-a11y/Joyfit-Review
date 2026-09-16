@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 
 import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { ReviewFlow } from "@/components/member/review-flow";
-import { detectBrandFromStore, parseBrandParam } from "@/lib/brand";
+import { parseBrandParam, resolveStoreBrand } from "@/lib/brand";
 import { getStoreRewardDisplay } from "@/lib/store-reward";
 import { resolveGoogleWriteReviewUrl } from "@/lib/google-review-url";
 import { fetchStoresRemote, getStoreByIdRemote } from "@/lib/stores-remote";
@@ -29,7 +29,7 @@ export default async function BrandMemberStorePage({ params }: Props) {
     redirect(`/${brand}/select-store`);
   }
 
-  const storeBrand = detectBrandFromStore(store.name);
+  const storeBrand = resolveStoreBrand(store);
   if (storeBrand !== brand) {
     redirect(`/${storeBrand}/member/${store.id}`);
   }

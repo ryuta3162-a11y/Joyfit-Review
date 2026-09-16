@@ -30,12 +30,29 @@ export function isYogaStore(storeName: string): boolean {
 
 /**
  * 店舗名からブランドを判定する。
- * FIT365 → yoga店舗 → それ以外は joyfit
+ * FIT365（名前のどこかに含む） → yoga店舗 → それ以外は joyfit
  */
 export function detectBrandFromStore(storeName: string): Brand {
-  if (/^\s*fit365/i.test(storeName)) return "fit365";
+  if (/fit365/i.test(storeName)) return "fit365";
   if (isYogaStore(storeName)) return "yoga";
   return "joyfit";
+}
+
+/**
+ * スプレッドシートのブランド列（API brand）があれば優先し、なければ店舗名から判定。
+ */
+export function resolveStoreBrand(store: {
+  name: string;
+  brand?: string | null;
+}): Brand {
+  const raw = String(store.brand || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  if (raw === "fit365" || raw === "フィットネスジムfit365") return "fit365";
+  if (raw === "yoga" || raw === "joyfityoga") return "yoga";
+  if (raw === "joyfit" || raw === "joyfit24") return "joyfit";
+  return detectBrandFromStore(store.name);
 }
 
 /** @deprecated detectBrandFromStore と同義。既存呼び出し互換用 */

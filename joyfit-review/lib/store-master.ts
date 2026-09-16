@@ -1,3 +1,5 @@
+import type { Brand } from "@/lib/brand";
+
 export type StoreMasterRow = {
   id: string;
   name: string;
@@ -13,6 +15,8 @@ export type StoreMasterRow = {
   longitude?: number;
   /** 店舗別特典文言（任意・未設定時はブランド既定） */
   rewardLabel?: string;
+  /** スプレッドシートのブランド列（joyfit / fit365 / yoga） */
+  brand?: Brand;
 };
 
 /** GAS未設定・取得失敗時に使うバックアップ */
