@@ -77,6 +77,18 @@ function doGet(e) {
   if (format === "json" && action === "migrateAnswerSheetsToBrand") {
     return outputJson(migrateAnswerSheetsToBrand_());
   }
+  if (format === "json" && action === "auditAnswerStoreNames") {
+    return outputJson(auditAnswerStoreNames_(e && e.parameter ? e.parameter.storeId : ""));
+  }
+  if (format === "json" && action === "normalizeAnswerStoreNames") {
+    return outputJson(normalizeAnswerStoreNames_());
+  }
+  if (format === "json" && action === "sampleBadAnswerRows") {
+    return outputJson(sampleBadAnswerRows_(e && e.parameter ? e.parameter.brand : "JOYFIT"));
+  }
+  if (format === "json" && action === "trimEmptyAnswerRows") {
+    return outputJson(trimEmptyAnswerRows_());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -897,6 +909,8 @@ function checkSurveyRespondent(data) {
 function saveSurveyResponse(data) {
   var storeId = String(data.storeId || "").trim() || "unknown";
   var storeName = String(data.storeName || "").trim() || "unknown";
+  var canonical = resolveCanonicalStoreName_(storeId, storeName);
+  if (canonical) storeName = canonical;
   var rating = Number(data.rating || 0);
   if (!rating) {
     return { ok: false, error: "rating is required" };
@@ -1469,6 +1483,479 @@ function migrateAnswerSheetsToBrand_() {
   };
 }
 
+/**
+ * storeId → 店舗データの正式店舗名。
+ * JOYFIT は表示用に先頭の JOYFIT24 を外して店舗名のみにする。
+ */
+function sampleBadAnswerRows_(brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(brandAnswerSheetName_(brand));
+  if (!sheet) return { ok: false, error: "missing" };
+  var lastRow = sheet.getLastRow();
+  var lastCol = Math.max(sheet.getLastColumn(), 8);
+  if (lastRow <= 1) return { ok: true, samples: [], lastRow: lastRow };
+  var stores = readStoreRows();
+  var metaById = {};
+  for (var i = 0; i < stores.length; i++) {
+    var id = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (id) metaById[id] = true;
+  }
+  var samples = [];
+  var badCount = 0;
+  var goodCount = 0;
+  var emptyId = 0;
+  var pattern = {};
+  var numRows = lastRow - 1;
+  var allValues = sheet.getRange(2, 1, numRows, 6).getValues();
+  for (var r = 0; r < allValues.length; r++) {
+    var row = allValues[r];
+    var rawId = row[1];
+    var sid = String(rawId == null ? "" : rawId)
+      .trim()
+      .toLowerCase();
+    if (isLikelyStoreId_(sid) && metaById[sid]) {
+      goodCount++;
+      continue;
+    }
+    badCount++;
+    if (!sid) emptyId++;
+    var key = sid ? sid.slice(0, 30) : "(empty)";
+    pattern[key] = (pattern[key] || 0) + 1;
+    if (samples.length < 20) {
+      samples.push({
+        row: r + 2,
+        timestampType: Object.prototype.toString.call(row[0]),
+        timestamp: row[0] instanceof Date ? Utilities.formatDate(row[0], "Asia/Tokyo", "yyyy-MM-dd HH:mm") : String(row[0] || "").slice(0, 40),
+        storeId: String(rawId == null ? "" : rawId).slice(0, 40),
+        storeName: String(row[2] == null ? "" : row[2]).slice(0, 40),
+        rating: String(row[3] == null ? "" : row[3]).slice(0, 20),
+        fullName: String(row[4] == null ? "" : row[4]).slice(0, 20),
+        memberCode: String(row[5] == null ? "" : row[5]).slice(0, 20),
+      });
+    }
+  }
+  var topPatterns = Object.keys(pattern)
+    .map(function (k) {
+      return { storeId: k, count: pattern[k] };
+    })
+    .sort(function (a, b) {
+      return b.count - a.count;
+    })
+    .slice(0, 25);
+  return {
+    ok: true,
+    lastRow: lastRow,
+    readRows: allValues.length,
+    goodCount: goodCount,
+    badCount: badCount,
+    emptyId: emptyId,
+    topPatterns: topPatterns,
+    samples: samples,
+  };
+}
+
+/** ブランド回答シートの空行を削除（チェックボックス等で lastRow が伸びた分） */
+function trimEmptyAnswerRows_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var summary = {};
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brand]);
+    if (!sheet) {
+      summary[brand] = { ok: false, error: "missing" };
+      continue;
+    }
+    summary[brand] = trimEmptyRowsOnSheet_(sheet);
+    ensureBrandSheetFilter_(sheet);
+  }
+  return {
+    ok: true,
+    summary: summary,
+    note: "空行を削除しました。実データの storeName 統一は維持されます。",
+  };
+}
+
+function trimEmptyRowsOnSheet_(sheet) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = Math.max(sheet.getLastColumn(), SURVEY_STANDARD_HEADERS.length);
+  if (lastRow <= 1) {
+    return { before: lastRow, after: lastRow, deleted: 0, kept: 0 };
+  }
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var kept = [];
+  for (var r = 0; r < values.length; r++) {
+    var row = values[r];
+    var has = false;
+    for (var c = 0; c < Math.min(row.length, 16); c++) {
+      if (row[c] !== "" && row[c] != null) {
+        has = true;
+        break;
+      }
+    }
+    if (has) kept.push(row);
+  }
+
+  // データ部をクリアして書き直し
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+  }
+  if (kept.length) {
+    sheet.getRange(2, 1, kept.length, lastCol).setValues(kept);
+  }
+  // 余分な行をシート末尾から削除（可能なら）
+  var maxRows = sheet.getMaxRows();
+  var needRows = kept.length + 1;
+  if (maxRows > needRows + 50) {
+    try {
+      sheet.deleteRows(needRows + 1, maxRows - needRows);
+    } catch (eDel) {}
+  }
+  return {
+    before: lastRow,
+    after: kept.length + 1,
+    deleted: values.length - kept.length,
+    kept: kept.length,
+  };
+}
+
+function resolveCanonicalStoreName_(storeId, fallbackName) {
+  var sid = String(storeId || "")
+    .trim()
+    .toLowerCase();
+  var fallback = String(fallbackName || "").trim();
+  if (!sid || !isLikelyStoreId_(sid)) return fallback;
+  var stores = readStoreRows();
+  for (var i = 0; i < stores.length; i++) {
+    if (String(stores[i].id || "").trim().toLowerCase() === sid) {
+      var master = String(stores[i].name || "").trim() || fallback;
+      var brand = stores[i].brandLabel || detectStoreBrandLabelFromName_(master);
+      return formatAnswerStoreName_(master, brand);
+    }
+  }
+  return fallback;
+}
+
+/** 店舗IDらしい文字列だけを正規化対象にする（列ずれ残骸を除外） */
+function isLikelyStoreId_(storeId) {
+  var sid = String(storeId || "")
+    .trim()
+    .toLowerCase();
+  if (!sid) return false;
+  if (sid.indexOf("joyfit") >= 0 || sid.indexOf("fit365") >= 0 || sid.indexOf("yoga") >= 0) {
+    return false;
+  }
+  return /^[a-z0-9][a-z0-9_-]{0,40}$/.test(sid);
+}
+
+function formatAnswerStoreName_(masterName, brandLabel) {
+  var name = String(masterName || "").trim();
+  var brand = normalizeStoreBrandLabel_(brandLabel) || detectStoreBrandLabelFromName_(name);
+  if (brand === "JOYFIT") {
+    name = name.replace(/^JOYFIT24\s*/i, "").trim();
+  }
+  return name || String(masterName || "").trim();
+}
+
+/**
+ * 監査: ブランドシート内の storeId / storeName ゆれと、旧シート件数比較。
+ * ?storeId=kyodo で1店舗に絞れる。
+ */
+function auditAnswerStoreNames_(focusStoreId) {
+  var focus = String(focusStoreId || "")
+    .trim()
+    .toLowerCase();
+  var stores = readStoreRows();
+  var nameById = {};
+  var displayById = {};
+  for (var i = 0; i < stores.length; i++) {
+    var id = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!id) continue;
+    var master = String(stores[i].name || "").trim();
+    var brand = stores[i].brandLabel || detectStoreBrandLabelFromName_(master);
+    nameById[id] = master;
+    displayById[id] = formatAnswerStoreName_(master, brand);
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var brandStats = {};
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+  for (var b = 0; b < brands.length; b++) {
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brands[b]]);
+    brandStats[brands[b]] = sheet ? summarizeBrandSheetStoreNames_(sheet, displayById, focus) : null;
+  }
+
+  var legacy = {};
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    var name = String(sh.getName() || "");
+    if (!isLegacyAnswerSheetName_(name)) continue;
+    var m = name.match(/_([a-z0-9-]+)$/i);
+    var sid = m ? String(m[1]).toLowerCase() : "";
+    if (focus && sid !== focus) continue;
+    legacy[name] = {
+      storeId: sid,
+      rows: Math.max(0, sh.getLastRow() - 1),
+      hidden: sh.isSheetHidden(),
+    };
+  }
+
+  return {
+    ok: true,
+    focusStoreId: focus || null,
+    masterName: focus && displayById[focus] ? displayById[focus] : null,
+    brandSheets: brandStats,
+    legacySheets: legacy,
+    note: "storeId一致が正。storeNameは表示用なのでマスタ名へ揃えてもLP/ポイント付与は壊れません。",
+  };
+}
+
+function summarizeBrandSheetStoreNames_(sheet, displayById, focusStoreId) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = Math.max(sheet.getLastColumn(), 3);
+  if (lastRow <= 1) {
+    return { rows: 0, byStoreId: {}, nameMismatches: [] };
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var storeIdCol = 2;
+  var storeNameCol = 3;
+  for (var h = 0; h < headers.length; h++) {
+    var key = String(headers[h] || "").trim();
+    if (key === "storeId") storeIdCol = h + 1;
+    if (key === "storeName") storeNameCol = h + 1;
+  }
+  var values = sheet.getRange(2, 1, lastRow - 1, Math.max(storeIdCol, storeNameCol)).getValues();
+  var byStoreId = {};
+  var nameVariants = {};
+  var mismatches = [];
+  for (var r = 0; r < values.length; r++) {
+    var sid = String(values[r][storeIdCol - 1] || "")
+      .trim()
+      .toLowerCase();
+    var sname = String(values[r][storeNameCol - 1] || "").trim();
+    if (focusStoreId && sid !== focusStoreId) continue;
+    if (!sid) sid = "(empty)";
+    if (!byStoreId[sid]) byStoreId[sid] = 0;
+    byStoreId[sid]++;
+    if (!nameVariants[sid]) nameVariants[sid] = {};
+    nameVariants[sid][sname || "(empty)"] = (nameVariants[sid][sname || "(empty)"] || 0) + 1;
+  }
+
+  var ids = Object.keys(byStoreId);
+  for (var i = 0; i < ids.length; i++) {
+    var id = ids[i];
+    if (id === "(empty)" || !isLikelyStoreId_(id)) continue;
+    var expected = displayById[id] || "";
+    var variants = nameVariants[id] || {};
+    var names = Object.keys(variants);
+    var mismatchNames = [];
+    for (var n = 0; n < names.length; n++) {
+      if (expected && names[n] !== expected) mismatchNames.push({ name: names[n], count: variants[names[n]] });
+    }
+    if (mismatchNames.length || names.length > 1) {
+      mismatches.push({
+        storeId: id,
+        masterName: expected || null,
+        rows: byStoreId[id],
+        variants: variants,
+        mismatchNames: mismatchNames,
+      });
+    }
+  }
+
+  mismatches.sort(function (a, b) {
+    return b.rows - a.rows;
+  });
+
+  return {
+    rows: focusStoreId ? byStoreId[focusStoreId] || 0 : lastRow - 1,
+    byStoreId: byStoreId,
+    nameMismatches: mismatches.slice(0, focusStoreId ? 20 : 40),
+    mismatchStoreCount: mismatches.length,
+  };
+}
+
+/**
+ * ブランド回答シートの storeName を統一。
+ * - storeId がマスタにある行のみ
+ * - JOYFIT は JOYFIT24 接頭辞を外した店舗名
+ * - FIT365 / YOGA はマスタ正式名のまま
+ * - 列ずれ残骸（storeIdに店名が入っている行）は変更しない
+ */
+function normalizeAnswerStoreNames_() {
+  var stores = readStoreRows();
+  var metaById = {};
+  for (var i = 0; i < stores.length; i++) {
+    var id = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!id) continue;
+    var master = String(stores[i].name || "").trim();
+    var brand = stores[i].brandLabel || detectStoreBrandLabelFromName_(master);
+    metaById[id] = {
+      master: master,
+      brand: brand,
+      display: formatAnswerStoreName_(master, brand),
+    };
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var summary = {};
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brand]);
+    if (!sheet) {
+      summary[brand] = { ok: false, error: "missing sheet" };
+      continue;
+    }
+    summary[brand] = normalizeStoreNamesOnSheet_(sheet, metaById);
+  }
+
+  return {
+    ok: true,
+    summary: summary,
+    note: "正規のstoreId行のみ storeName を統一。JOYFITはJOYFIT24無しの店舗名。列ずれ行は未変更。LP/ポイントはstoreId基準で影響なし。",
+  };
+}
+
+function normalizeStoreNamesOnSheet_(sheet, metaById) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = Math.max(sheet.getLastColumn(), 16);
+  if (lastRow <= 1) {
+    return { updated: 0, unchanged: 0, repairedShifted: 0, matchedByName: 0, skipped: 0 };
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var col = {
+    timestamp: 1,
+    storeId: 2,
+    storeName: 3,
+    rating: 4,
+    fullName: 5,
+    memberCode: 6,
+  };
+  for (var h = 0; h < headers.length; h++) {
+    var key = String(headers[h] || "").trim();
+    if (key === "timestamp") col.timestamp = h + 1;
+    if (key === "storeId") col.storeId = h + 1;
+    if (key === "storeName") col.storeName = h + 1;
+    if (key === "rating") col.rating = h + 1;
+    if (key === "fullName" || key === "氏名" || key === "名前") col.fullName = h + 1;
+    if (key === "memberCode" || key === "会員番号") col.memberCode = h + 1;
+  }
+
+  var width = Math.max(col.timestamp, col.storeId, col.storeName, col.rating, col.fullName, col.memberCode);
+  var values = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+  var updated = 0;
+  var unchanged = 0;
+  var repairedShifted = 0;
+  var matchedByName = 0;
+  var skipped = 0;
+
+  // storeName / 短縮名 → id
+  var idByName = {};
+  var ids = Object.keys(metaById);
+  for (var i = 0; i < ids.length; i++) {
+    var meta = metaById[ids[i]];
+    if (!meta) continue;
+    if (meta.master) idByName[String(meta.master).trim()] = ids[i];
+    if (meta.display) idByName[String(meta.display).trim()] = ids[i];
+    var stripped = String(meta.master || "")
+      .replace(/^JOYFIT24\s*/i, "")
+      .trim();
+    if (stripped) idByName[stripped] = ids[i];
+  }
+
+  var storeIdOut = [];
+  var storeNameOut = [];
+
+  for (var r = 0; r < values.length; r++) {
+    var row = values[r];
+    var sid = String(row[col.storeId - 1] || "")
+      .trim()
+      .toLowerCase();
+    var currentName = String(row[col.storeName - 1] || "").trim();
+    var ts = row[col.timestamp - 1];
+    var ratingText = String(row[col.rating - 1] == null ? "" : row[col.rating - 1]).trim();
+    var fullName = String(row[col.fullName - 1] || "").trim();
+    var memberCode = String(row[col.memberCode - 1] || "")
+      .trim()
+      .replace(/\D/g, "");
+
+    var targetId = "";
+    var targetName = "";
+    var via = "";
+
+    if (isLikelyStoreId_(sid) && metaById[sid]) {
+      targetId = sid;
+      targetName = metaById[sid].display;
+      via = "storeId";
+    } else {
+      // 列ずれ: timestamp に storeId、storeId に店舗名、rating に氏名、fullName に会員番号
+      var tsText = String(ts == null ? "" : ts).trim();
+      var tsLooksLikeStoreId =
+        !(ts instanceof Date) &&
+        isLikelyStoreId_(tsText.toLowerCase()) &&
+        !!metaById[tsText.toLowerCase()];
+      var ratingLooksLikeName = ratingText && !/^[1-5]$/.test(ratingText);
+      var nameLooksLikeMemberCode = /^\d{10}$/.test(fullName) && !memberCode;
+      if (tsLooksLikeStoreId && ratingLooksLikeName && nameLooksLikeMemberCode) {
+        targetId = tsText.toLowerCase();
+        targetName = metaById[targetId].display;
+        via = "shifted";
+      } else {
+        // storeId列に店名、または storeName からマスタ照合
+        var nameCandidate = currentName;
+        if (!isLikelyStoreId_(sid) && sid && !/^[1-5]$/.test(String(row[col.storeId - 1] || "").trim())) {
+          // storeId列が店名っぽい
+          nameCandidate = String(row[col.storeId - 1] || "").trim() || currentName;
+        }
+        var byName = idByName[nameCandidate] || idByName[nameCandidate.replace(/^JOYFIT24\s*/i, "").trim()];
+        if (byName && metaById[byName]) {
+          targetId = byName;
+          targetName = metaById[byName].display;
+          via = "name";
+        }
+      }
+    }
+
+    var outId = String(row[col.storeId - 1] || "");
+    var outName = currentName;
+    if (targetId && targetName) {
+      outId = targetId;
+      outName = targetName;
+      if (via === "shifted") repairedShifted++;
+      else if (via === "name") matchedByName++;
+      if (String(row[col.storeId - 1] || "").trim().toLowerCase() !== targetId || currentName !== targetName) {
+        updated++;
+      } else {
+        unchanged++;
+      }
+    } else {
+      skipped++;
+    }
+    storeIdOut.push([outId]);
+    storeNameOut.push([outName]);
+  }
+
+  sheet.getRange(2, col.storeId, storeIdOut.length, 1).setValues(storeIdOut);
+  sheet.getRange(2, col.storeName, storeNameOut.length, 1).setValues(storeNameOut);
+  return {
+    updated: updated,
+    unchanged: unchanged,
+    repairedShifted: repairedShifted,
+    matchedByName: matchedByName,
+    skipped: skipped,
+    total: values.length,
+  };
+}
+
 function loadSubmissionIdSet_(sheet) {
   var set = {};
   var lastCol = Math.max(sheet.getLastColumn(), 1);
@@ -1537,7 +2024,7 @@ function appendLegacyAnswerRowsToBrand_(source, target, submissionIdSet) {
   for (var r = 0; r < values.length; r++) {
     var row = values[r];
     var empty = true;
-    for (var c = 0; c < row.length; c++) {
+    for (var c = 0; c < Math.min(row.length, 16); c++) {
       if (row[c] !== "" && row[c] != null) {
         empty = false;
         break;
