@@ -89,6 +89,9 @@ function doGet(e) {
   if (format === "json" && action === "trimEmptyAnswerRows") {
     return outputJson(trimEmptyAnswerRows_());
   }
+  if (format === "json" && action === "stripStoreNameBrandPrefixes") {
+    return outputJson(stripStoreNameBrandPrefixes_());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -533,14 +536,26 @@ function collectStoreMasterRows_(sheet) {
     seen[key] = true;
     rows.push([
       parsed.brandLabel || detectStoreBrandLabelFromName_(parsed.name),
-      parsed.name,
+      stripBrandPrefixFromStoreName_(
+        parsed.name,
+        parsed.brandLabel || detectStoreBrandLabelFromName_(parsed.name)
+      ),
       parsed.googleReviewUrl,
       parsed.feedbackEmail || "",
       parsed.id,
       parsed.address || "",
       parsed.latitude == null ? "" : parsed.latitude,
       parsed.longitude == null ? "" : parsed.longitude,
-      parsed.searchText || "",
+      enrichSearchTextWithBrand_(
+        parsed.searchText || "",
+        stripBrandPrefixFromStoreName_(
+          parsed.name,
+          parsed.brandLabel || detectStoreBrandLabelFromName_(parsed.name)
+        ),
+        parsed.id,
+        parsed.address || "",
+        parsed.brandLabel || detectStoreBrandLabelFromName_(parsed.name)
+      ),
       parsed.rewardLabel || "",
     ]);
   }
@@ -598,9 +613,17 @@ function writeStoreMasterLayout_(sheet, rows) {
     for (var c = 0; c < STORE_HEADERS.length; c++) {
       line.push(src[c] == null ? "" : src[c]);
     }
-    // 新レイアウト: 0=ブランド, 1=店舗名
+    // 新レイアウト: 0=ブランド, 1=店舗名（ブランド接頭辞なし）
     var brand = normalizeStoreBrandLabel_(line[0]) || detectStoreBrandLabelFromName_(String(line[1] || ""));
     line[0] = brand;
+    line[1] = stripBrandPrefixFromStoreName_(String(line[1] || ""), brand);
+    line[8] = enrichSearchTextWithBrand_(
+      String(line[8] || ""),
+      String(line[1] || ""),
+      String(line[4] || ""),
+      String(line[5] || ""),
+      brand
+    );
     normalized.push(line);
   }
 
@@ -805,6 +828,114 @@ function detectStoreBrandLabelFromName_(storeName) {
     return "FIT365";
   }
   return "JOYFIT";
+}
+
+/**
+ * 店舗名からブランド接頭辞を除去（ブランド列がある前提）。
+ * 例: JOYFIT24経堂 → 経堂 / FIT365八千代台 → 八千代台 / YOGAひばりが丘 → ひばりが丘
+ * J+麻布十番 などは商品名として残す。
+ */
+function stripBrandPrefixFromStoreName_(storeName, brandLabel) {
+  var name = String(storeName || "").trim();
+  if (!name) return "";
+  var brand = normalizeStoreBrandLabel_(brandLabel) || detectStoreBrandLabelFromName_(name);
+  var stripped = name;
+  if (brand === "FIT365") {
+    stripped = stripped
+      .replace(/^フィットネスジム\s*FIT365\s*/i, "")
+      .replace(/^FIT365\s*/i, "");
+  } else if (brand === "YOGA") {
+    stripped = stripped.replace(/^YOGA\s*/i, "").replace(/^ヨガ\s*/i, "");
+  } else {
+    stripped = stripped.replace(/^JOYFIT24\s*/i, "").replace(/^JOYFIT\s*/i, "");
+  }
+  stripped = stripped.replace(/\s+/g, " ").trim();
+  return stripped || name;
+}
+
+/** 検索用にブランド語を残す（店舗名から接頭辞を外しても検索できる） */
+function enrichSearchTextWithBrand_(searchText, name, id, address, brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  var base = String(searchText || "").trim();
+  if (!base) base = defaultSearchText(name, id, address);
+  var extras = [];
+  if (brand === "FIT365") extras = ["FIT365", "fit365", "フィット365"];
+  else if (brand === "YOGA") extras = ["YOGA", "yoga", "ヨガ"];
+  else extras = ["JOYFIT24", "JOYFIT", "joyfit", "ジョイフィット"];
+  var lower = base.toLowerCase();
+  for (var i = 0; i < extras.length; i++) {
+    if (lower.indexOf(String(extras[i]).toLowerCase()) < 0) {
+      base += " " + extras[i];
+    }
+  }
+  if (name && lower.indexOf(String(name).toLowerCase()) < 0) {
+    base = name + " " + base;
+  }
+  return base.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * 店舗データの店舗名をブランド無しに統一（バックアップ付き）。
+ * あわせて回答シートの storeName もマスタに追従。
+ */
+function stripStoreNameBrandPrefixes_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) {
+    return { ok: false, error: "店舗データ sheet missing" };
+  }
+
+  var backupName = backupStoreDataSheet_(sheet);
+  var rows = collectStoreMasterRows_(sheet);
+  if (!rows.length) {
+    return { ok: false, error: "no store rows", backupSheet: backupName };
+  }
+
+  var changed = [];
+  for (var i = 0; i < rows.length; i++) {
+    var brand = normalizeStoreBrandLabel_(rows[i][0]) || "JOYFIT";
+    var before = String(rows[i][1] || "").trim();
+    var after = stripBrandPrefixFromStoreName_(before, brand);
+    rows[i][0] = brand;
+    rows[i][1] = after;
+    rows[i][8] = enrichSearchTextWithBrand_(
+      String(rows[i][8] || ""),
+      after,
+      String(rows[i][4] || ""),
+      String(rows[i][5] || ""),
+      brand
+    );
+    if (before !== after) {
+      changed.push({ id: String(rows[i][4] || ""), before: before, after: after, brand: brand });
+    }
+  }
+
+  try {
+    replaceStoreMasterSheet_(ss, rows);
+  } catch (err) {
+    return {
+      ok: false,
+      error: String(err && err.message ? err.message : err),
+      backupSheet: backupName,
+    };
+  }
+
+  var answerNorm = null;
+  try {
+    answerNorm = normalizeAnswerStoreNames_();
+  } catch (eAns) {
+    answerNorm = { ok: false, error: String(eAns && eAns.message ? eAns.message : eAns) };
+  }
+
+  return {
+    ok: true,
+    backupSheet: backupName,
+    total: rows.length,
+    changedCount: changed.length,
+    changedSample: changed.slice(0, 30),
+    answerNormalize: answerNorm,
+    note: "店舗名から JOYFIT24/FIT365/YOGA 接頭辞を除去。ブランド列と入力規則は維持。検索用にブランド語は残しています。",
+  };
 }
 
 function brandToApi_(label) {
@@ -1627,7 +1758,7 @@ function resolveCanonicalStoreName_(storeId, fallbackName) {
     .trim()
     .toLowerCase();
   var fallback = String(fallbackName || "").trim();
-  if (!sid || !isLikelyStoreId_(sid)) return fallback;
+  if (!sid || !isLikelyStoreId_(sid)) return stripBrandPrefixFromStoreName_(fallback, "");
   var stores = readStoreRows();
   for (var i = 0; i < stores.length; i++) {
     if (String(stores[i].id || "").trim().toLowerCase() === sid) {
@@ -1636,7 +1767,7 @@ function resolveCanonicalStoreName_(storeId, fallbackName) {
       return formatAnswerStoreName_(master, brand);
     }
   }
-  return fallback;
+  return stripBrandPrefixFromStoreName_(fallback, "");
 }
 
 /** 店舗IDらしい文字列だけを正規化対象にする（列ずれ残骸を除外） */
@@ -1652,12 +1783,7 @@ function isLikelyStoreId_(storeId) {
 }
 
 function formatAnswerStoreName_(masterName, brandLabel) {
-  var name = String(masterName || "").trim();
-  var brand = normalizeStoreBrandLabel_(brandLabel) || detectStoreBrandLabelFromName_(name);
-  if (brand === "JOYFIT") {
-    name = name.replace(/^JOYFIT24\s*/i, "").trim();
-  }
-  return name || String(masterName || "").trim();
+  return stripBrandPrefixFromStoreName_(masterName, brandLabel);
 }
 
 /**
