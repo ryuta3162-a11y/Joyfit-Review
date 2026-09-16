@@ -271,6 +271,33 @@
         opacity: 0.45;
         cursor: not-allowed;
       }
+      .code-copy.copied {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: #fff5f6;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 28px;
+        transform: translateX(-50%) translateY(12px);
+        z-index: 60;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: rgba(30, 41, 59, 0.94);
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        box-shadow: var(--shadow);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
       .rating {
         font-size: 1rem;
         font-weight: 800;
@@ -588,6 +615,8 @@
       </div>
     </div>
 
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <script>
       var state = {
         stores: [],
@@ -619,6 +648,7 @@
         modalClose: document.getElementById("modalClose"),
         modalToggleGrant: document.getElementById("modalToggleGrant"),
         heroStoreMeta: document.getElementById("heroStoreMeta"),
+        toast: document.getElementById("toast"),
       };
 
       var BOOTSTRAP_STORES = <?!= storesJson ?>;
@@ -911,7 +941,7 @@
           } else {
             codeBtn.addEventListener("click", function (e) {
               e.stopPropagation();
-              copyMemberCode(memberCode, row.rowIndex, !!row.granted);
+              copyMemberCode(memberCode, row.rowIndex, !!row.granted, codeBtn);
             });
           }
           tdCode.appendChild(codeBtn);
@@ -930,7 +960,7 @@
         });
       }
 
-      function setGranted(rowIndex, granted) {
+      function setGranted(rowIndex, granted, onDone) {
         google.script.run
           .withSuccessHandler(function (res) {
             if (!res || !res.ok) {
@@ -959,6 +989,7 @@
             stats.pending = stats.total - stats.granted;
             updateStats(stats);
             renderList();
+            if (typeof onDone === "function") onDone(res);
           })
           .withFailureHandler(onError)
           .setPointGrantedForWeb(state.sheetName, rowIndex, granted);
@@ -1066,18 +1097,52 @@
         });
       }
 
-      function copyMemberCode(code, rowIndex, alreadyGranted) {
+      function copyMemberCode(code, rowIndex, alreadyGranted, buttonEl) {
         var text = String(code || "").trim();
         if (!text) return;
         copyText(text)
           .then(function () {
             if (!alreadyGranted && rowIndex) {
-              setGranted(rowIndex, true);
+              // 付与更新で一覧が再描画されるため、完了後にフィードバックを出す
+              setGranted(rowIndex, true, function () {
+                var btn = els.listBody.querySelector(
+                  'tr[data-row-index="' + rowIndex + '"] .code-copy'
+                );
+                showCopiedFeedback(btn || buttonEl, text);
+              });
+            } else {
+              showCopiedFeedback(buttonEl, text);
             }
           })
           .catch(function () {
             alert("コピーできませんでした。会員番号: " + text);
           });
+      }
+
+      var copiedFeedbackTimer = null;
+      function showCopiedFeedback(buttonEl, code) {
+        setStatus("コピーしました: " + code);
+        showToast("コピーしました");
+        if (buttonEl) {
+          var original = buttonEl.textContent;
+          buttonEl.classList.add("copied");
+          buttonEl.textContent = "コピーしました";
+          window.clearTimeout(buttonEl._copiedTimer);
+          buttonEl._copiedTimer = window.setTimeout(function () {
+            buttonEl.classList.remove("copied");
+            buttonEl.textContent = original;
+          }, 1600);
+        }
+      }
+
+      function showToast(msg) {
+        if (!els.toast) return;
+        els.toast.textContent = msg;
+        els.toast.classList.add("show");
+        window.clearTimeout(copiedFeedbackTimer);
+        copiedFeedbackTimer = window.setTimeout(function () {
+          els.toast.classList.remove("show");
+        }, 1600);
       }
 
       function setStatus(msg, isError) {
