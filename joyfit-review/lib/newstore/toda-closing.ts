@@ -1,18 +1,60 @@
 /**
- * FIT365 戸田新曽 新店クロージング用
- * 見学 / 無料体験のあと、よかった点から口コミ文を作って投稿する。
+ * 見学体験後アンケート（経堂 / 戸田新曽）
+ * 画面URLは店舗ごと、回答は同じスプレッドシートへ保存する。
  */
 
-export const TODA_STORE = {
-  id: "todaniizo",
-  name: "FIT365 戸田新曽",
-  address: "埼玉県戸田市新曽1243-1",
-  officialUrl: "https://fit365.jp/todaniizo/",
-  appInstallUrl: "https://fit365.jp/pr_app/",
-  mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
-  googleReviewUrl:
-    "https://search.google.com/local/writereview?cid=1273082332638051101",
-} as const;
+import type { Brand } from "@/lib/brand";
+
+export type ClosingStoreSlug = "kyodo" | "toda";
+
+export type ClosingStore = {
+  slug: ClosingStoreSlug;
+  id: string;
+  name: string;
+  brand: Brand;
+  googleReviewUrl: string;
+  appInstallUrl: string;
+  appInstallBody: string;
+  appInstallLinkLabel: string;
+  showJoinCampaign: boolean;
+  showTrialHours: boolean;
+};
+
+export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
+  kyodo: {
+    slug: "kyodo",
+    id: "kyodo",
+    name: "JOYFIT24経堂",
+    brand: "joyfit",
+    googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
+    appInstallUrl: "https://procedure.joyfit.jp/qrcode2/index.html",
+    appInstallBody: "JOYFITアプリよりご入会手続きが可能でございます。",
+    appInstallLinkLabel: "アプリ登録はこちら",
+    showJoinCampaign: false,
+    showTrialHours: false,
+  },
+  toda: {
+    slug: "toda",
+    id: "todaniizo",
+    name: "FIT365 戸田新曽",
+    brand: "fit365",
+    googleReviewUrl:
+      "https://search.google.com/local/writereview?cid=1273082332638051101",
+    appInstallUrl: "https://fit365.jp/pr_app/",
+    appInstallBody: "FIT365アプリよりご入会手続きが可能でございます。",
+    appInstallLinkLabel: "アプリインストールはこちら",
+    showJoinCampaign: true,
+    showTrialHours: true,
+  },
+};
+
+export function parseClosingStoreSlug(value: string | undefined | null): ClosingStoreSlug | null {
+  if (value === "kyodo" || value === "toda") return value;
+  return null;
+}
+
+/** @deprecated 戸田単体時の別名。CLOSING_STORES.toda を使う */
+export const TODA_STORE = CLOSING_STORES.toda;
 
 export type TodaVisitType = "kengaku" | "taiken";
 
@@ -87,17 +129,21 @@ export const JOIN_QUESTION_CAMPAIGN_LINES = [
 export const JOIN_QUESTION_NOTE =
   "※本日入会すると回答した方に適用されます。";
 
-export const JOIN_OPTIONS = [
+export const JOIN_OPTIONS_CAMPAIGN = [
   "本日入会する（会費1,000円OFF）",
   "後日入会予定",
   "入会しない",
   "検討中",
 ] as const;
 
+export const JOIN_OPTIONS_DEFAULT = [
+  "本日入会する",
+  "後日入会予定",
+  "入会しない",
+  "検討中",
+] as const;
+
 export const APP_SECTION_TITLE = "入会ご希望の方へ";
-export const APP_SECTION_BODY =
-  "FIT365アプリよりご入会手続きが可能でございます。";
-export const APP_SECTION_LINK_LABEL = "アプリインストールはこちら";
 
 export const REVIEW_POSITIVES_TITLE =
   "見学・体験で、どこが良かったですか？";
@@ -138,6 +184,7 @@ function formatEnumPhrases(items: string[]): string {
 }
 
 export type TodaReviewDraftInput = {
+  storeName: string;
   visitType: TodaVisitType;
   positives: string[];
   extraComment: string;
@@ -147,7 +194,7 @@ export type TodaReviewDraftInput = {
 export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
   const visitWord = VISIT_TYPE_LABEL[input.visitType];
   const lines: string[] = [];
-  lines.push(`FIT365戸田新曽を${visitWord}しました。`);
+  lines.push(`${input.storeName}を${visitWord}しました。`);
 
   if (input.positives.length) {
     lines.push(`${formatEnumPhrases(input.positives)}と感じました。`);

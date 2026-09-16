@@ -5,6 +5,7 @@ import { Check, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
+import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import {
   memberFormCardClass,
   memberFormChoiceClass,
@@ -18,8 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { brandCssVars, BRAND_THEMES } from "@/lib/brand";
 import {
   AGE_OPTIONS,
-  APP_SECTION_BODY,
-  APP_SECTION_LINK_LABEL,
   APP_SECTION_TITLE,
   buildTodaReviewDraft,
   EXTRA_COMMENT_TITLE,
@@ -28,7 +27,8 @@ import {
   GYM_EXPERIENCE_OPTIONS,
   HOW_FOUND_OPTIONS,
   isStudentAge,
-  JOIN_OPTIONS,
+  JOIN_OPTIONS_CAMPAIGN,
+  JOIN_OPTIONS_DEFAULT,
   JOIN_QUESTION_CAMPAIGN_LINES,
   JOIN_QUESTION_NOTE,
   JOIN_QUESTION_TITLE,
@@ -43,15 +43,15 @@ import {
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
   TAIKEN_HOURS,
-  TODA_STORE,
   toggleLimited,
   VISIT_TYPE_LABEL,
+  type ClosingStore,
   type TodaVisitType,
 } from "@/lib/newstore/toda-closing";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  googleReviewUrl: string;
+  store: ClosingStore;
 };
 
 const STARS = [1, 2, 3, 4, 5] as const;
@@ -153,25 +153,37 @@ function StarPicker({
   );
 }
 
-function PageHeader({ subtitle }: { subtitle?: string }) {
+function PageHeader({
+  store,
+  subtitle,
+}: {
+  store: ClosingStore;
+  subtitle?: string;
+}) {
   return (
     <div className="joyfit-brand-header px-6 pb-7 pt-5 text-center text-white">
       <div className="relative z-[1] mx-auto w-full max-w-[16.5rem]">
-        <Fit365Mascot priority className="h-auto w-full object-contain" />
+        {store.brand === "fit365" ? (
+          <Fit365Mascot priority className="h-auto w-full object-contain" />
+        ) : (
+          <JoyfitHeaderLogo brand={store.brand} className="py-2" />
+        )}
       </div>
       <h1 className="relative z-[1] mt-4 text-[1.35rem] font-bold tracking-tight">
         {PAGE_TITLE}
       </h1>
       <p className="relative z-[1] mt-1.5 text-[12px] text-white/85">
-        {subtitle ?? TODA_STORE.name}
+        {subtitle ?? store.name}
       </p>
     </div>
   );
 }
 
-export function TodaClosingSurvey({ googleReviewUrl }: Props) {
-  const theme = BRAND_THEMES.fit365;
+export function TodaClosingSurvey({ store }: Props) {
+  const theme = BRAND_THEMES[store.brand];
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
+  const googleReviewUrl = store.googleReviewUrl;
+  const joinOptions = store.showJoinCampaign ? JOIN_OPTIONS_CAMPAIGN : JOIN_OPTIONS_DEFAULT;
   const submissionIdRef = useRef(newSubmissionId());
 
   const [visitType, setVisitType] = useState<TodaVisitType | null>(null);
@@ -205,12 +217,13 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   const liveDraft = useMemo(() => {
     if (!visitType) return "";
     return buildTodaReviewDraft({
+      storeName: store.name,
       visitType,
       positives,
       extraComment,
       rating: rating ?? 0,
     });
-  }, [visitType, positives, extraComment, rating]);
+  }, [store.name, visitType, positives, extraComment, rating]);
 
   const shownDraft = draftTouched ? draft : liveDraft;
 
@@ -250,6 +263,8 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
 
     const generatedReview = shownDraft.trim();
     const result = await submitTodaClosingSurvey({
+      storeId: store.id,
+      storeName: store.name,
       visitType,
       fullName,
       furigana,
@@ -290,8 +305,8 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
 
   if (!visitType) {
     return (
-      <div data-brand="fit365" className={memberFormCardClass} style={brandVars}>
-        <PageHeader />
+      <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
+        <PageHeader store={store} />
         <div className="space-y-5 bg-gradient-to-b from-zinc-50/80 to-white px-5 py-7 md:px-7">
           <div className="space-y-2 text-center">
             <p className="text-[14px] leading-relaxed text-zinc-700">{LANDING_THANKS}</p>
@@ -337,7 +352,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   if (sent) {
     const goGoogle = rating !== null && rating >= 4 && googleReviewUrl.trim();
     return (
-      <div data-brand="fit365" className={memberFormCardClass} style={brandVars}>
+      <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 pb-10 pt-12 text-center text-white">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
             <Check className="h-7 w-7" strokeWidth={2.75} />
@@ -383,8 +398,8 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   }
 
   return (
-    <div data-brand="fit365" className={memberFormCardClass} style={brandVars}>
-      <PageHeader subtitle={`${TODA_STORE.name} ／ ${VISIT_TYPE_LABEL[visitType]}`} />
+    <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
+      <PageHeader store={store} subtitle={`${store.name} ／ ${VISIT_TYPE_LABEL[visitType]}`} />
 
       <div className="space-y-6 bg-gradient-to-b from-zinc-50/80 to-white px-5 py-6 md:px-7">
         <div className="flex items-start justify-between gap-3">
@@ -397,7 +412,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
             選び直す
           </button>
         </div>
-        {visitType === "taiken" ? (
+        {visitType === "taiken" && store.showTrialHours ? (
           <p className="rounded-xl bg-zinc-100/80 px-3 py-2 text-[12px] leading-relaxed text-zinc-500">
             {TAIKEN_HOURS}
           </p>
@@ -512,15 +527,19 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
           <section className="space-y-3">
             <div className="space-y-1">
               <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
-              {JOIN_QUESTION_CAMPAIGN_LINES.map((line) => (
-                <p key={line} className="text-[13px] font-semibold text-zinc-800">
-                  {line}
-                </p>
-              ))}
-              <p className="text-[12px] text-zinc-500">{JOIN_QUESTION_NOTE}</p>
+              {store.showJoinCampaign
+                ? JOIN_QUESTION_CAMPAIGN_LINES.map((line) => (
+                    <p key={line} className="text-[13px] font-semibold text-zinc-800">
+                      {line}
+                    </p>
+                  ))
+                : null}
+              {store.showJoinCampaign ? (
+                <p className="text-[12px] text-zinc-500">{JOIN_QUESTION_NOTE}</p>
+              ) : null}
             </div>
             <div className="grid gap-2">
-              {JOIN_OPTIONS.map((opt) => (
+              {joinOptions.map((opt) => (
                 <button
                   key={opt}
                   type="button"
@@ -547,14 +566,14 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
 
         <section className="space-y-2 rounded-2xl border border-zinc-200/80 bg-white p-4">
           <p className="text-[14px] font-semibold text-zinc-900">{APP_SECTION_TITLE}</p>
-          <p className="text-[13px] leading-relaxed text-zinc-600">{APP_SECTION_BODY}</p>
+          <p className="text-[13px] leading-relaxed text-zinc-600">{store.appInstallBody}</p>
           <a
-            href={TODA_STORE.appInstallUrl}
+            href={store.appInstallUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex text-[13px] font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
           >
-            {APP_SECTION_LINK_LABEL}
+            {store.appInstallLinkLabel}
           </a>
         </section>
 

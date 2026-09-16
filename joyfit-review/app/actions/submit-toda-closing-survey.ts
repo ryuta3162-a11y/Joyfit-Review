@@ -1,9 +1,11 @@
 "use server";
 
-const DEFAULT_TODA_CLOSING_GAS_URL =
-  "https://script.google.com/macros/s/AKfycbw4OAYFaaHqZ49P-HqxlW3gH13WX6Ro7A1vfk0lisiJu7oyjPKzCdxRuam2ilKMgtxQlw/exec";
+const DEFAULT_CLOSING_GAS_URL =
+  "https://script.google.com/macros/s/AKfycbyjyfr1fCvYQjvuFhLbkINwo7KUk8MhNwYALvXjecJ-zM5J1z4TfHJ0YnLHAQcmB-ZS6A/exec";
 
 export type SubmitTodaClosingSurveyInput = {
+  storeId: string;
+  storeName: string;
   visitType: "kengaku" | "taiken";
   fullName: string;
   furigana: string;
@@ -39,6 +41,9 @@ export async function submitTodaClosingSurvey(
   if (input.visitType !== "kengaku" && input.visitType !== "taiken") {
     return { ok: false, error: "見学か無料体験を選択してください。" };
   }
+  if (!input.storeId.trim() || !input.storeName.trim()) {
+    return { ok: false, error: "店舗を確認できませんでした。" };
+  }
   if (!input.fullName.trim() || !input.furigana.trim() || !input.phone.trim()) {
     return { ok: false, error: "必須項目をご入力ください。" };
   }
@@ -47,7 +52,7 @@ export async function submitTodaClosingSurvey(
   }
 
   const gasUrl =
-    process.env.TODA_CLOSING_GAS_URL?.trim() || DEFAULT_TODA_CLOSING_GAS_URL;
+    process.env.TODA_CLOSING_GAS_URL?.trim() || DEFAULT_CLOSING_GAS_URL;
 
   if (!gasUrl) {
     return { ok: true, saved: false };
@@ -60,6 +65,8 @@ export async function submitTodaClosingSurvey(
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
         action: "todaClosingSurvey",
+        storeId: input.storeId.trim(),
+        storeName: input.storeName.trim(),
         visitType: input.visitType,
         fullName: input.fullName.trim(),
         furigana: input.furigana.trim(),
@@ -72,11 +79,8 @@ export async function submitTodaClosingSurvey(
         howFound: input.howFound.trim(),
         howFoundOther: input.howFoundOther.trim(),
         rating: input.rating,
-        nps: input.rating,
-        googleRating: input.rating,
         joinIntent: input.joinIntent.trim(),
         extraComment: input.extraComment.trim(),
-        facilityComment: input.extraComment.trim(),
         positives: input.positives,
         generatedReview: input.generatedReview.trim(),
         submissionId: input.submissionId.trim(),
