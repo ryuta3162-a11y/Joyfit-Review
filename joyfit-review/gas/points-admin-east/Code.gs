@@ -85,11 +85,20 @@ function answerStatsJson_() {
 }
 
 /**
- * ブランド回答シートから「回答がある店舗数」「回答行数」を集計。
+ * ブランド回答シートのみから「回答がある店舗数」「回答行数」を集計。
+ * 旧 回答_* / row* 残骸は数えない（シートの storeName フィルタと一致させる）。
  */
 function countAnswerDataStats_() {
   var ss = getWorkbook();
-  var registered = readStoreRows().length;
+  var stores = readStoreRows();
+  var masterIds = {};
+  for (var i = 0; i < stores.length; i++) {
+    var mid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (mid) masterIds[mid] = true;
+  }
+  var registered = stores.length;
   var storeIds = {};
   var rowCount = 0;
   var byBrand = {
@@ -124,20 +133,12 @@ function countAnswerDataStats_() {
       var sid = String(row[storeIdCol - 1] || "")
         .trim()
         .toLowerCase();
-      if (!sid || !isLikelyStoreIdForStats_(sid)) continue;
+      // 店舗マスタにある正規 storeId のみ「回答あり店舗」に数える
+      if (!sid || !masterIds[sid]) continue;
       storeIds[sid] = true;
       byBrand[brand].storeIds[sid] = true;
     }
   }
-
-  // 旧 回答_*（非表示）にだけ残っている店舗を加算（ブランドシート未反映の保険）
-  addLegacyAnswerStoreCounts_(ss, storeIds, byBrand, function (brand, sid, rows) {
-    if (rows <= 0) return;
-    rowCount += rows;
-    byBrand[brand].rows += rows;
-    storeIds[sid] = true;
-    byBrand[brand].storeIds[sid] = true;
-  });
 
   function countKeys(obj) {
     var n = 0;
@@ -159,17 +160,6 @@ function countAnswerDataStats_() {
   };
 }
 
-function isLikelyStoreIdForStats_(storeId) {
-  var sid = String(storeId || "")
-    .trim()
-    .toLowerCase();
-  if (!sid) return false;
-  if (sid.indexOf("joyfit") >= 0 || sid.indexOf("fit365") >= 0 || sid.indexOf("yoga") >= 0) {
-    return false;
-  }
-  return /^[a-z0-9][a-z0-9_-]{0,40}$/.test(sid);
-}
-
 function answerRowHasData_(row) {
   if (!row || !row.length) return false;
   var scan = Math.min(row.length, 16);
@@ -180,44 +170,36 @@ function answerRowHasData_(row) {
   return false;
 }
 
-function addLegacyAnswerStoreCounts_(ss, storeIds, byBrand, onLegacyRows) {
-  var stores = readStoreRows();
-  var brandById = {};
-  for (var i = 0; i < stores.length; i++) {
-    var sid = String(stores[i].id || "")
-      .trim()
-      .toLowerCase();
-    if (!sid) continue;
-    brandById[sid] = normalizeStoreBrandLabel_(stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name)) || "JOYFIT";
-  }
-  var sheets = ss.getSheets();
-  for (var s = 0; s < sheets.length; s++) {
-    var sh = sheets[s];
-    var name = String(sh.getName() || "");
-    if (!isLegacyAnswerSheetName_(name)) continue;
-    var m = name.match(/_([a-z0-9-]+)$/i);
-    if (!m) continue;
-    var sid2 = String(m[1]).toLowerCase();
-    if (!isLikelyStoreIdForStats_(sid2)) continue;
-    if (storeIds[sid2]) continue;
-    var rows = Math.max(0, sh.getLastRow() - 1);
-    if (rows <= 0) continue;
-    var brand = brandById[sid2] || "JOYFIT";
-    if (onLegacyRows) onLegacyRows(brand, sid2, rows);
-  }
-}
-
 function storePickerJson_() {
   var stores = readStoreRows();
   var out = [];
   for (var i = 0; i < stores.length; i++) {
+    var brand =
+      normalizeStoreBrandLabel_(stores[i].brandLabel) ||
+      detectStoreBrandLabelFromName_(stores[i].name) ||
+      "JOYFIT";
     out.push({
       id: stores[i].id,
       name: stores[i].name,
-      brandLabel: stores[i].brandLabel || "",
+      brandLabel: brand,
+      searchText: String(stores[i].searchText || [stores[i].name, stores[i].id].join(" ")),
     });
   }
+  out.sort(function (a, b) {
+    var ba = brandSortKey_(a.brandLabel);
+    var bb = brandSortKey_(b.brandLabel);
+    if (ba !== bb) return ba - bb;
+    return String(a.name || "").localeCompare(String(b.name || ""), "ja");
+  });
   return JSON.stringify(out);
+}
+
+function brandSortKey_(brandLabel) {
+  var b = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  if (b === "JOYFIT") return 1;
+  if (b === "FIT365") return 2;
+  if (b === "YOGA") return 3;
+  return 9;
 }
 
 /**

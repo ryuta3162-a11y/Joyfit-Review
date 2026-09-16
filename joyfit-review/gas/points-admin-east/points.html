@@ -450,6 +450,65 @@
         color: var(--brand);
         background: var(--surface);
       }
+      .store-picker {
+        display: grid;
+        gap: 10px;
+      }
+      .brand-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .brand-tab {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.88rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .brand-tab.active {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: #fff5f6;
+      }
+      .store-search-wrap {
+        position: relative;
+      }
+      .store-search-wrap::before {
+        content: "⌕";
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: 1.1rem;
+        pointer-events: none;
+      }
+      .store-search {
+        width: 100%;
+        height: 46px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0 14px 0 38px;
+        font-size: 1rem;
+        font-weight: 600;
+        background: var(--surface);
+        box-shadow: var(--shadow-inset);
+        color: var(--ink);
+      }
+      .store-search:focus {
+        outline: 2px solid rgba(165, 53, 75, 0.25);
+        border-color: var(--brand);
+      }
+      .store-count-hint {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
@@ -461,9 +520,27 @@
 
       <section class="panel">
         <label for="storeSelect">店舗を選択</label>
-        <select id="storeSelect">
-          <option value="">— 店舗を選んでください —</option>
-        </select>
+        <div class="store-picker">
+          <div class="brand-tabs" id="brandTabs" role="tablist" aria-label="ブランド">
+            <button type="button" class="brand-tab active" data-brand="ALL">すべて</button>
+            <button type="button" class="brand-tab" data-brand="JOYFIT">JOYFIT</button>
+            <button type="button" class="brand-tab" data-brand="FIT365">FIT365</button>
+            <button type="button" class="brand-tab" data-brand="YOGA">YOGA</button>
+          </div>
+          <div class="store-search-wrap">
+            <input
+              type="search"
+              id="storeSearch"
+              class="store-search"
+              placeholder="店名やIDで検索（例: 経堂 / kyodo）"
+              autocomplete="off"
+            />
+          </div>
+          <select id="storeSelect">
+            <option value="">— 店舗を選んでください —</option>
+          </select>
+          <p class="store-count-hint" id="storeCountHint"></p>
+        </div>
 
         <div class="stats" id="stats" hidden>
           <div class="stat">合計 <b id="statTotal">0</b></div>
@@ -517,11 +594,16 @@
         sheetName: "",
         rows: [],
         filter: "all",
+        brandFilter: "ALL",
+        storeQuery: "",
         modalRow: null,
       };
 
       var els = {
         storeSelect: document.getElementById("storeSelect"),
+        storeSearch: document.getElementById("storeSearch"),
+        brandTabs: document.getElementById("brandTabs"),
+        storeCountHint: document.getElementById("storeCountHint"),
         stats: document.getElementById("stats"),
         statTotal: document.getElementById("statTotal"),
         statGranted: document.getElementById("statGranted"),
@@ -548,6 +630,24 @@
         onStoresLoaded(BOOTSTRAP_STORES);
 
         els.storeSelect.addEventListener("change", onStoreChange);
+        if (els.storeSearch) {
+          els.storeSearch.addEventListener("input", function () {
+            state.storeQuery = String(els.storeSearch.value || "").trim();
+            renderStoreOptions(els.storeSelect.value);
+          });
+        }
+        if (els.brandTabs) {
+          els.brandTabs.querySelectorAll(".brand-tab").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              els.brandTabs.querySelectorAll(".brand-tab").forEach(function (b) {
+                b.classList.remove("active");
+              });
+              btn.classList.add("active");
+              state.brandFilter = btn.dataset.brand || "ALL";
+              renderStoreOptions(els.storeSelect.value);
+            });
+          });
+        }
         els.modalClose.addEventListener("click", closeModal);
         els.modalBackdrop.addEventListener("click", function (e) {
           if (e.target === els.modalBackdrop) closeModal();
@@ -568,15 +668,79 @@
 
       function onStoresLoaded(stores) {
         state.stores = stores || [];
-        els.storeSelect.innerHTML = '<option value="">— 店舗を選んでください —</option>';
-        state.stores.forEach(function (s) {
-          var opt = document.createElement("option");
-          opt.value = s.id;
-          opt.textContent = s.name;
-          els.storeSelect.appendChild(opt);
-        });
+        renderStoreOptions("");
         updateHeroStoreMeta();
         setStatus("店舗を選択してください。");
+      }
+
+      function storeBrandOf(store) {
+        var b = String(store.brandLabel || "").toUpperCase();
+        if (b.indexOf("FIT365") >= 0) return "FIT365";
+        if (b.indexOf("YOGA") >= 0) return "YOGA";
+        return "JOYFIT";
+      }
+
+      function filteredStores() {
+        var q = String(state.storeQuery || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "");
+        return state.stores.filter(function (s) {
+          if (state.brandFilter !== "ALL" && storeBrandOf(s) !== state.brandFilter) {
+            return false;
+          }
+          if (!q) return true;
+          var hay = [s.name, s.id, s.searchText, s.brandLabel]
+            .join(" ")
+            .toLowerCase()
+            .replace(/\s+/g, "");
+          return hay.indexOf(q) >= 0;
+        });
+      }
+
+      function renderStoreOptions(keepSelectedId) {
+        var selected = keepSelectedId || "";
+        var list = filteredStores();
+        var stillVisible = list.some(function (s) {
+          return s.id === selected;
+        });
+        els.storeSelect.innerHTML = '<option value="">— 店舗を選んでください —</option>';
+
+        var groups = { JOYFIT: [], FIT365: [], YOGA: [] };
+        list.forEach(function (s) {
+          var brand = storeBrandOf(s);
+          if (!groups[brand]) groups[brand] = [];
+          groups[brand].push(s);
+        });
+
+        ["JOYFIT", "FIT365", "YOGA"].forEach(function (brand) {
+          var items = groups[brand] || [];
+          if (!items.length) return;
+          var og = document.createElement("optgroup");
+          og.label = brand + "（" + items.length + "）";
+          items.forEach(function (s) {
+            var opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = s.name;
+            if (stillVisible && s.id === selected) opt.selected = true;
+            og.appendChild(opt);
+          });
+          els.storeSelect.appendChild(og);
+        });
+
+        if (els.storeCountHint) {
+          var total = state.stores.length;
+          var shown = list.length;
+          var brandLabel =
+            state.brandFilter === "ALL" ? "全ブランド" : state.brandFilter;
+          els.storeCountHint.textContent =
+            brandLabel + " " + shown + " / 登録 " + total + " 店舗を表示中";
+        }
+
+        if (selected && !stillVisible) {
+          els.storeSelect.value = "";
+          onStoreChange();
+        }
       }
 
       function updateHeroStoreMeta() {
