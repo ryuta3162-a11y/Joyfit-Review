@@ -14,7 +14,8 @@
  *   A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用 | I 特典文言（任意） | J ブランド
  *
  * J列ブランドはプルダウン（JOYFIT / FIT365 / YOGA）。LPのブランド振り分けに使う。
- * 体裁整備: GET ?format=json&action=formatStoreBrands
+ * 体裁整備: GET ?format=json&action=rebuildStoreMaster
+ *   （バックアップシート作成 → 上段に店舗数 → 6行目ヘッダー → 7行目〜データ）
  *
  * 【互換】C列にメールが無い旧データ:
  *   A 店舗名 | B URL | C 店舗ID | D 検索用
@@ -57,7 +58,10 @@ function doGet(e) {
     );
   }
   if (format === "json" && action === "formatStoreBrands") {
-    return outputJson(formatStoreBrandSheet());
+    return outputJson(rebuildStoreMasterForStaff());
+  }
+  if (format === "json" && action === "rebuildStoreMaster") {
+    return outputJson(rebuildStoreMasterForStaff());
   }
   if (format === "json") {
     var rows = readStoreRows();
@@ -125,11 +129,8 @@ function readStoreRows() {
     return [];
   }
 
-  var startIndex = 0;
-  var firstA = String(values[0][0] || "").trim();
-  if (isHeaderRow(firstA)) {
-    startIndex = 1;
-  }
+  var headerIndex = findStoreHeaderRowIndex_(values);
+  var startIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
 
   var out = [];
   for (var i = startIndex; i < values.length; i++) {
@@ -137,6 +138,9 @@ function readStoreRows() {
     var name = String(row[0] || "").trim();
     var googleReviewUrl = String(row[1] || "").trim();
     if (!name || !googleReviewUrl) {
+      continue;
+    }
+    if (isHeaderRow(name) || isDashboardLabel_(name)) {
       continue;
     }
 
@@ -189,118 +193,318 @@ function readStoreRows() {
 }
 
 var STORE_BRAND_COL = 10; // J列
+var STORE_HEADER_ROW = 6;
+var STORE_DATA_START_ROW = 7;
 var STORE_BRAND_HEADER = "ブランド";
 var STORE_BRAND_OPTIONS = ["JOYFIT", "FIT365", "YOGA"];
+var STORE_HEADERS = [
+  "店舗名",
+  "レビューURL",
+  "低評価通知メール",
+  "店舗ID",
+  "住所",
+  "緯度",
+  "経度",
+  "検索用",
+  "特典文言",
+  "ブランド",
+];
+/** スタッフが見やすい少し濃い色 */
 var STORE_BRAND_COLOR = {
-  JOYFIT: "#F8E9EC",
-  FIT365: "#FCE4EC",
-  YOGA: "#E7F6F6",
+  JOYFIT: "#E8A0AE",
+  FIT365: "#F0A0BC",
+  YOGA: "#7EC8C8",
 };
 
+function findStoreHeaderRowIndex_(values) {
+  var maxScan = Math.min(values.length, 30);
+  for (var i = 0; i < maxScan; i++) {
+    if (isHeaderRow(String(values[i][0] || "").trim())) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function isDashboardLabel_(name) {
+  var n = String(name || "").trim();
+  if (!n) return true;
+  if (n === STORE_BRAND_HEADER || n === "ブランド別店舗数" || n === "合計") return true;
+  if (n.indexOf("EAST") === 0 && n.indexOf("店舗") >= 0) return true;
+  if (n.indexOf("使い方") === 0) return true;
+  for (var i = 0; i < STORE_BRAND_OPTIONS.length; i++) {
+    if (n === STORE_BRAND_OPTIONS[i]) return true;
+  }
+  return false;
+}
+
 /**
- * 店舗データのブランド列・色分け・店舗数パネル・フィルタを整備する。
- * A〜I列の位置は変えず、J列以降だけ追加する。
+ * 見やすい店舗マスタに作り直す（入力内容は保持）。
+ * 1) バックアップシート作成
+ * 2) 1〜5行目: 店舗数ダッシュボード
+ * 3) 6行目: ヘッダー
+ * 4) 7行目〜: 店舗データ + J列ブランド + 色分け + フィルタ
  */
-function formatStoreBrandSheet() {
+function rebuildStoreMasterForStaff() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("店舗データ");
   if (!sheet) {
     return { ok: false, error: "店舗データ sheet missing" };
   }
 
-  var lastRow = Math.max(sheet.getLastRow(), 1);
-  var lastCol = Math.max(sheet.getLastColumn(), STORE_BRAND_COL);
-  var header = String(sheet.getRange(1, 1).getValue() || "").trim();
-  var startRow = isHeaderRow(header) ? 2 : 1;
+  // 直前の失敗で空になっている場合は最新バックアップから戻す
+  ensureStoreDataNotEmpty_(ss, sheet);
 
-  if (isHeaderRow(header)) {
-    sheet.getRange(1, STORE_BRAND_COL).setValue(STORE_BRAND_HEADER);
-  } else {
-    // ヘッダーが無い場合でも J1 にラベルを置く
-    sheet.getRange(1, STORE_BRAND_COL).setValue(STORE_BRAND_HEADER);
-    startRow = 2;
+  var collected = collectStoreMasterRows_(sheet);
+  if (!collected.length) {
+    ensureStoreDataNotEmpty_(ss, sheet);
+    collected = collectStoreMasterRows_(sheet);
+  }
+  if (!collected.length) {
+    return { ok: false, error: "店舗データが空です。バックアップシートから手動復元してください。" };
   }
 
-  var filled = 0;
-  if (lastRow >= startRow) {
-    var names = sheet.getRange(startRow, 1, lastRow - startRow + 1, 1).getValues();
-    var brands = sheet.getRange(startRow, STORE_BRAND_COL, lastRow - startRow + 1, 1).getValues();
-    var outBrands = [];
-    for (var i = 0; i < names.length; i++) {
-      var name = String(names[i][0] || "").trim();
-      if (!name) {
-        outBrands.push([brands[i][0] || ""]);
-        continue;
-      }
-      var current = normalizeStoreBrandLabel_(brands[i][0]);
-      var next = current || detectStoreBrandLabelFromName_(name);
-      outBrands.push([next]);
-      filled++;
-    }
-    sheet.getRange(startRow, STORE_BRAND_COL, outBrands.length, 1).setValues(outBrands);
-
-    var rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(STORE_BRAND_OPTIONS, true)
-      .setAllowInvalid(false)
-      .setHelpText("JOYFIT / FIT365 / YOGA から選択")
-      .build();
-    sheet.getRange(startRow, STORE_BRAND_COL, Math.max(outBrands.length, 1), 1).setDataValidation(rule);
+  var backupName = backupStoreDataSheet_(sheet);
+  try {
+    writeStoreMasterLayout_(sheet, collected);
+  } catch (err) {
+    restoreStoreDataFromBackup_(ss, sheet, backupName);
+    return {
+      ok: false,
+      error: String(err),
+      backupSheet: backupName,
+      restored: true,
+    };
   }
 
-  // 条件付き書式（行全体の薄い色）
-  sheet.clearConditionalFormatRules();
-  var formatRange = sheet.getRange(startRow, 1, Math.max(lastRow - startRow + 1, 1), Math.max(lastCol, STORE_BRAND_COL));
-  var rules = [];
-  for (var b = 0; b < STORE_BRAND_OPTIONS.length; b++) {
-    var label = STORE_BRAND_OPTIONS[b];
-    rules.push(
-      SpreadsheetApp.newConditionalFormatRule()
-        .whenFormulaSatisfied('=$J' + startRow + '="' + label + '"')
-        .setBackground(STORE_BRAND_COLOR[label])
-        .setRanges([formatRange])
-        .build(),
-    );
+  return {
+    ok: true,
+    backupSheet: backupName,
+    storeCount: collected.length,
+    headerRow: STORE_HEADER_ROW,
+    dataStartRow: STORE_DATA_START_ROW,
+    note: "バックアップを作成し、上段に店舗数・6行目ヘッダー・7行目〜データで作り直しました。",
+  };
+}
+
+function ensureStoreDataNotEmpty_(ss, sheet) {
+  var probe = collectStoreMasterRows_(sheet);
+  if (probe.length > 0) {
+    return;
   }
-  sheet.setConditionalFormatRules(rules);
+  var backups = ss.getSheets().filter(function (sh) {
+    return String(sh.getName() || "").indexOf("店舗データ_backup_") === 0;
+  });
+  if (!backups.length) {
+    return;
+  }
+  backups.sort(function (a, b) {
+    return String(b.getName()).localeCompare(String(a.getName()));
+  });
+  restoreStoreDataFromBackup_(ss, sheet, backups[0].getName());
+}
 
-  // 右上に店舗数パネル（数式）
-  sheet.getRange("L1").setValue("ブランド別店舗数");
-  sheet.getRange("L1").setFontWeight("bold");
-  sheet.getRange("L2").setValue("JOYFIT");
-  sheet.getRange("M2").setFormula('=COUNTIF(J:J,"JOYFIT")');
-  sheet.getRange("L3").setValue("FIT365");
-  sheet.getRange("M3").setFormula('=COUNTIF(J:J,"FIT365")');
-  sheet.getRange("L4").setValue("YOGA");
-  sheet.getRange("M4").setFormula('=COUNTIF(J:J,"YOGA")');
-  sheet.getRange("L5").setValue("合計");
-  sheet.getRange("L5").setFontWeight("bold");
-  sheet.getRange("M5").setFormula("=M2+M3+M4");
-  sheet.getRange("M5").setFontWeight("bold");
-  sheet.getRange("L2").setBackground(STORE_BRAND_COLOR.JOYFIT);
-  sheet.getRange("L3").setBackground(STORE_BRAND_COLOR.FIT365);
-  sheet.getRange("L4").setBackground(STORE_BRAND_COLOR.YOGA);
-  sheet.getRange("L1:M5").setBorder(true, true, true, true, true, true);
-
-  // フィルタ（J列で JOYFIT / FIT365 を切り替え）
+function restoreStoreDataFromBackup_(ss, sheet, backupName) {
+  var backup = ss.getSheetByName(backupName);
+  if (!backup) {
+    return false;
+  }
   var existingFilter = sheet.getFilter();
   if (existingFilter) {
     existingFilter.remove();
   }
-  var filterLastRow = Math.max(sheet.getLastRow(), startRow);
-  sheet.getRange(1, 1, filterLastRow, STORE_BRAND_COL).createFilter();
+  sheet.clear();
+  sheet.clearConditionalFormatRules();
+  var range = backup.getDataRange();
+  var values = range.getValues();
+  if (values.length && values[0].length) {
+    sheet.getRange(1, 1, values.length, values[0].length).setValues(values);
+  }
+  return true;
+}
 
-  sheet.setFrozenRows(1);
-  sheet.setColumnWidth(STORE_BRAND_COL, 100);
-  sheet.setColumnWidth(12, 140);
-  sheet.setColumnWidth(13, 70);
+/** 互換: 旧アクション名 */
+function formatStoreBrandSheet() {
+  return rebuildStoreMasterForStaff();
+}
 
-  return {
-    ok: true,
-    filled: filled,
-    brandCol: "J",
-    countsFormula: "M2:M5",
-    note: "J列プルダウンと色分け、右上の店舗数、フィルタを設定しました。フィルタでブランド切替できます。",
-  };
+function backupStoreDataSheet_(sheet) {
+  var ss = sheet.getParent();
+  var stamp = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMdd_HHmm");
+  var name = ("店舗データ_backup_" + stamp).slice(0, 90);
+  var existing = ss.getSheetByName(name);
+  if (existing) {
+    name = (name + "_" + String(Date.now()).slice(-4)).slice(0, 90);
+  }
+  var copy = sheet.copyTo(ss);
+  copy.setName(name);
+  try {
+    ss.setActiveSheet(copy);
+    ss.moveActiveSheet(ss.getNumSheets());
+  } catch (e) {}
+  return name;
+}
+
+function collectStoreMasterRows_(sheet) {
+  var values = sheet.getDataRange().getValues();
+  var headerIndex = findStoreHeaderRowIndex_(values);
+  var startIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
+  var rows = [];
+  var seen = {};
+
+  for (var i = startIndex; i < values.length; i++) {
+    var row = values[i];
+    var name = String(row[0] || "").trim();
+    if (!name || isHeaderRow(name) || isDashboardLabel_(name)) {
+      continue;
+    }
+
+    var googleReviewUrl = String(row[1] || "").trim();
+    var c = String(row[2] || "").trim();
+    var d = String(row[3] || "").trim();
+    var e = String(row[4] || "").trim();
+    var f = row[5];
+    var g = row[6];
+    var h = String(row[7] || "").trim();
+    var rewardLabel = String(row[8] || "").trim();
+    var brandRaw = String(row[9] || "").trim();
+
+    // 旧パネル（L/M）やフィルタ残骸を拾わない
+    if (!googleReviewUrl && !c && !d && !e) {
+      continue;
+    }
+
+    var feedbackEmail = "";
+    var id = "";
+    var searchText = "";
+    var address = "";
+    var latitude = "";
+    var longitude = "";
+
+    if (c.indexOf("@") >= 0 || (!c && d)) {
+      feedbackEmail = c.indexOf("@") >= 0 ? c : "";
+      id = d || "";
+      address = e;
+      latitude = f;
+      longitude = g;
+      searchText = h;
+    } else if (c) {
+      id = c;
+      searchText = d;
+    }
+
+    var brand = normalizeStoreBrandLabel_(brandRaw) || detectStoreBrandLabelFromName_(name);
+    var key = String(id || name).toLowerCase();
+    if (seen[key]) {
+      continue;
+    }
+    seen[key] = true;
+
+    rows.push([
+      name,
+      googleReviewUrl,
+      feedbackEmail,
+      id,
+      address,
+      latitude,
+      longitude,
+      searchText || defaultSearchText(name, id, address),
+      rewardLabel,
+      brand,
+    ]);
+  }
+
+  return rows;
+}
+
+function writeStoreMasterLayout_(sheet, rows) {
+  var existingFilter = sheet.getFilter();
+  if (existingFilter) {
+    existingFilter.remove();
+  }
+
+  sheet.clear();
+  sheet.clearConditionalFormatRules();
+  sheet.setFrozenRows(0);
+
+  // --- ダッシュボード（1〜5行目）---
+  sheet.getRange("A1").setValue("EAST 口コミ｜店舗マスタ");
+  sheet.getRange("A1").setFontWeight("bold").setFontSize(14);
+  sheet.getRange("A2").setValue(
+    "使い方: 6行目がヘッダー／7行目〜が店舗データ。J列でブランド選択 → フィルタで絞り込み。色は JOYFIT=赤系 / FIT365=ピンク / YOGA=青緑。",
+  );
+  sheet.getRange("A2").setWrap(true);
+  sheet.setRowHeight(2, 42);
+
+  sheet.getRange("A3").setValue("JOYFIT");
+  sheet.getRange("B3").setFormula('=COUNTIF(J7:J2000,"JOYFIT")');
+  sheet.getRange("C3").setValue("FIT365");
+  sheet.getRange("D3").setFormula('=COUNTIF(J7:J2000,"FIT365")');
+  sheet.getRange("E3").setValue("YOGA");
+  sheet.getRange("F3").setFormula('=COUNTIF(J7:J2000,"YOGA")');
+  sheet.getRange("G3").setValue("合計");
+  sheet.getRange("H3").setFormula("=B3+D3+F3");
+
+  sheet.getRange("A3").setBackground(STORE_BRAND_COLOR.JOYFIT).setFontWeight("bold");
+  sheet.getRange("C3").setBackground(STORE_BRAND_COLOR.FIT365).setFontWeight("bold");
+  sheet.getRange("E3").setBackground(STORE_BRAND_COLOR.YOGA).setFontWeight("bold");
+  sheet.getRange("G3").setFontWeight("bold");
+  sheet.getRange("H3").setFontWeight("bold");
+  sheet.getRange("A3:H3").setBorder(true, true, true, true, true, true);
+  sheet.getRange("B3:H3").setHorizontalAlignment("center");
+
+  sheet.getRange("A4").setValue(
+    "※ バックアップはこのブック内の「店舗データ_backup_日時」シートにあります（中身は変更していません）。",
+  );
+  sheet.getRange("A5").setValue("");
+
+  // --- ヘッダー（6行目）---
+  sheet.getRange(STORE_HEADER_ROW, 1, 1, STORE_HEADERS.length).setValues([STORE_HEADERS]);
+  sheet
+    .getRange(STORE_HEADER_ROW, 1, 1, STORE_HEADERS.length)
+    .setFontWeight("bold")
+    .setBackground("#334155")
+    .setFontColor("#FFFFFF");
+
+  // --- データ（7行目〜）---
+  if (rows.length) {
+    sheet.getRange(STORE_DATA_START_ROW, 1, rows.length, STORE_HEADERS.length).setValues(rows);
+
+    try {
+      var rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(STORE_BRAND_OPTIONS, true)
+        .setAllowInvalid(true)
+        .build();
+      sheet.getRange(STORE_DATA_START_ROW, STORE_BRAND_COL, rows.length, 1).setDataValidation(rule);
+    } catch (e1) {}
+
+    // 条件付き書式が環境によっては失敗するため、行ごとに色を塗る
+    for (var r = 0; r < rows.length; r++) {
+      var brandLabel = String(rows[r][STORE_BRAND_COL - 1] || "JOYFIT");
+      var bg = STORE_BRAND_COLOR[brandLabel] || STORE_BRAND_COLOR.JOYFIT;
+      sheet.getRange(STORE_DATA_START_ROW + r, 1, 1, STORE_HEADERS.length).setBackground(bg);
+    }
+  }
+
+  try {
+    var filterLastRow = Math.max(STORE_HEADER_ROW, STORE_DATA_START_ROW + Math.max(rows.length, 1) - 1);
+    sheet
+      .getRange(STORE_HEADER_ROW, 1, filterLastRow - STORE_HEADER_ROW + 1, STORE_HEADERS.length)
+      .createFilter();
+  } catch (e2) {}
+
+  sheet.setFrozenRows(STORE_HEADER_ROW);
+
+  sheet.setColumnWidth(1, 220);
+  sheet.setColumnWidth(2, 280);
+  sheet.setColumnWidth(3, 220);
+  sheet.setColumnWidth(4, 120);
+  sheet.setColumnWidth(5, 280);
+  sheet.setColumnWidth(6, 90);
+  sheet.setColumnWidth(7, 90);
+  sheet.setColumnWidth(8, 180);
+  sheet.setColumnWidth(9, 200);
+  sheet.setColumnWidth(10, 100);
 }
 
 function normalizeStoreBrandLabel_(value) {
@@ -346,11 +550,8 @@ function isHeaderRow(cellA) {
   if (!cellA) {
     return false;
   }
-  return (
-    cellA.indexOf("店舗") !== -1 ||
-    cellA === "名前" ||
-    cellA === "店舗名"
-  );
+  var t = String(cellA).trim();
+  return t === "店舗名" || t === "名前" || t.indexOf("店舗名") === 0;
 }
 
 function defaultSearchText(name, id, address) {

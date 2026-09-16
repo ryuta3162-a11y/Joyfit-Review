@@ -141,20 +141,38 @@ function readStoreRows() {
     return [];
   }
 
-  var startIndex = 0;
-  var firstA = String(values[0][0] || "").trim();
-  if (isHeaderRow(firstA)) {
-    startIndex = 1;
+  var headerIndex = -1;
+  var maxScan = Math.min(values.length, 30);
+  for (var h = 0; h < maxScan; h++) {
+    if (isHeaderRow(String(values[h][0] || "").trim())) {
+      headerIndex = h;
+      break;
+    }
   }
+  var startIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
 
   var out = [];
   for (var i = startIndex; i < values.length; i++) {
     var row = values[i];
     var name = String(row[0] || "").trim();
-    if (!name) {
+    if (!name || isHeaderRow(name)) {
+      continue;
+    }
+    if (
+      name === "JOYFIT" ||
+      name === "FIT365" ||
+      name === "YOGA" ||
+      name === "合計" ||
+      name === "ブランド" ||
+      (name.indexOf("EAST") === 0 && name.indexOf("店舗") >= 0) ||
+      name.indexOf("使い方") === 0
+    ) {
       continue;
     }
     var googleReviewUrl = String(row[1] || "").trim();
+    if (!googleReviewUrl) {
+      continue;
+    }
     var c = String(row[2] || "").trim();
     var d = String(row[3] || "").trim();
     var e = String(row[4] || "").trim();
@@ -202,7 +220,8 @@ function isHeaderRow(cellA) {
   if (!cellA) {
     return false;
   }
-  return cellA.indexOf("店舗") !== -1 || cellA === "名前" || cellA === "店舗名";
+  var t = String(cellA).trim();
+  return t === "店舗名" || t === "名前" || t.indexOf("店舗名") === 0;
 }
 
 function defaultSearchText(name, id, address) {
