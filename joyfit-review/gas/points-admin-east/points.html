@@ -532,12 +532,12 @@
               type="search"
               id="storeSearch"
               class="store-search"
-              placeholder="店名やIDで検索（例: 経堂 / kyodo）"
+              placeholder="店名で検索"
               autocomplete="off"
             />
           </div>
           <select id="storeSelect">
-            <option value="">— 店舗を選んでください —</option>
+            <option value="">— 店舗を選ぶ —</option>
           </select>
           <p class="store-count-hint" id="storeCountHint"></p>
         </div>
@@ -704,7 +704,7 @@
         var stillVisible = list.some(function (s) {
           return s.id === selected;
         });
-        els.storeSelect.innerHTML = '<option value="">— 店舗を選んでください —</option>';
+        els.storeSelect.innerHTML = '<option value="">— 店舗を選ぶ —</option>';
 
         var groups = { JOYFIT: [], FIT365: [], YOGA: [] };
         list.forEach(function (s) {
@@ -717,7 +717,7 @@
           var items = groups[brand] || [];
           if (!items.length) return;
           var og = document.createElement("optgroup");
-          og.label = brand + "（" + items.length + "）";
+          og.label = brand;
           items.forEach(function (s) {
             var opt = document.createElement("option");
             opt.value = s.id;
@@ -729,13 +729,10 @@
         });
 
         if (els.storeCountHint) {
-          var total = state.stores.length;
-          var shown = list.length;
-          var brandLabel =
-            state.brandFilter === "ALL" ? "全ブランド" : state.brandFilter;
-          els.storeCountHint.textContent =
-            brandLabel + " " + shown + " / 登録 " + total + " 店舗を表示中";
+          els.storeCountHint.textContent = "回答あり " + list.length + " 店舗";
         }
+
+        updateBrandTabCounts();
 
         if (selected && !stillVisible) {
           els.storeSelect.value = "";
@@ -743,41 +740,54 @@
         }
       }
 
+      function updateBrandTabCounts() {
+        if (!els.brandTabs) return;
+        var counts = { ALL: 0, JOYFIT: 0, FIT365: 0, YOGA: 0 };
+        state.stores.forEach(function (s) {
+          var b = storeBrandOf(s);
+          counts[b] = (counts[b] || 0) + 1;
+          counts.ALL++;
+        });
+        els.brandTabs.querySelectorAll(".brand-tab").forEach(function (btn) {
+          var brand = btn.dataset.brand || "ALL";
+          var label =
+            brand === "ALL"
+              ? "すべて"
+              : brand === "JOYFIT"
+                ? "JOYFIT"
+                : brand === "FIT365"
+                  ? "FIT365"
+                  : "YOGA";
+          btn.textContent = label + " " + (counts[brand] || 0);
+        });
+      }
+
       function updateHeroStoreMeta() {
         if (!els.heroStoreMeta) return;
         var stats = ANSWER_STATS || {};
         var storesWith = Number(stats.storesWithAnswers || 0);
         var rows = Number(stats.answerRows || 0);
-        var registered = Number(stats.registeredStores || state.stores.length || 0);
         var bb = stats.byBrand || {};
-        var j = bb.JOYFIT || {};
-        var f = bb.FIT365 || {};
-        var y = bb.YOGA || {};
-        if (!storesWith && !rows) {
-          els.heroStoreMeta.textContent =
-            "口コミ回答データ: 0店舗（店舗マスタ " + registered + " 店舗）";
+        var j = (bb.JOYFIT && bb.JOYFIT.stores) || 0;
+        var f = (bb.FIT365 && bb.FIT365.stores) || 0;
+        var y = (bb.YOGA && bb.YOGA.stores) || 0;
+        if (!storesWith) {
+          els.heroStoreMeta.textContent = "回答データなし";
           return;
         }
         els.heroStoreMeta.innerHTML =
-          "口コミ回答あり <strong>" +
+          "回答あり <strong>" +
           storesWith +
-          "</strong> 店舗" +
-          "・回答 <strong>" +
+          "</strong> 店舗・<strong>" +
           rows +
           "</strong> 件" +
-          "（JOYFIT " +
-          (j.stores || 0) +
-          "店/" +
-          (j.rows || 0) +
-          "件 / FIT365 " +
-          (f.stores || 0) +
-          "店/" +
-          (f.rows || 0) +
-          "件 / YOGA " +
-          (y.stores || 0) +
-          "店/" +
-          (y.rows || 0) +
-          "件）";
+          "（J " +
+          j +
+          " / 365 " +
+          f +
+          " / Y " +
+          y +
+          "）";
       }
 
       function onStoreChange() {

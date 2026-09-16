@@ -72,8 +72,9 @@ function getWorkbook() {
 
 function doGet() {
   var pointsTemplate = HtmlService.createTemplateFromFile("points");
-  pointsTemplate.storesJson = storePickerJson_();
-  pointsTemplate.answerStatsJson = answerStatsJson_();
+  var answerStats = countAnswerDataStats_();
+  pointsTemplate.storesJson = storePickerJsonFromStats_(answerStats);
+  pointsTemplate.answerStatsJson = JSON.stringify(answerStats);
   return pointsTemplate
     .evaluate()
     .setTitle("EAST /ENJOYポイント付与")
@@ -148,14 +149,35 @@ function countAnswerDataStats_() {
     return n;
   }
 
+  function keysOf(obj) {
+    var arr = [];
+    for (var k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) arr.push(k);
+    }
+    return arr;
+  }
+
   return {
     registeredStores: registered,
     storesWithAnswers: countKeys(storeIds),
+    answerStoreIds: keysOf(storeIds),
     answerRows: rowCount,
     byBrand: {
-      JOYFIT: { stores: countKeys(byBrand.JOYFIT.storeIds), rows: byBrand.JOYFIT.rows },
-      FIT365: { stores: countKeys(byBrand.FIT365.storeIds), rows: byBrand.FIT365.rows },
-      YOGA: { stores: countKeys(byBrand.YOGA.storeIds), rows: byBrand.YOGA.rows },
+      JOYFIT: {
+        stores: countKeys(byBrand.JOYFIT.storeIds),
+        rows: byBrand.JOYFIT.rows,
+        storeIds: keysOf(byBrand.JOYFIT.storeIds),
+      },
+      FIT365: {
+        stores: countKeys(byBrand.FIT365.storeIds),
+        rows: byBrand.FIT365.rows,
+        storeIds: keysOf(byBrand.FIT365.storeIds),
+      },
+      YOGA: {
+        stores: countKeys(byBrand.YOGA.storeIds),
+        rows: byBrand.YOGA.rows,
+        storeIds: keysOf(byBrand.YOGA.storeIds),
+      },
     },
   };
 }
@@ -170,10 +192,25 @@ function answerRowHasData_(row) {
   return false;
 }
 
+/** 回答がある店舗だけを返す（ポイント付与の選択リスト用） */
 function storePickerJson_() {
+  return storePickerJsonFromStats_(countAnswerDataStats_());
+}
+
+function storePickerJsonFromStats_(stats) {
   var stores = readStoreRows();
+  var answerSet = {};
+  var ids = (stats && stats.answerStoreIds) || [];
+  for (var a = 0; a < ids.length; a++) {
+    answerSet[String(ids[a]).toLowerCase()] = true;
+  }
+
   var out = [];
   for (var i = 0; i < stores.length; i++) {
+    var sid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!sid || !answerSet[sid]) continue;
     var brand =
       normalizeStoreBrandLabel_(stores[i].brandLabel) ||
       detectStoreBrandLabelFromName_(stores[i].name) ||
