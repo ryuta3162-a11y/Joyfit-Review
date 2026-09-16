@@ -19,16 +19,13 @@ var HEADER_EN = [
   "gender",
   "age",
   "university",
-  "visitedAt",
   "gymExperience",
   "howFound",
   "howFoundOther",
-  "nps",
-  "npsReason",
+  "rating",
   "joinIntent",
-  "facilityComment",
+  "extraComment",
   "positives",
-  "googleRating",
   "generatedReview",
   "submissionId",
 ];
@@ -43,16 +40,13 @@ var HEADER_JA = [
   "性別",
   "年齢",
   "大学名",
-  "参加日時",
   "ジム利用経験",
   "知ったきっかけ",
   "きっかけ（その他）",
-  "紹介したい度(1-10)",
-  "評価の理由",
+  "星評価",
   "入会意向",
-  "施設・スタッフ感想",
+  "追加ご意見",
   "よかった点",
-  "Google星",
   "口コミ文面",
   "送信ID",
 ];
@@ -194,7 +188,7 @@ function styleSheet(sheet) {
   sheet.setTabColor(COLOR.primary);
 
   var widths = [
-    150, 90, 120, 120, 130, 180, 80, 90, 140, 140, 200, 180, 140, 90, 220, 160, 220, 220, 80, 260, 220,
+    150, 90, 120, 120, 130, 180, 80, 90, 140, 200, 180, 140, 70, 160, 220, 220, 260, 220,
   ];
   for (var c = 0; c < widths.length; c++) {
     sheet.setColumnWidth(c + 1, widths[c]);
@@ -226,8 +220,8 @@ function isDuplicate(ss, submissionId) {
 }
 
 function saveResponse(data) {
-  var nps = Number(data.nps || 0);
-  if (!nps) return { ok: false, error: "nps is required" };
+  var rating = Number(data.rating || data.googleRating || data.nps || 0);
+  if (!rating) return { ok: false, error: "rating is required" };
 
   var submissionId = String(data.submissionId || "").trim();
   var ss = getSpreadsheet();
@@ -257,16 +251,13 @@ function saveResponse(data) {
       String(data.gender || "").trim(),
       String(data.age || "").trim(),
       String(data.university || "").trim(),
-      String(data.visitedAt || "").trim(),
       String(data.gymExperience || "").trim(),
       String(data.howFound || "").trim(),
       String(data.howFoundOther || "").trim(),
-      nps,
-      String(data.npsReason || "").trim(),
+      rating,
       String(data.joinIntent || "").trim(),
-      String(data.facilityComment || "").trim(),
+      String(data.extraComment || data.facilityComment || "").trim(),
       toArray(data.positives).join(" / "),
-      Number(data.googleRating || 0),
       String(data.generatedReview || "").trim(),
       submissionId,
     ]);

@@ -4,9 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { Check, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
-import { Fit365Header } from "@/components/joyfit/fit365-header";
+import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import {
-  memberFormBodyClass,
   memberFormCardClass,
   memberFormChoiceClass,
   memberFormInputClass,
@@ -23,30 +22,27 @@ import {
   APP_SECTION_LINK_LABEL,
   APP_SECTION_TITLE,
   buildTodaReviewDraft,
+  EXTRA_COMMENT_TITLE,
+  FORM_NOTE,
   GENDER_OPTIONS,
   GYM_EXPERIENCE_OPTIONS,
   HOW_FOUND_OPTIONS,
+  isStudentAge,
   JOIN_OPTIONS,
   JOIN_QUESTION_CAMPAIGN_LINES,
   JOIN_QUESTION_NOTE,
   JOIN_QUESTION_TITLE,
-  KENGAKU_INTRO_LINES,
-  KENGAKU_NOTES,
-  KENGAKU_TITLE,
+  LANDING_PLEASE,
+  LANDING_THANKS,
   MAX_REVIEW_POSITIVES,
-  npsToGoogleStars,
-  NPS_MAX,
-  NPS_MIN,
-  NPS_QUESTION,
-  NPS_SCALE_HINT,
+  PAGE_TITLE,
+  PRIVACY_NOTE,
+  RATING_HINT,
+  RATING_QUESTION,
   REVIEW_POSITIVE_OPTIONS,
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
   TAIKEN_HOURS,
-  TAIKEN_HOURS_TITLE,
-  TAIKEN_INTRO_LINES,
-  TAIKEN_NOTES,
-  TAIKEN_TITLE,
   TODA_STORE,
   toggleLimited,
   VISIT_TYPE_LABEL,
@@ -58,30 +54,13 @@ type Props = {
   googleReviewUrl: string;
 };
 
-const NPS_VALUES = Array.from(
-  { length: NPS_MAX - NPS_MIN + 1 },
-  (_, i) => NPS_MIN + i,
-);
-const GOOGLE_STARS = [1, 2, 3, 4, 5] as const;
+const STARS = [1, 2, 3, 4, 5] as const;
 
 function newSubmissionId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
   return `toda-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function todayDateValue(): string {
-  const n = new Date();
-  const y = n.getFullYear();
-  const m = String(n.getMonth() + 1).padStart(2, "0");
-  const d = String(n.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function nowTimeValue(): string {
-  const n = new Date();
-  return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
 }
 
 function FieldLabel({
@@ -93,15 +72,15 @@ function FieldLabel({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <p className="text-[15px] font-semibold tracking-tight text-zinc-900">
+      <p className="text-[14px] font-semibold tracking-tight text-zinc-900">
         {children}
       </p>
       {required ? (
-        <span className="rounded-md bg-[color:var(--joyfit-red)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[color:var(--joyfit-red)]">
+        <span className="rounded-full bg-[color:var(--joyfit-red)]/10 px-2 py-0.5 text-[10px] font-bold text-[color:var(--joyfit-red)]">
           必須
         </span>
       ) : (
-        <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500">
+        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-500">
           任意
         </span>
       )}
@@ -109,7 +88,7 @@ function FieldLabel({
   );
 }
 
-function ChoiceList({
+function ChoiceWrap({
   options,
   value,
   onChange,
@@ -119,17 +98,73 @@ function ChoiceList({
   onChange: (next: string) => void;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="flex flex-wrap gap-2">
       {options.map((opt) => (
         <button
           key={opt}
           type="button"
-          className={memberFormChoiceClass(value === opt)}
+          className={memberFormTagClass(value === opt)}
           onClick={() => onChange(opt)}
         >
           {opt}
         </button>
       ))}
+    </div>
+  );
+}
+
+function StarPicker({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-5">
+      <div className="flex items-center justify-center gap-1.5">
+        {STARS.map((star) => {
+          const filled = value !== null && star <= value;
+          return (
+            <button
+              key={star}
+              type="button"
+              aria-label={`${star}つ星`}
+              onClick={() => onChange(star)}
+              className="rounded-lg p-1 transition hover:scale-105 active:scale-95"
+            >
+              <Star
+                className={cn(
+                  "h-10 w-10",
+                  filled ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300",
+                )}
+                strokeWidth={1.4}
+              />
+            </button>
+          );
+        })}
+      </div>
+      {value ? (
+        <p className="mt-2 text-center text-[13px] font-medium text-zinc-600">
+          星{value}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PageHeader({ subtitle }: { subtitle?: string }) {
+  return (
+    <div className="joyfit-brand-header px-6 pb-7 pt-5 text-center text-white">
+      <div className="relative z-[1] mx-auto w-full max-w-[16.5rem]">
+        <Fit365Mascot priority className="h-auto w-full object-contain" />
+      </div>
+      <h1 className="relative z-[1] mt-4 text-[1.35rem] font-bold tracking-tight">
+        {PAGE_TITLE}
+      </h1>
+      <p className="relative z-[1] mt-1.5 text-[12px] text-white/85">
+        {subtitle ?? TODA_STORE.name}
+      </p>
     </div>
   );
 }
@@ -147,17 +182,13 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
   const [university, setUniversity] = useState("");
-  const [visitedDate, setVisitedDate] = useState(todayDateValue);
-  const [visitedTime, setVisitedTime] = useState(nowTimeValue);
   const [gymExperience, setGymExperience] = useState("");
   const [howFound, setHowFound] = useState("");
   const [howFoundOther, setHowFoundOther] = useState("");
-  const [nps, setNps] = useState<number | null>(null);
-  const [npsReason, setNpsReason] = useState("");
+  const [rating, setRating] = useState<number | null>(null);
   const [joinIntent, setJoinIntent] = useState("");
-  const [facilityComment, setFacilityComment] = useState("");
+  const [extraComment, setExtraComment] = useState("");
   const [positives, setPositives] = useState<string[]>([]);
-  const [googleRating, setGoogleRating] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [draftTouched, setDraftTouched] = useState(false);
 
@@ -169,21 +200,17 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   const emailInvalid =
     Boolean(emailTrimmed) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
   const needsHowFoundOther = howFound === "その他";
-  const visitedAt =
-    visitedDate && visitedTime
-      ? `${visitedDate} ${visitedTime}`
-      : visitedDate || visitedTime;
+  const showUniversity = isStudentAge(age);
 
   const liveDraft = useMemo(() => {
     if (!visitType) return "";
     return buildTodaReviewDraft({
       visitType,
       positives,
-      npsReason,
-      facilityComment,
-      googleRating: googleRating ?? (nps ? npsToGoogleStars(nps) : 5),
+      extraComment,
+      rating: rating ?? 0,
     });
-  }, [visitType, positives, npsReason, facilityComment, googleRating, nps]);
+  }, [visitType, positives, extraComment, rating]);
 
   const shownDraft = draftTouched ? draft : liveDraft;
 
@@ -196,20 +223,16 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
     !emailInvalid &&
     Boolean(gender) &&
     Boolean(age) &&
-    Boolean(visitedDate) &&
-    Boolean(visitedTime) &&
     Boolean(gymExperience) &&
     Boolean(howFound) &&
     (!needsHowFoundOther || howFoundOther.trim()) &&
-    nps !== null &&
-    npsReason.trim() &&
+    rating !== null &&
     (visitType === "kengaku" || Boolean(joinIntent)) &&
-    positives.length > 0 &&
-    googleRating !== null;
+    positives.length > 0;
 
-  function handleNps(value: number) {
-    setNps(value);
-    setGoogleRating(npsToGoogleStars(value));
+  function handleAge(next: string) {
+    setAge(next);
+    if (!isStudentAge(next)) setUniversity("");
   }
 
   function resetVisitType() {
@@ -220,9 +243,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   }
 
   async function handleSubmit() {
-    if (!formReady || visitType === null || nps === null || googleRating === null) {
-      return;
-    }
+    if (!formReady || visitType === null || rating === null) return;
     if (submitting || sent) return;
     setSubmitting(true);
     setSubmitError(null);
@@ -236,17 +257,14 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
       email: emailTrimmed,
       gender,
       age,
-      university,
-      visitedAt,
+      university: showUniversity ? university : "",
       gymExperience,
       howFound,
       howFoundOther: needsHowFoundOther ? howFoundOther : "",
-      nps,
-      npsReason,
+      rating,
       joinIntent: visitType === "taiken" ? joinIntent : "",
-      facilityComment,
+      extraComment,
       positives,
-      googleRating,
       generatedReview,
       submissionId: submissionIdRef.current,
     });
@@ -258,7 +276,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
     }
 
     setDraft(generatedReview);
-    if (googleRating >= 4 && googleReviewUrl.trim()) {
+    if (rating >= 4 && googleReviewUrl.trim()) {
       try {
         await navigator.clipboard.writeText(generatedReview);
       } catch {
@@ -273,44 +291,51 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
   if (!visitType) {
     return (
       <div data-brand="fit365" className={memberFormCardClass} style={brandVars}>
-        <Fit365Header
-          title={
-            <h1 className="text-[1.35rem] font-bold tracking-tight md:text-[1.55rem]">
-              見学・体験アンケート
-            </h1>
-          }
-        >
-          <p className="relative z-[1] mt-3 text-[13px] text-white/90">
-            {TODA_STORE.name}
-          </p>
-        </Fit365Header>
-        <div className={`${memberFormBodyClass} space-y-4`}>
-          <p className="text-center text-[15px] font-semibold text-zinc-900">
-            本日はどちらですか？
-          </p>
-          <button
-            type="button"
-            onClick={() => setVisitType("kengaku")}
-            className="flex min-h-20 w-full flex-col items-center justify-center rounded-2xl border border-zinc-800/70 bg-white px-4 py-5 text-center shadow-sm transition hover:border-zinc-900 hover:shadow-md"
-          >
-            <span className="text-lg font-bold text-zinc-900">見学</span>
-            <span className="mt-1 text-[13px] text-zinc-500">施設のご案内・見学</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setVisitType("taiken")}
-            className="flex min-h-20 w-full flex-col items-center justify-center rounded-2xl border-2 border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] px-4 py-5 text-center text-white shadow-md transition hover:bg-[color:var(--joyfit-red-dark)]"
-          >
-            <span className="text-lg font-bold">無料体験</span>
-            <span className="mt-1 text-[13px] text-white/90">体験当日のアンケート</span>
-          </button>
+        <PageHeader />
+        <div className="space-y-5 bg-gradient-to-b from-zinc-50/80 to-white px-5 py-7 md:px-7">
+          <div className="space-y-2 text-center">
+            <p className="text-[14px] leading-relaxed text-zinc-700">{LANDING_THANKS}</p>
+            <p className="text-[13px] leading-relaxed text-zinc-500">{LANDING_PLEASE}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setVisitType("kengaku")}
+              className="rounded-2xl border border-zinc-200 bg-white px-5 py-6 text-left shadow-[0_1px_8px_rgba(24,24,27,0.04)] transition hover:border-[color:var(--joyfit-red)]/40 hover:shadow-md"
+            >
+              <span className="text-[11px] font-semibold tracking-[0.18em] text-zinc-400">
+                VISIT
+              </span>
+              <span className="mt-1.5 block text-[1.15rem] font-bold text-zinc-900">
+                見学
+              </span>
+              <span className="mt-1 block text-[12px] leading-relaxed text-zinc-500">
+                施設のご案内を受けた方
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisitType("taiken")}
+              className="rounded-2xl border border-zinc-200 bg-white px-5 py-6 text-left shadow-[0_1px_8px_rgba(24,24,27,0.04)] transition hover:border-[color:var(--joyfit-red)]/40 hover:shadow-md"
+            >
+              <span className="text-[11px] font-semibold tracking-[0.18em] text-zinc-400">
+                TRIAL
+              </span>
+              <span className="mt-1.5 block text-[1.15rem] font-bold text-zinc-900">
+                無料体験
+              </span>
+              <span className="mt-1 block text-[12px] leading-relaxed text-zinc-500">
+                体験トレーニングをされた方
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   if (sent) {
-    const goGoogle = googleRating !== null && googleRating >= 4 && googleReviewUrl.trim();
+    const goGoogle = rating !== null && rating >= 4 && googleReviewUrl.trim();
     return (
       <div data-brand="fit365" className={memberFormCardClass} style={brandVars}>
         <div className="joyfit-brand-header px-6 pb-10 pt-12 text-center text-white">
@@ -326,7 +351,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
               : "ご入力完了後にスタッフをお呼びください。"}
           </p>
         </div>
-        <div className={`${memberFormBodyClass} px-6 py-8 text-center`}>
+        <div className="px-6 py-8 text-center">
           {goGoogle && shownDraft ? (
             <div className="mx-auto max-w-sm text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
@@ -336,7 +361,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
                 {shownDraft}
               </pre>
               <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-                Googleマップでも星{googleRating}の評価を選択してください。
+                Googleマップでも星{rating}の評価を選択してください。
               </p>
               <a
                 href={googleReviewUrl}
@@ -357,54 +382,26 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
     );
   }
 
-  const title = visitType === "kengaku" ? KENGAKU_TITLE : TAIKEN_TITLE;
-  const introLines =
-    visitType === "kengaku" ? KENGAKU_INTRO_LINES : TAIKEN_INTRO_LINES;
-  const dateLabel =
-    visitType === "kengaku"
-      ? "見学に参加された日時"
-      : "体験に参加された日時";
-
   return (
     <div data-brand="fit365" className={memberFormCardClass} style={brandVars}>
-      <Fit365Header
-        title={
-          <h1 className="text-[1.35rem] font-bold tracking-tight md:text-[1.55rem]">
-            {title}
-          </h1>
-        }
-      >
-        <p className="relative z-[1] mt-3 text-[13px] text-white/90">
-          {TODA_STORE.name} ／ {VISIT_TYPE_LABEL[visitType]}
-        </p>
-      </Fit365Header>
+      <PageHeader subtitle={`${TODA_STORE.name} ／ ${VISIT_TYPE_LABEL[visitType]}`} />
 
-      <div className={`${memberFormBodyClass} space-y-7`}>
-        <button
-          type="button"
-          onClick={resetVisitType}
-          className="text-[12px] font-semibold text-zinc-500 underline underline-offset-2"
-        >
-          ← 見学 / 無料体験を選び直す
-        </button>
-
-        <div className="space-y-2 text-[13px] leading-relaxed text-zinc-600">
-          {introLines.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-          {visitType === "taiken" ? (
-            <>
-              <p className="pt-2 font-semibold text-zinc-800">{TAIKEN_HOURS_TITLE}</p>
-              <p>{TAIKEN_HOURS}</p>
-              <p className="pt-2 font-semibold text-zinc-800">【注意事項】</p>
-              {TAIKEN_NOTES.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </>
-          ) : (
-            KENGAKU_NOTES.map((line) => <p key={line}>{line}</p>)
-          )}
+      <div className="space-y-6 bg-gradient-to-b from-zinc-50/80 to-white px-5 py-6 md:px-7">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[13px] leading-relaxed text-zinc-600">{FORM_NOTE}</p>
+          <button
+            type="button"
+            onClick={resetVisitType}
+            className="shrink-0 text-[11px] font-semibold text-zinc-400 underline underline-offset-2"
+          >
+            選び直す
+          </button>
         </div>
+        {visitType === "taiken" ? (
+          <p className="rounded-xl bg-zinc-100/80 px-3 py-2 text-[12px] leading-relaxed text-zinc-500">
+            {TAIKEN_HOURS}
+          </p>
+        ) : null}
 
         <section className="space-y-2">
           <FieldLabel required>お名前 (フルネーム)</FieldLabel>
@@ -462,58 +459,45 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
 
         <section className="space-y-2">
           <FieldLabel required>性別</FieldLabel>
-          <ChoiceList options={GENDER_OPTIONS} value={gender} onChange={setGender} />
+          <ChoiceWrap options={GENDER_OPTIONS} value={gender} onChange={setGender} />
         </section>
 
         <section className="space-y-2">
           <FieldLabel required>ご年齢</FieldLabel>
-          <ChoiceList options={AGE_OPTIONS} value={age} onChange={setAge} />
+          <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={handleAge} />
         </section>
 
-        <section className="space-y-2">
-          <FieldLabel>大学生の方はよろしければ大学名を教えてください。</FieldLabel>
-          <Input
-            value={university}
-            onChange={(e) => setUniversity(e.target.value)}
-            className={memberFormInputClass}
-            placeholder="任意"
-          />
-        </section>
+        {showUniversity ? (
+          <section className="space-y-2">
+            <FieldLabel>大学名を教えてください</FieldLabel>
+            <Input
+              value={university}
+              onChange={(e) => setUniversity(e.target.value)}
+              className={memberFormInputClass}
+              placeholder="任意"
+            />
+          </section>
+        ) : null}
 
         <section className="space-y-2">
-          <FieldLabel required>{dateLabel}</FieldLabel>
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="date"
-              value={visitedDate}
-              onChange={(e) => setVisitedDate(e.target.value)}
-              className={memberFormInputClass}
-            />
-            <Input
-              type="time"
-              value={visitedTime}
-              onChange={(e) => setVisitedTime(e.target.value)}
-              className={memberFormInputClass}
-            />
+          <FieldLabel required>ジムのご利用経験について</FieldLabel>
+          <div className="grid gap-2">
+            {GYM_EXPERIENCE_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                className={memberFormChoiceClass(gymExperience === opt)}
+                onClick={() => setGymExperience(opt)}
+              >
+                {opt}
+              </button>
+            ))}
           </div>
         </section>
 
         <section className="space-y-2">
-          <FieldLabel required>ジムのご利用経験について</FieldLabel>
-          <ChoiceList
-            options={GYM_EXPERIENCE_OPTIONS}
-            value={gymExperience}
-            onChange={setGymExperience}
-          />
-        </section>
-
-        <section className="space-y-2">
           <FieldLabel required>当クラブをどこでお知りになりましたか？</FieldLabel>
-          <ChoiceList
-            options={HOW_FOUND_OPTIONS}
-            value={howFound}
-            onChange={setHowFound}
-          />
+          <ChoiceWrap options={HOW_FOUND_OPTIONS} value={howFound} onChange={setHowFound} />
           {needsHowFoundOther ? (
             <Input
               value={howFoundOther}
@@ -522,44 +506,6 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
               placeholder="その他の回答"
             />
           ) : null}
-        </section>
-
-        <section className="space-y-3">
-          <div className="space-y-1">
-            <FieldLabel required>{NPS_QUESTION}</FieldLabel>
-            <p className="text-[12px] leading-relaxed text-zinc-500">{NPS_SCALE_HINT}</p>
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {NPS_VALUES.map((value) => {
-              const active = nps === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => handleNps(value)}
-                  className={cn(
-                    "flex h-12 items-center justify-center rounded-xl border text-[15px] font-bold transition",
-                    active
-                      ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-md"
-                      : "border-zinc-800/75 bg-white text-zinc-800",
-                  )}
-                >
-                  {value}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="space-y-2">
-          <FieldLabel required>上記評価にした理由を教えてください。</FieldLabel>
-          <Textarea
-            value={npsReason}
-            onChange={(e) => setNpsReason(e.target.value)}
-            rows={3}
-            className={memberFormTextareaClass}
-            placeholder="理由をご記入ください"
-          />
         </section>
 
         {visitType === "taiken" ? (
@@ -573,43 +519,47 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
               ))}
               <p className="text-[12px] text-zinc-500">{JOIN_QUESTION_NOTE}</p>
             </div>
-            <ChoiceList
-              options={JOIN_OPTIONS}
-              value={joinIntent}
-              onChange={setJoinIntent}
-            />
+            <div className="grid gap-2">
+              {JOIN_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={memberFormChoiceClass(joinIntent === opt)}
+                  onClick={() => setJoinIntent(opt)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
           </section>
         ) : null}
 
         <section className="space-y-2">
-          <FieldLabel>施設やスタッフの感想などあればご記載ください。</FieldLabel>
+          <FieldLabel>{EXTRA_COMMENT_TITLE}</FieldLabel>
           <Textarea
-            value={facilityComment}
-            onChange={(e) => setFacilityComment(e.target.value)}
+            value={extraComment}
+            onChange={(e) => setExtraComment(e.target.value)}
             rows={3}
             className={memberFormTextareaClass}
             placeholder="任意"
           />
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-          <p className="text-[15px] font-semibold text-zinc-900">{APP_SECTION_TITLE}</p>
+        <section className="space-y-2 rounded-2xl border border-zinc-200/80 bg-white p-4">
+          <p className="text-[14px] font-semibold text-zinc-900">{APP_SECTION_TITLE}</p>
           <p className="text-[13px] leading-relaxed text-zinc-600">{APP_SECTION_BODY}</p>
           <a
             href={TODA_STORE.appInstallUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex text-[14px] font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
+            className="inline-flex text-[13px] font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
           >
             {APP_SECTION_LINK_LABEL}
           </a>
         </section>
 
-        <section className="space-y-3 border-t-2 border-[color:var(--joyfit-red)]/30 pt-7">
+        <section className="space-y-3 border-t border-zinc-200/80 pt-6">
           <div className="space-y-1">
-            <p className="text-[11px] font-bold tracking-[0.16em] text-[color:var(--joyfit-red)]">
-              GOOGLE口コミ
-            </p>
             <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>
             <p className="text-[12px] leading-relaxed text-zinc-500">
               {REVIEW_POSITIVES_HINT}（最大{MAX_REVIEW_POSITIVES}つ）
@@ -638,34 +588,11 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
         </section>
 
         <section className="space-y-3">
-          <FieldLabel required>Googleマップに投稿する星評価</FieldLabel>
-          <div className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-4">
-            {GOOGLE_STARS.map((value) => {
-              const filled = googleRating !== null && value <= googleRating;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`${value}つ星`}
-                  onClick={() => setGoogleRating(value)}
-                  className="rounded-lg p-1.5 transition hover:scale-105 active:scale-95"
-                >
-                  <Star
-                    className={cn(
-                      "h-11 w-11",
-                      filled ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300",
-                    )}
-                    strokeWidth={1.5}
-                  />
-                </button>
-              );
-            })}
+          <div className="space-y-1">
+            <FieldLabel required>{RATING_QUESTION}</FieldLabel>
+            <p className="text-[12px] leading-relaxed text-zinc-500">{RATING_HINT}</p>
           </div>
-          {googleRating ? (
-            <p className="text-center text-[13px] font-medium text-zinc-600">
-              星{googleRating}
-            </p>
-          ) : null}
+          <StarPicker value={rating} onChange={setRating} />
         </section>
 
         <section className="space-y-2">
@@ -676,7 +603,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
               setDraftTouched(true);
               setDraft(e.target.value);
             }}
-            rows={6}
+            rows={5}
             className={memberFormTextareaClass}
             placeholder="よかった点を選ぶと、ここに文面ができます"
           />
@@ -688,7 +615,7 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
           </p>
         ) : null}
 
-        <div className="pb-2">
+        <div className="pb-1">
           <Button
             type="button"
             onClick={() => void handleSubmit()}
@@ -697,10 +624,13 @@ export function TodaClosingSurvey({ googleReviewUrl }: Props) {
           >
             {submitting
               ? "送信中…"
-              : googleRating !== null && googleRating >= 4
+              : rating !== null && rating >= 4
                 ? "保存してGoogle口コミへ"
                 : "回答を保存する"}
           </Button>
+          <p className="mt-3 text-center text-[11px] leading-relaxed text-zinc-400">
+            {PRIVACY_NOTE}
+          </p>
         </div>
       </div>
     </div>

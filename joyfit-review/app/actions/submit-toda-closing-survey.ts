@@ -12,16 +12,13 @@ export type SubmitTodaClosingSurveyInput = {
   gender: string;
   age: string;
   university: string;
-  visitedAt: string;
   gymExperience: string;
   howFound: string;
   howFoundOther: string;
-  nps: number;
-  npsReason: string;
+  rating: number;
   joinIntent: string;
-  facilityComment: string;
+  extraComment: string;
   positives: string[];
-  googleRating: number;
   generatedReview: string;
   submissionId: string;
 };
@@ -45,15 +42,14 @@ export async function submitTodaClosingSurvey(
   if (!input.fullName.trim() || !input.furigana.trim() || !input.phone.trim()) {
     return { ok: false, error: "必須項目をご入力ください。" };
   }
-  if (!input.nps || input.nps < 1 || input.nps > 10) {
-    return { ok: false, error: "紹介したい度（1〜10）を選択してください。" };
+  if (!input.rating || input.rating < 1 || input.rating > 5) {
+    return { ok: false, error: "星評価を選択してください。" };
   }
 
   const gasUrl =
     process.env.TODA_CLOSING_GAS_URL?.trim() || DEFAULT_TODA_CLOSING_GAS_URL;
 
   if (!gasUrl) {
-    // 保存先がまだでも、クロージングの口コミ投稿は止めない
     return { ok: true, saved: false };
   }
 
@@ -72,16 +68,16 @@ export async function submitTodaClosingSurvey(
         gender: input.gender.trim(),
         age: input.age.trim(),
         university: input.university.trim(),
-        visitedAt: input.visitedAt.trim(),
         gymExperience: input.gymExperience.trim(),
         howFound: input.howFound.trim(),
         howFoundOther: input.howFoundOther.trim(),
-        nps: input.nps,
-        npsReason: input.npsReason.trim(),
+        rating: input.rating,
+        nps: input.rating,
+        googleRating: input.rating,
         joinIntent: input.joinIntent.trim(),
-        facilityComment: input.facilityComment.trim(),
+        extraComment: input.extraComment.trim(),
+        facilityComment: input.extraComment.trim(),
         positives: input.positives,
-        googleRating: input.googleRating,
         generatedReview: input.generatedReview.trim(),
         submissionId: input.submissionId.trim(),
       }),
@@ -96,7 +92,6 @@ export async function submitTodaClosingSurvey(
     }
 
     if (!res.ok || !json.ok) {
-      // 権限未許可などでもクロージングの口コミは止めない
       return { ok: true, saved: false };
     }
     return { ok: true, saved: true };

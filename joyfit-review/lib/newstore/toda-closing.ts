@@ -1,7 +1,6 @@
 /**
  * FIT365 戸田新曽 新店クロージング用
- * Googleフォーム（見学 / 無料体験）の設問をそのまま移植し、
- * その後に口コミ生成用の「よかった点」を足す。
+ * 見学 / 無料体験のあと、よかった点から口コミ文を作って投稿する。
  */
 
 export const TODA_STORE = {
@@ -10,9 +9,7 @@ export const TODA_STORE = {
   address: "埼玉県戸田市新曽1243-1",
   officialUrl: "https://fit365.jp/todaniizo/",
   appInstallUrl: "https://fit365.jp/pr_app/",
-  /** 公式サイトの Google マップ */
   mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
-  /** CID からの口コミ投稿フォーム */
   googleReviewUrl:
     "https://search.google.com/local/writereview?cid=1273082332638051101",
 } as const;
@@ -24,47 +21,39 @@ export const VISIT_TYPE_LABEL: Record<TodaVisitType, string> = {
   taiken: "無料体験",
 };
 
-export const KENGAKU_TITLE = "見学 アンケート";
-export const TAIKEN_TITLE = "無料体験 アンケート";
+export const PAGE_TITLE = "見学体験後アンケート";
 
-export const KENGAKU_INTRO_LINES = [
-  "ご見学ありがとうございます。",
-  "ご入力完了後にスタッフをお呼びください。",
-  "ご不安な場合、スタッフへお気軽にお申し付けください。",
-] as const;
+export const LANDING_THANKS =
+  "本日はご来館いただきましてありがとうございました。";
+export const LANDING_PLEASE =
+  "見学か体験を選択いただき、アンケートへのご協力をお願いいたします。";
 
-export const KENGAKU_NOTES = [
-  "※お問い合わせは店舗スタッフ、またはメールにて承ります。",
-  "※お預かりした個人情報は、当店にて厳重に管理いたします。",
-] as const;
+export const FORM_NOTE =
+  "ご入力完了後にスタッフをお呼びください。ご不安な場合は、スタッフへお気軽にお申し付けください。";
+export const PRIVACY_NOTE =
+  "お預かりした個人情報は、当店にて厳重に管理いたします。";
 
-export const TAIKEN_INTRO_LINES = [
-  "お申込みありがとうございます。",
-  "ご入力完了後にスタッフをお呼びください。",
-  "ご不安な場合、スタッフへお気軽にお申し付けください。",
-] as const;
-
-export const TAIKEN_HOURS_TITLE = "【体験可能時間】";
-export const TAIKEN_HOURS = "10:00-19:00";
-
-export const TAIKEN_NOTES = [
-  "※お一人様1回限りとさせていただきます。",
-  "※お問い合わせは店舗スタッフ、またはメールにて承ります。",
-  "※お預かりした個人情報は、当店にて厳重に管理いたします。",
-] as const;
+export const TAIKEN_HOURS = "体験可能時間 10:00-19:00 ／ お一人様1回限り";
 
 export const GENDER_OPTIONS = ["男性", "女性", "回答しない"] as const;
 
 export const AGE_OPTIONS = [
   "10代",
-  "20代（学生）",
-  "20代（社会人）",
+  "10代学生",
+  "20代",
+  "20代学生",
   "30代",
   "40代",
   "50代",
   "60代",
   "70代以上",
 ] as const;
+
+export const STUDENT_AGES = ["10代学生", "20代学生"] as const;
+
+export function isStudentAge(age: string): boolean {
+  return (STUDENT_AGES as readonly string[]).includes(age);
+}
 
 export const GYM_EXPERIENCE_OPTIONS = [
   "初めて利用する",
@@ -82,12 +71,12 @@ export const HOW_FOUND_OPTIONS = [
   "その他",
 ] as const;
 
-export const NPS_MIN = 1;
-export const NPS_MAX = 10;
-export const NPS_QUESTION =
+export const RATING_QUESTION =
   "当クラブを知人友人に紹介したいと思いますか？";
-export const NPS_SCALE_HINT =
-  "★1あまりオススメしない～★10とてもおすすめしたい";
+export const RATING_HINT = "星5で評価してください";
+
+export const EXTRA_COMMENT_TITLE =
+  "追加で何かご意見があればご記載ください";
 
 export const JOIN_QUESTION_TITLE = "ご入会はされますか？";
 export const JOIN_QUESTION_CAMPAIGN_LINES = [
@@ -107,10 +96,9 @@ export const JOIN_OPTIONS = [
 
 export const APP_SECTION_TITLE = "入会ご希望の方へ";
 export const APP_SECTION_BODY =
-  "FIT365アプリよりご入会手続きが可能でございます！";
+  "FIT365アプリよりご入会手続きが可能でございます。";
 export const APP_SECTION_LINK_LABEL = "アプリインストールはこちら";
 
-/** 口コミ生成用（Googleフォームには無い追加パート） */
 export const REVIEW_POSITIVES_TITLE =
   "見学・体験で、どこが良かったですか？";
 export const REVIEW_POSITIVES_HINT =
@@ -132,27 +120,6 @@ export const REVIEW_POSITIVE_OPTIONS = [
   "説明が分かりやすい",
 ] as const;
 
-const REVIEW_CLOSINGS = [
-  "通いやすく、また利用したいと思いました。",
-  "これからも通いたいジムです。",
-  "見学してよかったです。",
-] as const;
-
-export function npsToGoogleStars(nps: number): number {
-  if (nps >= 9) return 5;
-  if (nps >= 7) return 4;
-  if (nps >= 5) return 3;
-  if (nps >= 3) return 2;
-  return 1;
-}
-
-function formatEnumPhrases(items: string[]): string {
-  const list = items.filter(Boolean);
-  if (list.length === 0) return "";
-  if (list.length === 1) return list[0];
-  return `${list.slice(0, -1).join("、")}や${list[list.length - 1]}`;
-}
-
 export function toggleLimited(
   current: string[],
   item: string,
@@ -163,12 +130,18 @@ export function toggleLimited(
   return [...current, item];
 }
 
+function formatEnumPhrases(items: string[]): string {
+  const list = items.filter(Boolean);
+  if (list.length === 0) return "";
+  if (list.length === 1) return list[0];
+  return `${list.slice(0, -1).join("、")}や${list[list.length - 1]}`;
+}
+
 export type TodaReviewDraftInput = {
   visitType: TodaVisitType;
   positives: string[];
-  npsReason: string;
-  facilityComment: string;
-  googleRating: number;
+  extraComment: string;
+  rating: number;
 };
 
 export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
@@ -177,20 +150,17 @@ export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
   lines.push(`FIT365戸田新曽を${visitWord}しました。`);
 
   if (input.positives.length) {
-    lines.push(
-      `${formatEnumPhrases(input.positives)}と感じました。`,
-    );
+    lines.push(`${formatEnumPhrases(input.positives)}と感じました。`);
   }
 
-  const reason = input.npsReason.trim();
-  if (reason) lines.push(reason);
+  const comment = input.extraComment.trim();
+  if (comment) lines.push(comment);
 
-  const comment = input.facilityComment.trim();
-  if (comment && comment !== reason) lines.push(comment);
-
-  if (input.googleRating >= 4) {
+  if (input.rating >= 4) {
     lines.push(
-      input.visitType === "kengaku" ? REVIEW_CLOSINGS[2] : REVIEW_CLOSINGS[0],
+      input.visitType === "kengaku"
+        ? "見学してよかったです。"
+        : "通いやすく、また利用したいと思いました。",
     );
   }
 

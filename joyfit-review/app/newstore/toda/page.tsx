@@ -5,8 +5,8 @@ import { MemberPageShell } from "@/components/joyfit/member-page-shell";
 import { TODA_STORE } from "@/lib/newstore/toda-closing";
 
 export const metadata: Metadata = {
-  title: "見学・体験アンケート | FIT365 戸田新曽",
-  description: "FIT365 戸田新曽の見学・無料体験アンケートです。",
+  title: "見学体験後アンケート | FIT365 戸田新曽",
+  description: "FIT365 戸田新曽の見学・体験後アンケートです。",
 };
 
 export default function TodaClosingPage() {
