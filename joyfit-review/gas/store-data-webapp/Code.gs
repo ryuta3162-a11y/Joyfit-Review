@@ -68,6 +68,9 @@ function doGet(e) {
   if (format === "json" && action === "clearStoreRowColors") {
     return outputJson(clearStoreDataRowColors());
   }
+  if (format === "json" && action === "colorAnswerTabs") {
+    return outputJson(colorAnswerSheetsByBrand());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -539,8 +542,61 @@ function writeStoreMasterLayout_(sheet, rows) {
   sheet.setColumnWidth(10, 200);
 }
 
-/** 既存シートのデータ行背景色だけ外す（中身は触らない） */
-function clearStoreDataRowColors() {
+/** 既存の回答_* タブをブランド色で色分けする */
+function colorAnswerSheetsByBrand() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var stores = readStoreRows();
+  var brandById = {};
+  for (var i = 0; i < stores.length; i++) {
+    var sid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!sid) continue;
+    brandById[sid] = stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name);
+  }
+
+  var counts = { JOYFIT: 0, FIT365: 0, YOGA: 0, other: 0 };
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    var name = String(sh.getName() || "");
+    if (name.indexOf("回答_") !== 0) continue;
+
+    var brand = detectBrandFromAnswerSheetName_(name, brandById);
+    applyAnswerTabColor_(sh, brand);
+    if (counts[brand] != null) counts[brand]++;
+    else counts.other++;
+  }
+
+  return {
+    ok: true,
+    counts: counts,
+    colors: {
+      JOYFIT: STORE_BRAND_COLOR.JOYFIT,
+      FIT365: STORE_BRAND_COLOR.FIT365,
+      YOGA: STORE_BRAND_COLOR.YOGA,
+    },
+    note: "回答_* タブを JOYFIT=赤系 / FIT365=ピンク / YOGA=青緑 で色分けしました。",
+  };
+}
+
+function detectBrandFromAnswerSheetName_(sheetName, brandById) {
+  var name = String(sheetName || "");
+  // 末尾 _storeId を優先
+  var m = name.match(/_([a-z0-9-]+)$/i);
+  if (m && brandById && brandById[String(m[1]).toLowerCase()]) {
+    return brandById[String(m[1]).toLowerCase()];
+  }
+  return detectStoreBrandLabelFromName_(name.replace(/^回答_/, ""));
+}
+
+function applyAnswerTabColor_(sheet, brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  var color = STORE_BRAND_COLOR[brand] || STORE_BRAND_COLOR.JOYFIT;
+  try {
+    sheet.setTabColor(color);
+  } catch (e) {}
+}
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("店舗データ");
   if (!sheet) {
@@ -1182,11 +1238,15 @@ function getOrCreateSurveySheet(storeId, storeName) {
   var sheet = ss.getSheetByName(exact);
   if (sheet) {
     cacheSurveySheetName_(storeId, exact);
+    applyAnswerTabColor_(sheet, detectStoreBrandLabelFromName_(storeName));
     return sheet;
   }
 
   sheet = findSurveySheetByStoreId(storeId);
-  if (sheet) return sheet;
+  if (sheet) {
+    applyAnswerTabColor_(sheet, detectStoreBrandLabelFromName_(storeName));
+    return sheet;
+  }
 
   sheet = ss.insertSheet(exact);
   sheet.appendRow([
@@ -1207,6 +1267,7 @@ function getOrCreateSurveySheet(storeId, storeName) {
     "generatedReview",
     "submissionId",
   ]);
+  applyAnswerTabColor_(sheet, detectStoreBrandLabelFromName_(storeName));
   cacheSurveySheetName_(storeId, exact);
   return sheet;
 }
