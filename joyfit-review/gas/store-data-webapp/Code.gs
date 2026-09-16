@@ -71,6 +71,9 @@ function doGet(e) {
   if (format === "json" && action === "colorAnswerTabs") {
     return outputJson(colorAnswerSheetsByBrand());
   }
+  if (format === "json" && action === "cleanupStoreBackups") {
+    return outputJson(cleanupStoreBackupSheets_());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -385,6 +388,59 @@ function restoreStoreDataFromBackup_(ss, sheet, backupName) {
 /** 互換: 旧アクション名 */
 function formatStoreBrandSheet() {
   return rebuildStoreMasterForStaff();
+}
+
+/**
+ * 店舗データ_backup_* / _店舗データ_old_* を掃除。
+ * 最新の backup を keepCount 件だけ残し、それ以外と old 系は削除。
+ */
+function cleanupStoreBackupSheets_(keepCount) {
+  var keep = Math.max(0, Number(keepCount) || 1);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var deleted = [];
+  var kept = [];
+
+  var backups = ss.getSheets().filter(function (sh) {
+    return String(sh.getName() || "").indexOf("店舗データ_backup_") === 0;
+  });
+  backups.sort(function (a, b) {
+    return String(b.getName()).localeCompare(String(a.getName()));
+  });
+  for (var i = 0; i < backups.length; i++) {
+    var bName = backups[i].getName();
+    if (i < keep) {
+      kept.push(bName);
+      continue;
+    }
+    try {
+      ss.deleteSheet(backups[i]);
+      deleted.push(bName);
+    } catch (eDel) {
+      deleted.push(bName + " (削除失敗)");
+    }
+  }
+
+  var others = ss.getSheets().filter(function (sh) {
+    var n = String(sh.getName() || "");
+    return n.indexOf("_店舗データ_old_") === 0 || n === "_店舗データ_rebuild_tmp";
+  });
+  for (var j = 0; j < others.length; j++) {
+    var oName = others[j].getName();
+    try {
+      ss.deleteSheet(others[j]);
+      deleted.push(oName);
+    } catch (e2) {
+      deleted.push(oName + " (削除失敗)");
+    }
+  }
+
+  return {
+    ok: true,
+    kept: kept,
+    deleted: deleted,
+    deletedCount: deleted.length,
+    note: "店舗データ_backup_* は最新" + keep + "件を残し、他は削除しました。",
+  };
 }
 
 function backupStoreDataSheet_(sheet) {
