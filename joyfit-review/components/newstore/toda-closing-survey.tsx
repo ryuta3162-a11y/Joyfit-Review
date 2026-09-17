@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronLeft, Eye, Sparkles, Star } from "lucide-react";
+import { Check, Eye, Sparkles, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
@@ -41,7 +41,6 @@ import {
   REVIEW_POSITIVES_TITLE,
   STUDENT_TOGGLE_LABEL,
   toggleLimited,
-  VISIT_TYPE_LABEL,
   type ClosingStore,
   type TodaVisitType,
 } from "@/lib/newstore/toda-closing";
@@ -147,24 +146,44 @@ function VisitTypeCard({
   label,
   hint,
   icon,
+  selected,
   onClick,
 }: {
   label: string;
   hint: string;
   icon: ReactNode;
+  selected: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group relative overflow-hidden rounded-[1.6rem] border border-zinc-100/80 bg-white px-5 py-6 text-left shadow-[0_12px_30px_rgba(24,24,27,0.08)] transition hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/30 hover:shadow-[0_18px_36px_rgba(24,24,27,0.12)]"
+      aria-pressed={selected}
+      className={cn(
+        "group relative overflow-hidden rounded-[1.6rem] border bg-white px-5 py-5 text-left shadow-[0_12px_30px_rgba(24,24,27,0.08)] transition",
+        selected
+          ? "border-[color:var(--joyfit-red)] ring-2 ring-[color:var(--joyfit-red)]/15"
+          : "border-zinc-100/80 hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/30 hover:shadow-[0_18px_36px_rgba(24,24,27,0.12)]",
+      )}
     >
-      <span className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-[color:var(--joyfit-red)]/[0.07] transition group-hover:bg-[color:var(--joyfit-red)]/15" />
-      <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)] group-hover:text-white">
+      <span
+        className={cn(
+          "pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full transition",
+          selected ? "bg-[color:var(--joyfit-red)]/15" : "bg-[color:var(--joyfit-red)]/[0.07]",
+        )}
+      />
+      <span
+        className={cn(
+          "relative flex h-11 w-11 items-center justify-center rounded-2xl transition",
+          selected
+            ? "bg-[color:var(--joyfit-red)] text-white"
+            : "bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)]",
+        )}
+      >
         {icon}
       </span>
-      <span className="relative mt-4 block text-[1.25rem] font-bold tracking-tight text-zinc-900">
+      <span className="relative mt-3 block text-[1.2rem] font-bold tracking-tight text-zinc-900">
         {label}
       </span>
       <span className="relative mt-1 block text-[12px] leading-relaxed text-zinc-500">
@@ -174,23 +193,10 @@ function VisitTypeCard({
   );
 }
 
-function PageHeader({
-  store,
-  subtitle,
-  onBack,
-  compact = false,
-}: {
-  store: ClosingStore;
-  subtitle?: string;
-  onBack?: () => void;
-  compact?: boolean;
-}) {
+function PageHeader({ store }: { store: ClosingStore }) {
   return (
     <div
-      className={cn(
-        "relative overflow-hidden text-center text-white",
-        compact ? "px-6 pb-8 pt-5" : "px-6 pb-[4.75rem] pt-10",
-      )}
+      className="relative overflow-hidden px-6 pb-[4.75rem] pt-10 text-center text-white"
       style={{
         background:
           "linear-gradient(165deg, var(--joyfit-red) 0%, var(--joyfit-red-dark) 100%)",
@@ -198,23 +204,8 @@ function PageHeader({
     >
       <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/15 blur-3xl" />
-      {!compact ? (
-        <>
-          <div className="pointer-events-none absolute left-1/2 top-4 h-44 w-44 -translate-x-1/2 rounded-full border border-white/20" />
-          <div className="pointer-events-none absolute left-1/2 -top-2 h-56 w-56 -translate-x-1/2 rounded-full border border-white/10" />
-        </>
-      ) : null}
-
-      {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="戻る"
-          className="absolute left-3 top-5 z-[2] flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition hover:bg-white/25"
-        >
-          <ChevronLeft className="h-6 w-6" strokeWidth={2.4} />
-        </button>
-      ) : null}
+      <div className="pointer-events-none absolute left-1/2 top-4 h-44 w-44 -translate-x-1/2 rounded-full border border-white/20" />
+      <div className="pointer-events-none absolute left-1/2 -top-2 h-56 w-56 -translate-x-1/2 rounded-full border border-white/10" />
 
       <div
         className={cn(
@@ -235,22 +226,20 @@ function PageHeader({
         {PAGE_TITLE}
       </h1>
       <p className="relative z-[1] mx-auto mt-3 inline-flex rounded-full bg-white/18 px-3.5 py-1 text-[12px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm">
-        {subtitle ?? store.name}
+        {store.name}
       </p>
 
-      {!compact ? (
-        <svg
-          className="pointer-events-none absolute inset-x-0 -bottom-px h-11 w-full text-white"
-          viewBox="0 0 1440 88"
-          preserveAspectRatio="none"
-          aria-hidden
-        >
-          <path
-            fill="currentColor"
-            d="M0 54c180 28 360-36 540-28 180 8 270 52 450 44 180-8 330-56 450-36v54H0Z"
-          />
-        </svg>
-      ) : null}
+      <svg
+        className="pointer-events-none absolute inset-x-0 -bottom-px h-11 w-full text-white"
+        viewBox="0 0 1440 88"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          fill="currentColor"
+          d="M0 54c180 28 360-36 540-28 180 8 270 52 450 44 180-8 330-56 450-36v54H0Z"
+        />
+      </svg>
     </div>
   );
 }
@@ -320,10 +309,9 @@ export function TodaClosingSurvey({ store }: Props) {
     (visitType === "kengaku" || Boolean(joinIntent)) &&
     positives.length > 0;
 
-  function resetVisitType() {
-    setVisitType(null);
-    setJoinIntent("");
-    setSent(false);
+  function selectVisitType(next: TodaVisitType) {
+    setVisitType(next);
+    if (next !== "taiken") setJoinIntent("");
   }
 
   function handleSubmit() {
@@ -362,30 +350,6 @@ export function TodaClosingSurvey({ store }: Props) {
       generatedReview,
       submissionId: submissionIdRef.current,
     });
-  }
-
-  if (!visitType) {
-    return (
-      <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
-        <PageHeader store={store} />
-        <div className="relative z-[1] -mt-9 px-5 pb-7">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <VisitTypeCard
-              label="見学"
-              hint="施設のご案内を受けた方"
-              icon={<Eye className="h-5 w-5" strokeWidth={2.2} />}
-              onClick={() => setVisitType("kengaku")}
-            />
-            <VisitTypeCard
-              label="無料体験"
-              hint="体験トレーニングをされた方"
-              icon={<Sparkles className="h-5 w-5" strokeWidth={2.2} />}
-              onClick={() => setVisitType("taiken")}
-            />
-          </div>
-        </div>
-      </div>
-    );
   }
 
   if (sent) {
@@ -460,14 +424,28 @@ export function TodaClosingSurvey({ store }: Props) {
 
   return (
     <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
-      <PageHeader
-        store={store}
-        subtitle={`${store.name} ／ ${VISIT_TYPE_LABEL[visitType]}`}
-        onBack={resetVisitType}
-        compact
-      />
+      <PageHeader store={store} />
 
-      <div className={memberFormBodyClass}>
+      <div className="relative z-[1] -mt-9 px-5 pb-2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <VisitTypeCard
+            label="見学"
+            hint="施設のご案内を受けた方"
+            icon={<Eye className="h-5 w-5" strokeWidth={2.2} />}
+            selected={visitType === "kengaku"}
+            onClick={() => selectVisitType("kengaku")}
+          />
+          <VisitTypeCard
+            label="無料体験"
+            hint="体験トレーニングをされた方"
+            icon={<Sparkles className="h-5 w-5" strokeWidth={2.2} />}
+            selected={visitType === "taiken"}
+            onClick={() => selectVisitType("taiken")}
+          />
+        </div>
+      </div>
+
+      <div className={cn(memberFormBodyClass, "border-t-0")}>
         <section className={memberFormSectionClass}>
           <FieldLabel required>お名前 (フルネーム)</FieldLabel>
           <Input
