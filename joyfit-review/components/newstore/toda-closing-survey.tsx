@@ -32,7 +32,6 @@ import {
   HOW_FOUND_OPTIONS,
   JOIN_OPTIONS,
   JOIN_QUESTION_TITLE,
-  LANDING_PLEASE,
   LANDING_THANKS,
   MAX_REVIEW_POSITIVES,
   PAGE_TITLE,
@@ -160,7 +159,7 @@ function PageHeader({
     <div
       className={cn(
         "relative overflow-hidden text-center text-white",
-        compact ? "px-6 pb-8 pt-5" : "px-6 pb-14 pt-8",
+        compact ? "px-6 pb-8 pt-5" : "px-6 pb-20 pt-8",
       )}
       style={{ background: "var(--joyfit-red)" }}
     >
@@ -195,6 +194,11 @@ function PageHeader({
       <p className="relative z-[1] mx-auto mt-3 inline-flex rounded-full bg-white/15 px-3.5 py-1 text-[11px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
         {subtitle ?? store.name}
       </p>
+      {!compact && !onBack ? (
+        <p className="relative z-[1] mx-auto mt-5 max-w-xs text-[13px] leading-relaxed text-white/90">
+          {LANDING_THANKS}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -312,12 +316,7 @@ export function TodaClosingSurvey({ store }: Props) {
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
         <PageHeader store={store} />
-        <div className="relative z-[1] -mt-8 space-y-4 px-5 pb-7">
-          <p className="text-center text-[13px] leading-relaxed text-zinc-500">
-            {LANDING_THANKS}
-            <br />
-            {LANDING_PLEASE}
-          </p>
+        <div className="relative z-[1] -mt-8 space-y-3 px-5 pb-7">
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
