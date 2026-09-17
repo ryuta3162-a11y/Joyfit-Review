@@ -167,7 +167,7 @@ function VisitTypeButton({
         "h-[4.25rem] rounded-[1.5rem] text-[1.45rem] font-bold tracking-[0.28em] transition",
         selected
           ? "bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_24px_rgba(24,24,27,0.12)]"
-          : "bg-white text-zinc-800 shadow-[0_10px_24px_rgba(24,24,27,0.06)] ring-1 ring-zinc-100 hover:-translate-y-0.5",
+          : "bg-white text-zinc-800 shadow-[0_10px_24px_rgba(24,24,27,0.08)] ring-1 ring-zinc-800/25 hover:-translate-y-0.5",
       )}
     >
       {label}
@@ -176,21 +176,55 @@ function VisitTypeButton({
 }
 
 function HeaderWave() {
+  const crestBack =
+    "M0 58c168-48 312 92 492 38 180-54 264 86 468 32 204-54 312 70 480 18";
+  const crestFront =
+    "M0 118c176-62 308 78 516 18 208-60 292 72 520 16 168-42 268 28 404 8";
+
   return (
     <svg
-      className="relative z-[1] -mb-px block h-[5.75rem] w-full text-white"
+      className="relative z-[1] -mb-px block h-[5.75rem] w-full overflow-visible text-white"
       viewBox="0 0 1440 184"
       preserveAspectRatio="none"
       aria-hidden
     >
+      <defs>
+        <filter
+          id="closing-wave-shadow"
+          x="-8%"
+          y="-50%"
+          width="116%"
+          height="220%"
+        >
+          <feDropShadow
+            dx="0"
+            dy="5"
+            stdDeviation="6"
+            floodColor="#18181b"
+            floodOpacity="0.18"
+          />
+        </filter>
+      </defs>
+      <path fill="currentColor" fillOpacity="0.4" d={`${crestBack}v38H0Z`} />
       <path
-        fill="currentColor"
-        fillOpacity="0.32"
-        d="M0 58c168-48 312 92 492 38 180-54 264 86 468 32 204-54 312 70 480 18v38H0Z"
+        d={crestBack}
+        fill="none"
+        stroke="#18181b"
+        strokeOpacity="0.22"
+        strokeWidth="3"
+        vectorEffect="non-scaling-stroke"
       />
       <path
+        d={`${crestFront}v32H0Z`}
         fill="currentColor"
-        d="M0 118c176-62 308 78 516 18 208-60 292 72 520 16 168-42 268 28 404 8v32H0Z"
+        filter="url(#closing-wave-shadow)"
+      />
+      <path
+        d={crestFront}
+        fill="none"
+        stroke="#18181b"
+        strokeWidth="3.5"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );
@@ -199,17 +233,17 @@ function HeaderWave() {
 function PageHeader({ store }: { store: ClosingStore }) {
   return (
     <div
-      className="relative overflow-hidden text-center text-white"
+      className="relative text-center text-white"
       style={{
         background:
           "linear-gradient(165deg, var(--joyfit-red) 0%, var(--joyfit-red-dark) 100%)",
       }}
     >
-      <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/10 blur-3xl" />
+      <div className="relative overflow-hidden px-6 pb-3 pt-10">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/10 blur-3xl" />
 
-      <div className="relative z-[1] px-6 pb-3 pt-10">
-        <div className="mx-auto flex justify-center">
+        <div className="relative z-[1] mx-auto flex justify-center">
           {store.brand === "fit365" ? (
             <div className="relative w-[9.75rem]">
               <div className="pointer-events-none absolute inset-6 rounded-full bg-white/50 blur-2xl" />
