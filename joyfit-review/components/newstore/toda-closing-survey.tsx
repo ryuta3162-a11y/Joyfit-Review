@@ -30,10 +30,7 @@ import {
   GENDER_OPTIONS,
   GYM_EXPERIENCE_OPTIONS,
   HOW_FOUND_OPTIONS,
-  JOIN_OPTIONS_CAMPAIGN,
-  JOIN_OPTIONS_DEFAULT,
-  JOIN_QUESTION_CAMPAIGN_LINES,
-  JOIN_QUESTION_NOTE,
+  JOIN_OPTIONS,
   JOIN_QUESTION_TITLE,
   LANDING_PLEASE,
   LANDING_THANKS,
@@ -45,7 +42,6 @@ import {
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
   STUDENT_TOGGLE_LABEL,
-  TAIKEN_HOURS,
   toggleLimited,
   VISIT_TYPE_LABEL,
   type ClosingStore,
@@ -192,9 +188,6 @@ export function TodaClosingSurvey({ store }: Props) {
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
   const googleReviewUrl = store.googleReviewUrl.trim();
   const canPostGoogle = Boolean(googleReviewUrl);
-  const joinOptions = store.showJoinCampaign
-    ? JOIN_OPTIONS_CAMPAIGN
-    : JOIN_OPTIONS_DEFAULT;
   const submissionIdRef = useRef(newSubmissionId());
 
   const [visitType, setVisitType] = useState<TodaVisitType | null>(null);
@@ -423,12 +416,6 @@ export function TodaClosingSurvey({ store }: Props) {
       />
 
       <div className={memberFormBodyClass}>
-        {visitType === "taiken" && store.showTrialHours ? (
-          <p className="rounded-xl bg-zinc-100/80 px-3 py-2 text-[12px] leading-relaxed text-zinc-500">
-            {TAIKEN_HOURS}
-          </p>
-        ) : null}
-
         <section className={memberFormSectionClass}>
           <FieldLabel required>お名前 (フルネーム)</FieldLabel>
           <Input
@@ -539,7 +526,10 @@ export function TodaClosingSurvey({ store }: Props) {
               <button
                 key={opt}
                 type="button"
-                className={cn(memberFormChoiceClass(gymExperience === opt), "min-h-[4.5rem] text-left")}
+                className={cn(
+                  memberFormChoiceClass(gymExperience === opt),
+                  "min-h-12 px-2 text-center text-[12px] leading-snug",
+                )}
                 onClick={() => setGymExperience(opt)}
               >
                 {opt}
@@ -550,7 +540,18 @@ export function TodaClosingSurvey({ store }: Props) {
 
         <section className={memberFormSectionClass}>
           <FieldLabel required>当クラブをどこでお知りになりましたか？</FieldLabel>
-          <ChoiceWrap options={HOW_FOUND_OPTIONS} value={howFound} onChange={setHowFound} />
+          <div className="grid grid-cols-2 gap-2">
+            {HOW_FOUND_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                className={memberFormChoiceClass(howFound === opt)}
+                onClick={() => setHowFound(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
           {needsHowFoundOther ? (
             <Input
               value={howFoundOther}
@@ -564,21 +565,9 @@ export function TodaClosingSurvey({ store }: Props) {
 
         {visitType === "taiken" ? (
           <section className={memberFormSectionClass}>
-            <div className="space-y-1">
-              <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
-              {store.showJoinCampaign
-                ? JOIN_QUESTION_CAMPAIGN_LINES.map((line) => (
-                    <p key={line} className="text-[13px] font-semibold text-zinc-800">
-                      {line}
-                    </p>
-                  ))
-                : null}
-              {store.showJoinCampaign ? (
-                <p className="text-[12px] text-zinc-500">{JOIN_QUESTION_NOTE}</p>
-              ) : null}
-            </div>
+            <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
             <div className="grid grid-cols-2 gap-2">
-              {joinOptions.map((opt) => (
+              {JOIN_OPTIONS.map((opt) => (
                 <button
                   key={opt}
                   type="button"

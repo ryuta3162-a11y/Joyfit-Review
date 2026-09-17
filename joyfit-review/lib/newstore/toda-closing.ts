@@ -18,8 +18,6 @@ export type ClosingStore = {
   appInstallUrl: string;
   appInstallBody: string;
   appInstallLinkLabel: string;
-  showJoinCampaign: boolean;
-  showTrialHours: boolean;
 };
 
 export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
@@ -33,8 +31,6 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     appInstallUrl: "https://procedure.joyfit.jp/qrcode2/index.html",
     appInstallBody: "JOYFITアプリよりご入会手続きが可能でございます。",
     appInstallLinkLabel: "アプリ登録はこちら",
-    showJoinCampaign: false,
-    showTrialHours: false,
   },
   toda: {
     slug: "toda",
@@ -47,8 +43,6 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     appInstallUrl: "https://fit365.jp/pr_app/",
     appInstallBody: "FIT365アプリよりご入会手続きが可能でございます。",
     appInstallLinkLabel: "アプリインストールはこちら",
-    showJoinCampaign: true,
-    showTrialHours: true,
   },
 };
 
@@ -79,8 +73,6 @@ export const FORM_NOTE =
 export const PRIVACY_NOTE =
   "お預かりした個人情報は、当店にて厳重に管理いたします。";
 
-export const TAIKEN_HOURS = "体験可能時間 10:00-19:00 ／ お一人様1回限り";
-
 export const GENDER_OPTIONS = ["男性", "女性", "回答しない"] as const;
 
 export const AGE_OPTIONS = [
@@ -97,14 +89,14 @@ export const STUDENT_TOGGLE_LABEL = "学生である";
 
 export const GYM_EXPERIENCE_OPTIONS = [
   "初めて利用する",
-  "以前利用していたことがある (1年以上のブランク)",
-  "現在も他のジムを利用している",
-  "数ヶ月以内に他のジムを利用したことがある",
+  "1年以上のブランクあり",
+  "現在も他のジムを利用",
+  "数ヶ月以内に他店を利用",
 ] as const;
 
 export const HOW_FOUND_OPTIONS = [
   "WEB広告",
-  "SNS (Instagram, X, TikTokなど)",
+  "SNS",
   "チラシ",
   "知人・友人の紹介",
   "現地を見て",
@@ -119,22 +111,8 @@ export const EXTRA_COMMENT_TITLE =
   "追加で何かご意見があればご記載ください";
 
 export const JOIN_QUESTION_TITLE = "ご入会はされますか？";
-export const JOIN_QUESTION_CAMPAIGN_LINES = [
-  "💡体験当日のご入会者限定💡",
-  "翌々月の月会費1,000円OFF！",
-  "キャンペーンと併用可！",
-] as const;
-export const JOIN_QUESTION_NOTE =
-  "※本日入会すると回答した方に適用されます。";
 
-export const JOIN_OPTIONS_CAMPAIGN = [
-  "本日入会する（会費1,000円OFF）",
-  "後日入会予定",
-  "入会しない",
-  "検討中",
-] as const;
-
-export const JOIN_OPTIONS_DEFAULT = [
+export const JOIN_OPTIONS = [
   "本日入会する",
   "後日入会予定",
   "入会しない",
