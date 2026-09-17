@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronLeft, Eye, Sparkles, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
@@ -32,7 +32,6 @@ import {
   HOW_FOUND_OPTIONS,
   JOIN_OPTIONS,
   JOIN_QUESTION_TITLE,
-  LANDING_THANKS,
   MAX_REVIEW_POSITIVES,
   PAGE_TITLE,
   RATING_HINT,
@@ -144,6 +143,37 @@ function RatingStars({
   );
 }
 
+function VisitTypeCard({
+  label,
+  hint,
+  icon,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-[1.6rem] border border-zinc-100/80 bg-white px-5 py-6 text-left shadow-[0_12px_30px_rgba(24,24,27,0.08)] transition hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/30 hover:shadow-[0_18px_36px_rgba(24,24,27,0.12)]"
+    >
+      <span className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-[color:var(--joyfit-red)]/[0.07] transition group-hover:bg-[color:var(--joyfit-red)]/15" />
+      <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)] group-hover:text-white">
+        {icon}
+      </span>
+      <span className="relative mt-4 block text-[1.25rem] font-bold tracking-tight text-zinc-900">
+        {label}
+      </span>
+      <span className="relative mt-1 block text-[12px] leading-relaxed text-zinc-500">
+        {hint}
+      </span>
+    </button>
+  );
+}
+
 function PageHeader({
   store,
   subtitle,
@@ -159,13 +189,21 @@ function PageHeader({
     <div
       className={cn(
         "relative overflow-hidden text-center text-white",
-        compact ? "px-6 pb-8 pt-5" : "px-6 pb-20 pt-8",
+        compact ? "px-6 pb-8 pt-5" : "px-6 pb-[4.75rem] pt-10",
       )}
-      style={{ background: "var(--joyfit-red)" }}
+      style={{
+        background:
+          "linear-gradient(165deg, var(--joyfit-red) 0%, var(--joyfit-red-dark) 100%)",
+      }}
     >
-      <div className="pointer-events-none absolute -right-12 -top-16 h-52 w-52 rounded-full bg-white/25 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 bottom-[-4rem] h-44 w-44 rounded-full bg-black/10 blur-3xl" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/10 to-transparent" />
+      <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/15 blur-3xl" />
+      {!compact ? (
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-4 h-44 w-44 -translate-x-1/2 rounded-full border border-white/20" />
+          <div className="pointer-events-none absolute left-1/2 -top-2 h-56 w-56 -translate-x-1/2 rounded-full border border-white/10" />
+        </>
+      ) : null}
 
       {onBack ? (
         <button
@@ -178,26 +216,40 @@ function PageHeader({
         </button>
       ) : null}
 
-      <div className="relative z-[1] mx-auto w-full max-w-[13.5rem]">
+      <div
+        className={cn(
+          "relative z-[1] mx-auto",
+          store.brand === "fit365" ? "w-full max-w-[14rem]" : "w-full max-w-[15rem]",
+        )}
+      >
         {store.brand === "fit365" ? (
           <Fit365Mascot priority className="h-auto w-full object-contain" />
         ) : (
-          <JoyfitHeaderLogo brand={store.brand} className="py-2" />
+          <JoyfitHeaderLogo
+            brand={store.brand}
+            className="py-2 [&_img]:h-11 [&_img]:md:h-12"
+          />
         )}
       </div>
-      <p className="relative z-[1] mt-5 text-[10px] font-semibold tracking-[0.28em] text-white/70">
-        AFTER VISIT
-      </p>
-      <h1 className="relative z-[1] mt-1.5 text-[1.55rem] font-bold tracking-tight">
+      <h1 className="relative z-[1] mt-6 text-[1.65rem] font-bold tracking-tight">
         {PAGE_TITLE}
       </h1>
-      <p className="relative z-[1] mx-auto mt-3 inline-flex rounded-full bg-white/15 px-3.5 py-1 text-[11px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
+      <p className="relative z-[1] mx-auto mt-3 inline-flex rounded-full bg-white/18 px-3.5 py-1 text-[12px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm">
         {subtitle ?? store.name}
       </p>
-      {!compact && !onBack ? (
-        <p className="relative z-[1] mx-auto mt-5 max-w-xs text-[13px] leading-relaxed text-white/90">
-          {LANDING_THANKS}
-        </p>
+
+      {!compact ? (
+        <svg
+          className="pointer-events-none absolute inset-x-0 -bottom-px h-11 w-full text-white"
+          viewBox="0 0 1440 88"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <path
+            fill="currentColor"
+            d="M0 54c180 28 360-36 540-28 180 8 270 52 450 44 180-8 330-56 450-36v54H0Z"
+          />
+        </svg>
       ) : null}
     </div>
   );
@@ -316,38 +368,20 @@ export function TodaClosingSurvey({ store }: Props) {
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
         <PageHeader store={store} />
-        <div className="relative z-[1] -mt-8 space-y-3 px-5 pb-7">
+        <div className="relative z-[1] -mt-9 px-5 pb-7">
           <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
+            <VisitTypeCard
+              label="見学"
+              hint="施設のご案内を受けた方"
+              icon={<Eye className="h-5 w-5" strokeWidth={2.2} />}
               onClick={() => setVisitType("kengaku")}
-              className="group rounded-3xl border border-zinc-100 bg-white px-5 py-6 text-left shadow-[0_10px_28px_rgba(24,24,27,0.06)] transition hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/25 hover:shadow-[0_16px_32px_rgba(24,24,27,0.1)]"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)] group-hover:text-white">
-                <Eye className="h-5 w-5" strokeWidth={2.2} />
-              </span>
-              <span className="mt-4 block text-[1.2rem] font-bold tracking-tight text-zinc-900">
-                見学
-              </span>
-              <span className="mt-1 block text-[12px] leading-relaxed text-zinc-500">
-                施設のご案内を受けた方
-              </span>
-            </button>
-            <button
-              type="button"
+            />
+            <VisitTypeCard
+              label="無料体験"
+              hint="体験トレーニングをされた方"
+              icon={<Sparkles className="h-5 w-5" strokeWidth={2.2} />}
               onClick={() => setVisitType("taiken")}
-              className="group rounded-3xl border border-zinc-100 bg-white px-5 py-6 text-left shadow-[0_10px_28px_rgba(24,24,27,0.06)] transition hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/25 hover:shadow-[0_16px_32px_rgba(24,24,27,0.1)]"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)] group-hover:text-white">
-                <Sparkles className="h-5 w-5" strokeWidth={2.2} />
-              </span>
-              <span className="mt-4 block text-[1.2rem] font-bold tracking-tight text-zinc-900">
-                無料体験
-              </span>
-              <span className="mt-1 block text-[12px] leading-relaxed text-zinc-500">
-                体験トレーニングをされた方
-              </span>
-            </button>
+            />
           </div>
         </div>
       </div>

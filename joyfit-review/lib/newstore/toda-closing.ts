@@ -63,11 +63,6 @@ export const VISIT_TYPE_LABEL: Record<TodaVisitType, string> = {
 
 export const PAGE_TITLE = "見学体験後アンケート";
 
-export const LANDING_THANKS =
-  "本日はご来館いただきましてありがとうございました。";
-export const LANDING_PLEASE =
-  "見学か体験を選択いただき、アンケートへのご協力をお願いいたします。";
-
 export const FORM_NOTE =
   "ご入力完了後にスタッフをお呼びください。ご不安な場合は、スタッフへお気軽にお申し付けください。";
 export const PRIVACY_NOTE =
