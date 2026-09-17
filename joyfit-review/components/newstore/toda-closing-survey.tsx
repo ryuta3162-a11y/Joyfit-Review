@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, Star } from "lucide-react";
+import { Check, ChevronLeft, Eye, Sparkles, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
@@ -149,34 +149,50 @@ function PageHeader({
   store,
   subtitle,
   onBack,
+  compact = false,
 }: {
   store: ClosingStore;
   subtitle?: string;
   onBack?: () => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="joyfit-brand-header relative px-6 pb-7 pt-5 text-center text-white">
+    <div
+      className={cn(
+        "relative overflow-hidden text-center text-white",
+        compact ? "px-6 pb-8 pt-5" : "px-6 pb-14 pt-8",
+      )}
+      style={{ background: "var(--joyfit-red)" }}
+    >
+      <div className="pointer-events-none absolute -right-12 -top-16 h-52 w-52 rounded-full bg-white/25 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-[-4rem] h-44 w-44 rounded-full bg-black/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/10 to-transparent" />
+
       {onBack ? (
         <button
           type="button"
           onClick={onBack}
           aria-label="戻る"
-          className="absolute left-3 top-5 z-[2] flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+          className="absolute left-3 top-5 z-[2] flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition hover:bg-white/25"
         >
           <ChevronLeft className="h-6 w-6" strokeWidth={2.4} />
         </button>
       ) : null}
-      <div className="relative z-[1] mx-auto w-full max-w-[16.5rem]">
+
+      <div className="relative z-[1] mx-auto w-full max-w-[13.5rem]">
         {store.brand === "fit365" ? (
           <Fit365Mascot priority className="h-auto w-full object-contain" />
         ) : (
           <JoyfitHeaderLogo brand={store.brand} className="py-2" />
         )}
       </div>
-      <h1 className="relative z-[1] mt-4 text-[1.35rem] font-bold tracking-tight">
+      <p className="relative z-[1] mt-5 text-[10px] font-semibold tracking-[0.28em] text-white/70">
+        AFTER VISIT
+      </p>
+      <h1 className="relative z-[1] mt-1.5 text-[1.55rem] font-bold tracking-tight">
         {PAGE_TITLE}
       </h1>
-      <p className="relative z-[1] mt-1.5 text-[12px] text-white/85">
+      <p className="relative z-[1] mx-auto mt-3 inline-flex rounded-full bg-white/15 px-3.5 py-1 text-[11px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
         {subtitle ?? store.name}
       </p>
     </div>
@@ -296,25 +312,22 @@ export function TodaClosingSurvey({ store }: Props) {
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
         <PageHeader store={store} />
-        <div className={`${memberFormBodyClass} space-y-5`}>
-          <div className="space-y-2 text-center">
-            <p className="text-[14px] leading-relaxed text-zinc-700">
-              {LANDING_THANKS}
-            </p>
-            <p className="text-[13px] leading-relaxed text-zinc-500">
-              {LANDING_PLEASE}
-            </p>
-          </div>
+        <div className="relative z-[1] -mt-8 space-y-4 px-5 pb-7">
+          <p className="text-center text-[13px] leading-relaxed text-zinc-500">
+            {LANDING_THANKS}
+            <br />
+            {LANDING_PLEASE}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => setVisitType("kengaku")}
-              className="rounded-2xl border border-zinc-200 bg-white px-5 py-6 text-left shadow-[0_1px_8px_rgba(24,24,27,0.04)] transition hover:border-[color:var(--joyfit-red)]/40 hover:shadow-md"
+              className="group rounded-3xl border border-zinc-100 bg-white px-5 py-6 text-left shadow-[0_10px_28px_rgba(24,24,27,0.06)] transition hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/25 hover:shadow-[0_16px_32px_rgba(24,24,27,0.1)]"
             >
-              <span className="text-[11px] font-semibold tracking-[0.18em] text-zinc-400">
-                VISIT
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)] group-hover:text-white">
+                <Eye className="h-5 w-5" strokeWidth={2.2} />
               </span>
-              <span className="mt-1.5 block text-[1.15rem] font-bold text-zinc-900">
+              <span className="mt-4 block text-[1.2rem] font-bold tracking-tight text-zinc-900">
                 見学
               </span>
               <span className="mt-1 block text-[12px] leading-relaxed text-zinc-500">
@@ -324,12 +337,12 @@ export function TodaClosingSurvey({ store }: Props) {
             <button
               type="button"
               onClick={() => setVisitType("taiken")}
-              className="rounded-2xl border border-zinc-200 bg-white px-5 py-6 text-left shadow-[0_1px_8px_rgba(24,24,27,0.04)] transition hover:border-[color:var(--joyfit-red)]/40 hover:shadow-md"
+              className="group rounded-3xl border border-zinc-100 bg-white px-5 py-6 text-left shadow-[0_10px_28px_rgba(24,24,27,0.06)] transition hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/25 hover:shadow-[0_16px_32px_rgba(24,24,27,0.1)]"
             >
-              <span className="text-[11px] font-semibold tracking-[0.18em] text-zinc-400">
-                TRIAL
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)] transition group-hover:bg-[color:var(--joyfit-red)] group-hover:text-white">
+                <Sparkles className="h-5 w-5" strokeWidth={2.2} />
               </span>
-              <span className="mt-1.5 block text-[1.15rem] font-bold text-zinc-900">
+              <span className="mt-4 block text-[1.2rem] font-bold tracking-tight text-zinc-900">
                 無料体験
               </span>
               <span className="mt-1 block text-[12px] leading-relaxed text-zinc-500">
@@ -346,14 +359,19 @@ export function TodaClosingSurvey({ store }: Props) {
     const goGoogle = rating !== null && rating >= 4 && canPostGoogle;
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
-        <div className="joyfit-brand-header px-6 pb-10 pt-12 text-center text-white">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
+        <div
+          className="relative overflow-hidden px-6 pb-10 pt-12 text-center text-white"
+          style={{ background: "var(--joyfit-red)" }}
+        >
+          <div className="pointer-events-none absolute -right-12 -top-16 h-52 w-52 rounded-full bg-white/25 blur-3xl" />
+          <div className="pointer-events-none absolute -left-16 bottom-[-4rem] h-44 w-44 rounded-full bg-black/10 blur-3xl" />
+          <div className="relative z-[1] mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
             <Check className="h-7 w-7" strokeWidth={2.75} />
           </div>
-          <h2 className="mt-7 text-[22px] font-bold tracking-tight">
+          <h2 className="relative z-[1] mt-7 text-[22px] font-bold tracking-tight">
             ご協力ありがとうございます
           </h2>
-          <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
+          <p className="relative z-[1] mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
             {goGoogle
               ? "口コミ文をコピーしました。Googleマップへ投稿をお願いします。"
               : "回答を受け付けました。"}
@@ -413,6 +431,7 @@ export function TodaClosingSurvey({ store }: Props) {
         store={store}
         subtitle={`${store.name} ／ ${VISIT_TYPE_LABEL[visitType]}`}
         onBack={resetVisitType}
+        compact
       />
 
       <div className={memberFormBodyClass}>
