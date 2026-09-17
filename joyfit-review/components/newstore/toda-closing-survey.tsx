@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Eye, Sparkles, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
-import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import {
   memberFormCardClass,
@@ -212,19 +212,26 @@ function PageHeader({ store }: { store: ClosingStore }) {
       <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/10 blur-3xl" />
 
-      <div
-        className={cn(
-          "relative z-[1] mx-auto",
-          store.brand === "fit365" ? "w-full max-w-[14rem]" : "w-full max-w-[15rem]",
-        )}
-      >
+      <div className="relative z-[1] mx-auto flex justify-center">
         {store.brand === "fit365" ? (
-          <Fit365Mascot priority className="h-auto w-full object-contain" />
+          <div className="relative w-[9.75rem]">
+            <div className="pointer-events-none absolute inset-6 rounded-full bg-white/50 blur-2xl" />
+            <Image
+              src="/fit365-bear-sign.png"
+              alt="FIT365 ベアクマ"
+              width={353}
+              height={293}
+              priority
+              className="relative h-auto w-full object-contain drop-shadow-[0_10px_18px_rgba(47,24,32,0.16)]"
+            />
+          </div>
         ) : (
-          <JoyfitHeaderLogo
-            brand={store.brand}
-            className="py-2 [&_img]:h-11 [&_img]:md:h-12"
-          />
+          <div className="w-full max-w-[15rem]">
+            <JoyfitHeaderLogo
+              brand={store.brand}
+              className="py-2 [&_img]:h-11 [&_img]:md:h-12"
+            />
+          </div>
         )}
       </div>
       <h1 className="relative z-[1] mt-6 text-[1.65rem] font-bold tracking-tight">
