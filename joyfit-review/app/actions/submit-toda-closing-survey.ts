@@ -1,7 +1,11 @@
 "use server";
 
+import { postJsonToGasWebApp } from "@/lib/gas-webapp";
+
 const DEFAULT_CLOSING_GAS_URL =
   "https://script.google.com/macros/s/AKfycbyjyfr1fCvYQjvuFhLbkINwo7KUk8MhNwYALvXjecJ-zM5J1z4TfHJ0YnLHAQcmB-ZS6A/exec";
+
+const GAS_TIMEOUT_MS = 8_000;
 
 export type SubmitTodaClosingSurveyInput = {
   storeId: string;
@@ -58,57 +62,38 @@ export async function submitTodaClosingSurvey(
     return { ok: true, saved: false };
   }
 
-  try {
-    const res = await fetch(gasUrl, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({
-        action: "todaClosingSurvey",
-        storeId: input.storeId.trim(),
-        storeName: input.storeName.trim(),
-        visitType: input.visitType,
-        fullName: input.fullName.trim(),
-        furigana: input.furigana.trim(),
-        phone: input.phone.trim(),
-        email: input.email.trim(),
-        gender: input.gender.trim(),
-        age: input.age.trim(),
-        university: input.university.trim(),
-        gymExperience: input.gymExperience.trim(),
-        howFound: input.howFound.trim(),
-        howFoundOther: input.howFoundOther.trim(),
-        rating: input.rating,
-        joinIntent: input.joinIntent.trim(),
-        extraComment: input.extraComment.trim(),
-        positives: input.positives,
-        generatedReview: input.generatedReview.trim(),
-        submissionId: input.submissionId.trim(),
-      }),
-    });
+  const posted = await postJsonToGasWebApp(
+    gasUrl,
+    {
+      action: "todaClosingSurvey",
+      storeId: input.storeId.trim(),
+      storeName: input.storeName.trim(),
+      visitType: input.visitType,
+      fullName: input.fullName.trim(),
+      furigana: input.furigana.trim(),
+      phone: input.phone.trim(),
+      email: input.email.trim(),
+      gender: input.gender.trim(),
+      age: input.age.trim(),
+      university: input.university.trim(),
+      gymExperience: input.gymExperience.trim(),
+      howFound: input.howFound.trim(),
+      howFoundOther: input.howFoundOther.trim(),
+      rating: input.rating,
+      joinIntent: input.joinIntent.trim(),
+      extraComment: input.extraComment.trim(),
+      positives: input.positives,
+      generatedReview: input.generatedReview.trim(),
+      submissionId: input.submissionId.trim(),
+    },
+    GAS_TIMEOUT_MS,
+  );
 
-    const text = await res.text();
-    let json: { ok?: boolean; error?: string } = {};
-    try {
-      json = JSON.parse(text) as { ok?: boolean; error?: string };
-    } catch {
-      return {
-        ok: false,
-        error: "回答の保存に失敗しました。通信状況をご確認のうえ、再度お試しください。",
-      };
-    }
-
-    if (!res.ok || !json.ok) {
-      return {
-        ok: false,
-        error: "回答の保存に失敗しました。通信状況をご確認のうえ、再度お試しください。",
-      };
-    }
-    return { ok: true, saved: true };
-  } catch {
-    return {
-      ok: false,
-      error: "回答の保存に失敗しました。通信状況をご確認のうえ、再度お試しください。",
-    };
+  if ("timeout" in posted || "failed" in posted) {
+    return { ok: true, saved: false };
   }
+  if (!posted.json.ok) {
+    return { ok: true, saved: false };
+  }
+  return { ok: true, saved: true };
 }

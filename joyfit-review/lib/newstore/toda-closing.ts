@@ -41,7 +41,8 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     id: "todaniizo",
     name: "FIT365 戸田新曽",
     brand: "fit365",
-    googleReviewUrl: "",
+    googleReviewUrl:
+      "https://www.google.com/maps/place//data=!4m3!3m2!1s0x6018ebf70f0ce3d5:0x11aae5a2eeb77b1d!12e1?source=g.page.m.kd._&laa=lu-desktop-review-solicitation",
     mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
     appInstallUrl: "https://fit365.jp/pr_app/",
     appInstallBody: "FIT365アプリよりご入会手続きが可能でございます。",
@@ -84,9 +85,7 @@ export const GENDER_OPTIONS = ["男性", "女性", "回答しない"] as const;
 
 export const AGE_OPTIONS = [
   "10代",
-  "10代学生",
   "20代",
-  "20代学生",
   "30代",
   "40代",
   "50代",
@@ -94,11 +93,7 @@ export const AGE_OPTIONS = [
   "70代以上",
 ] as const;
 
-export const STUDENT_AGES = ["10代学生", "20代学生"] as const;
-
-export function isStudentAge(age: string): boolean {
-  return (STUDENT_AGES as readonly string[]).includes(age);
-}
+export const STUDENT_TOGGLE_LABEL = "学生である";
 
 export const GYM_EXPERIENCE_OPTIONS = [
   "初めて利用する",

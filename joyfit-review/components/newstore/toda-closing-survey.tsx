@@ -1,15 +1,20 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Check, Star } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronLeft, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
+import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
 import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import {
+  memberFormBodyClass,
   memberFormCardClass,
   memberFormChoiceClass,
   memberFormInputClass,
+  memberFormSectionClass,
+  memberFormSectionDividerClass,
+  memberFormSectionTitleClass,
   memberFormTagClass,
   memberFormTextareaClass,
 } from "@/components/member/member-form-styles";
@@ -22,11 +27,9 @@ import {
   APP_SECTION_TITLE,
   buildTodaReviewDraft,
   EXTRA_COMMENT_TITLE,
-  FORM_NOTE,
   GENDER_OPTIONS,
   GYM_EXPERIENCE_OPTIONS,
   HOW_FOUND_OPTIONS,
-  isStudentAge,
   JOIN_OPTIONS_CAMPAIGN,
   JOIN_OPTIONS_DEFAULT,
   JOIN_QUESTION_CAMPAIGN_LINES,
@@ -36,12 +39,12 @@ import {
   LANDING_THANKS,
   MAX_REVIEW_POSITIVES,
   PAGE_TITLE,
-  PRIVACY_NOTE,
   RATING_HINT,
   RATING_QUESTION,
   REVIEW_POSITIVE_OPTIONS,
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
+  STUDENT_TOGGLE_LABEL,
   TAIKEN_HOURS,
   toggleLimited,
   VISIT_TYPE_LABEL,
@@ -63,6 +66,10 @@ function newSubmissionId(): string {
   return `toda-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 11);
+}
+
 function FieldLabel({
   children,
   required,
@@ -72,9 +79,7 @@ function FieldLabel({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <p className="text-[14px] font-semibold tracking-tight text-zinc-900">
-        {children}
-      </p>
+      <p className={memberFormSectionTitleClass}>{children}</p>
       {required ? (
         <span className="rounded-full bg-[color:var(--joyfit-red)]/10 px-2 py-0.5 text-[10px] font-bold text-[color:var(--joyfit-red)]">
           必須
@@ -113,42 +118,33 @@ function ChoiceWrap({
   );
 }
 
-function StarPicker({
-  value,
-  onChange,
+function RatingStars({
+  rating,
+  onSelect,
 }: {
-  value: number | null;
-  onChange: (next: number) => void;
+  rating: number;
+  onSelect: (value: number) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-5">
-      <div className="flex items-center justify-center gap-1.5">
-        {STARS.map((star) => {
-          const filled = value !== null && star <= value;
-          return (
-            <button
-              key={star}
-              type="button"
-              aria-label={`${star}つ星`}
-              onClick={() => onChange(star)}
-              className="rounded-lg p-1 transition hover:scale-105 active:scale-95"
-            >
-              <Star
-                className={cn(
-                  "h-10 w-10",
-                  filled ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300",
-                )}
-                strokeWidth={1.4}
-              />
-            </button>
-          );
-        })}
-      </div>
-      {value ? (
-        <p className="mt-2 text-center text-[13px] font-medium text-zinc-600">
-          星{value}
-        </p>
-      ) : null}
+    <div className="flex items-center justify-center gap-1.5">
+      {STARS.map((value) => {
+        const filled = value <= rating;
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onSelect(value)}
+            className="rounded-lg p-1.5 transition hover:bg-zinc-100"
+            aria-label={`${value}つ星`}
+          >
+            <Star
+              className={`h-9 w-9 sm:h-10 sm:w-10 ${
+                filled ? "fill-[#fbbc04] text-[#fbbc04]" : "text-zinc-300"
+              }`}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -156,12 +152,24 @@ function StarPicker({
 function PageHeader({
   store,
   subtitle,
+  onBack,
 }: {
   store: ClosingStore;
   subtitle?: string;
+  onBack?: () => void;
 }) {
   return (
-    <div className="joyfit-brand-header px-6 pb-7 pt-5 text-center text-white">
+    <div className="joyfit-brand-header relative px-6 pb-7 pt-5 text-center text-white">
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="戻る"
+          className="absolute left-3 top-5 z-[2] flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+        >
+          <ChevronLeft className="h-6 w-6" strokeWidth={2.4} />
+        </button>
+      ) : null}
       <div className="relative z-[1] mx-auto w-full max-w-[16.5rem]">
         {store.brand === "fit365" ? (
           <Fit365Mascot priority className="h-auto w-full object-contain" />
@@ -183,9 +191,10 @@ export function TodaClosingSurvey({ store }: Props) {
   const theme = BRAND_THEMES[store.brand];
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
   const googleReviewUrl = store.googleReviewUrl.trim();
-  const mapsUrl = store.mapsUrl.trim();
   const canPostGoogle = Boolean(googleReviewUrl);
-  const joinOptions = store.showJoinCampaign ? JOIN_OPTIONS_CAMPAIGN : JOIN_OPTIONS_DEFAULT;
+  const joinOptions = store.showJoinCampaign
+    ? JOIN_OPTIONS_CAMPAIGN
+    : JOIN_OPTIONS_DEFAULT;
   const submissionIdRef = useRef(newSubmissionId());
 
   const [visitType, setVisitType] = useState<TodaVisitType | null>(null);
@@ -195,6 +204,7 @@ export function TodaClosingSurvey({ store }: Props) {
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
+  const [isStudent, setIsStudent] = useState(false);
   const [university, setUniversity] = useState("");
   const [gymExperience, setGymExperience] = useState("");
   const [howFound, setHowFound] = useState("");
@@ -205,16 +215,16 @@ export function TodaClosingSurvey({ store }: Props) {
   const [positives, setPositives] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [draftTouched, setDraftTouched] = useState(false);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    void warmupClosingSurveyGas();
+  }, []);
 
   const emailTrimmed = email.trim();
   const emailInvalid =
     Boolean(emailTrimmed) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
   const needsHowFoundOther = howFound === "その他";
-  const showUniversity = isStudentAge(age);
 
   const liveDraft = useMemo(() => {
     if (!visitType) return "";
@@ -245,26 +255,28 @@ export function TodaClosingSurvey({ store }: Props) {
     (visitType === "kengaku" || Boolean(joinIntent)) &&
     positives.length > 0;
 
-  function handleAge(next: string) {
-    setAge(next);
-    if (!isStudentAge(next)) setUniversity("");
-  }
-
   function resetVisitType() {
     setVisitType(null);
     setJoinIntent("");
     setSent(false);
-    setSubmitError(null);
   }
 
-  async function handleSubmit() {
-    if (!formReady || visitType === null || rating === null) return;
-    if (submitting || sent) return;
-    setSubmitting(true);
-    setSubmitError(null);
+  function handleSubmit() {
+    if (!formReady || visitType === null || rating === null || sent) return;
 
     const generatedReview = shownDraft.trim();
-    const result = await submitTodaClosingSurvey({
+    setDraft(generatedReview);
+    setSent(true);
+    try {
+      void navigator.clipboard.writeText(generatedReview);
+    } catch {
+      /* ignore */
+    }
+    if (rating >= 4 && googleReviewUrl) {
+      window.open(googleReviewUrl, "_blank", "noopener,noreferrer");
+    }
+
+    void submitTodaClosingSurvey({
       storeId: store.id,
       storeName: store.name,
       visitType,
@@ -274,7 +286,7 @@ export function TodaClosingSurvey({ store }: Props) {
       email: emailTrimmed,
       gender,
       age,
-      university: showUniversity ? university : "",
+      university: isStudent ? university : "",
       gymExperience,
       howFound,
       howFoundOther: needsHowFoundOther ? howFoundOther : "",
@@ -285,34 +297,20 @@ export function TodaClosingSurvey({ store }: Props) {
       generatedReview,
       submissionId: submissionIdRef.current,
     });
-
-    if (!result.ok) {
-      setSubmitting(false);
-      setSubmitError(result.error);
-      return;
-    }
-
-    setDraft(generatedReview);
-    try {
-      await navigator.clipboard.writeText(generatedReview);
-    } catch {
-      /* ignore */
-    }
-    if (rating >= 4 && googleReviewUrl) {
-      window.open(googleReviewUrl, "_blank", "noopener,noreferrer");
-    }
-    setSent(true);
-    setSubmitting(false);
   }
 
   if (!visitType) {
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
         <PageHeader store={store} />
-        <div className="space-y-5 bg-gradient-to-b from-zinc-50/80 to-white px-5 py-7 md:px-7">
+        <div className={`${memberFormBodyClass} space-y-5`}>
           <div className="space-y-2 text-center">
-            <p className="text-[14px] leading-relaxed text-zinc-700">{LANDING_THANKS}</p>
-            <p className="text-[13px] leading-relaxed text-zinc-500">{LANDING_PLEASE}</p>
+            <p className="text-[14px] leading-relaxed text-zinc-700">
+              {LANDING_THANKS}
+            </p>
+            <p className="text-[13px] leading-relaxed text-zinc-500">
+              {LANDING_PLEASE}
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
@@ -365,12 +363,10 @@ export function TodaClosingSurvey({ store }: Props) {
           <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
             {goGoogle
               ? "口コミ文をコピーしました。Googleマップへ投稿をお願いします。"
-              : shownDraft
-                ? "回答を保存し、口コミ文をコピーしました。"
-                : "ご入力完了後にスタッフをお呼びください。"}
+              : "回答を受け付けました。"}
           </p>
         </div>
-        <div className="px-6 py-8 text-center">
+        <div className="space-y-5 px-6 py-8">
           {shownDraft ? (
             <div className="mx-auto max-w-sm text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
@@ -393,29 +389,26 @@ export function TodaClosingSurvey({ store }: Props) {
                     Google口コミを投稿する
                   </a>
                 </>
-              ) : canPostGoogle ? null : (
-                <>
-                  <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-                    新店のため、Googleの口コミ投稿ページがまだ公開されていないことがあります。文面はコピー済みです。
-                  </p>
-                  {mapsUrl ? (
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-[15px] font-semibold text-zinc-800 transition hover:bg-zinc-50"
-                    >
-                      Googleマップを開く
-                    </a>
-                  ) : null}
-                </>
-              )}
+              ) : null}
             </div>
-          ) : (
-            <p className="text-[14px] leading-relaxed text-zinc-600">
-              貴重なご意見を今後の参考にさせていただきます。
+          ) : null}
+
+          <div className="mx-auto max-w-sm rounded-2xl border border-zinc-200/80 bg-white p-4 text-left">
+            <p className="text-[14px] font-semibold text-zinc-900">
+              {APP_SECTION_TITLE}
             </p>
-          )}
+            <p className="mt-1 text-[13px] leading-relaxed text-zinc-600">
+              {store.appInstallBody}
+            </p>
+            <a
+              href={store.appInstallUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex text-[13px] font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
+            >
+              {store.appInstallLinkLabel}
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -423,26 +416,20 @@ export function TodaClosingSurvey({ store }: Props) {
 
   return (
     <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
-      <PageHeader store={store} subtitle={`${store.name} ／ ${VISIT_TYPE_LABEL[visitType]}`} />
+      <PageHeader
+        store={store}
+        subtitle={`${store.name} ／ ${VISIT_TYPE_LABEL[visitType]}`}
+        onBack={resetVisitType}
+      />
 
-      <div className="space-y-6 bg-gradient-to-b from-zinc-50/80 to-white px-5 py-6 md:px-7">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[13px] leading-relaxed text-zinc-600">{FORM_NOTE}</p>
-          <button
-            type="button"
-            onClick={resetVisitType}
-            className="shrink-0 text-[11px] font-semibold text-zinc-400 underline underline-offset-2"
-          >
-            選び直す
-          </button>
-        </div>
+      <div className={memberFormBodyClass}>
         {visitType === "taiken" && store.showTrialHours ? (
           <p className="rounded-xl bg-zinc-100/80 px-3 py-2 text-[12px] leading-relaxed text-zinc-500">
             {TAIKEN_HOURS}
           </p>
         ) : null}
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>お名前 (フルネーム)</FieldLabel>
           <Input
             value={fullName}
@@ -453,31 +440,34 @@ export function TodaClosingSurvey({ store }: Props) {
           />
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>フリガナ</FieldLabel>
           <Input
             value={furigana}
             onChange={(e) => setFurigana(e.target.value)}
             className={memberFormInputClass}
             autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="ヤマダ ハナコ"
           />
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>ご連絡先 (電話番号)</FieldLabel>
           <Input
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(digitsOnly(e.target.value))}
             className={memberFormInputClass}
             type="tel"
-            inputMode="tel"
-            autoComplete="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="tel-national"
             placeholder="09012345678"
           />
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>メールアドレス</FieldLabel>
           <Input
             value={email}
@@ -485,7 +475,10 @@ export function TodaClosingSurvey({ store }: Props) {
             className={memberFormInputClass}
             type="email"
             inputMode="email"
-            autoComplete="email"
+            name="closing-email"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="example@email.com"
             aria-invalid={emailInvalid}
           />
@@ -496,36 +489,57 @@ export function TodaClosingSurvey({ store }: Props) {
           ) : null}
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>性別</FieldLabel>
-          <ChoiceWrap options={GENDER_OPTIONS} value={gender} onChange={setGender} />
+          <div className="grid grid-cols-3 gap-2">
+            {GENDER_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                className={memberFormChoiceClass(gender === opt)}
+                onClick={() => setGender(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>ご年齢</FieldLabel>
-          <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={handleAge} />
-        </section>
-
-        {showUniversity ? (
-          <section className="space-y-2">
-            <FieldLabel>大学名を教えてください</FieldLabel>
+          <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={setAge} />
+          <button
+            type="button"
+            className={memberFormTagClass(isStudent)}
+            onClick={() => {
+              setIsStudent((prev) => {
+                const next = !prev;
+                if (!next) setUniversity("");
+                return next;
+              });
+            }}
+          >
+            {STUDENT_TOGGLE_LABEL}
+          </button>
+          {isStudent ? (
             <Input
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
               className={memberFormInputClass}
-              placeholder="任意"
+              autoComplete="off"
+              placeholder="大学名（任意）"
             />
-          </section>
-        ) : null}
+          ) : null}
+        </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>ジムのご利用経験について</FieldLabel>
-          <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {GYM_EXPERIENCE_OPTIONS.map((opt) => (
               <button
                 key={opt}
                 type="button"
-                className={memberFormChoiceClass(gymExperience === opt)}
+                className={cn(memberFormChoiceClass(gymExperience === opt), "min-h-[4.5rem] text-left")}
                 onClick={() => setGymExperience(opt)}
               >
                 {opt}
@@ -534,7 +548,7 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel required>当クラブをどこでお知りになりましたか？</FieldLabel>
           <ChoiceWrap options={HOW_FOUND_OPTIONS} value={howFound} onChange={setHowFound} />
           {needsHowFoundOther ? (
@@ -542,13 +556,14 @@ export function TodaClosingSurvey({ store }: Props) {
               value={howFoundOther}
               onChange={(e) => setHowFoundOther(e.target.value)}
               className={memberFormInputClass}
+              autoComplete="off"
               placeholder="その他の回答"
             />
           ) : null}
         </section>
 
         {visitType === "taiken" ? (
-          <section className="space-y-3">
+          <section className={memberFormSectionClass}>
             <div className="space-y-1">
               <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
               {store.showJoinCampaign
@@ -562,7 +577,7 @@ export function TodaClosingSurvey({ store }: Props) {
                 <p className="text-[12px] text-zinc-500">{JOIN_QUESTION_NOTE}</p>
               ) : null}
             </div>
-            <div className="grid gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {joinOptions.map((opt) => (
                 <button
                   key={opt}
@@ -577,7 +592,7 @@ export function TodaClosingSurvey({ store }: Props) {
           </section>
         ) : null}
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel>{EXTRA_COMMENT_TITLE}</FieldLabel>
           <Textarea
             value={extraComment}
@@ -588,20 +603,7 @@ export function TodaClosingSurvey({ store }: Props) {
           />
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-zinc-200/80 bg-white p-4">
-          <p className="text-[14px] font-semibold text-zinc-900">{APP_SECTION_TITLE}</p>
-          <p className="text-[13px] leading-relaxed text-zinc-600">{store.appInstallBody}</p>
-          <a
-            href={store.appInstallUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex text-[13px] font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
-          >
-            {store.appInstallLinkLabel}
-          </a>
-        </section>
-
-        <section className="space-y-3 border-t border-zinc-200/80 pt-6">
+        <section className={memberFormSectionDividerClass}>
           <div className="space-y-1">
             <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>
             <p className="text-[12px] leading-relaxed text-zinc-500">
@@ -630,15 +632,13 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className="space-y-3">
-          <div className="space-y-1">
-            <FieldLabel required>{RATING_QUESTION}</FieldLabel>
-            <p className="text-[12px] leading-relaxed text-zinc-500">{RATING_HINT}</p>
-          </div>
-          <StarPicker value={rating} onChange={setRating} />
+        <section className={`${memberFormSectionClass} text-center`}>
+          <FieldLabel required>{RATING_QUESTION}</FieldLabel>
+          <p className="text-[13px] text-zinc-500">{RATING_HINT}</p>
+          <RatingStars rating={rating ?? 0} onSelect={setRating} />
         </section>
 
-        <section className="space-y-2">
+        <section className={memberFormSectionClass}>
           <FieldLabel>口コミ文面（必要なら直してください）</FieldLabel>
           <Textarea
             value={shownDraft}
@@ -648,33 +648,21 @@ export function TodaClosingSurvey({ store }: Props) {
             }}
             rows={5}
             className={memberFormTextareaClass}
+            autoComplete="off"
             placeholder="よかった点を選ぶと、ここに文面ができます"
           />
         </section>
 
-        {submitError ? (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
-            {submitError}
-          </p>
-        ) : null}
-
-        <div className="pb-1">
-          <Button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={!formReady || submitting}
-            className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-300 disabled:text-zinc-500"
-          >
-            {submitting
-              ? "送信中…"
-              : rating !== null && rating >= 4 && canPostGoogle
-                ? "保存してGoogle口コミへ"
-                : "回答を保存する"}
-          </Button>
-          <p className="mt-3 text-center text-[11px] leading-relaxed text-zinc-400">
-            {PRIVACY_NOTE}
-          </p>
-        </div>
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!formReady}
+          className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-300 disabled:text-zinc-500"
+        >
+          {rating !== null && rating >= 4 && canPostGoogle
+            ? "保存してGoogle口コミへ"
+            : "回答を保存する"}
+        </Button>
       </div>
     </div>
   );
