@@ -8,15 +8,7 @@ import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas"
 import { Fit365Mascot } from "@/components/joyfit/fit365-mascot";
 import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import {
-  memberFormBodyClass,
   memberFormCardClass,
-  memberFormChoiceClass,
-  memberFormInputClass,
-  memberFormSectionClass,
-  memberFormSectionDividerClass,
-  memberFormSectionTitleClass,
-  memberFormTagClass,
-  memberFormTextareaClass,
 } from "@/components/member/member-form-styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +55,21 @@ function digitsOnly(value: string): string {
   return value.replace(/\D/g, "").slice(0, 11);
 }
 
+const surveyInputClass =
+  "h-12 w-full rounded-2xl border-0 bg-zinc-100/90 px-4 text-[15px] text-zinc-900 outline-none ring-1 ring-zinc-200/70 transition placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-[color:var(--joyfit-red)]/35";
+
+const surveyTextareaClass =
+  "min-h-16 w-full rounded-2xl border-0 bg-zinc-100/90 px-4 py-3 text-[15px] text-zinc-900 outline-none ring-1 ring-zinc-200/70 transition placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-[color:var(--joyfit-red)]/35";
+
+function surveyChoiceClass(active: boolean) {
+  return cn(
+    "rounded-2xl px-3 py-2.5 text-[13px] font-semibold leading-snug transition",
+    active
+      ? "bg-[color:var(--joyfit-red)] text-white shadow-sm shadow-[color:var(--joyfit-red)]/20"
+      : "bg-zinc-100/90 text-zinc-700 hover:bg-zinc-200/80",
+  );
+}
+
 function FieldLabel({
   children,
   required,
@@ -71,16 +78,16 @@ function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p className={memberFormSectionTitleClass}>{children}</p>
+    <div className="flex items-baseline gap-2">
+      <p className="text-[13px] font-semibold tracking-tight text-zinc-800">
+        {children}
+      </p>
       {required ? (
-        <span className="rounded-full bg-[color:var(--joyfit-red)]/10 px-2 py-0.5 text-[10px] font-bold text-[color:var(--joyfit-red)]">
+        <span className="text-[11px] font-medium text-[color:var(--joyfit-red)]">
           必須
         </span>
       ) : (
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-500">
-          任意
-        </span>
+        <span className="text-[11px] font-medium text-zinc-400">任意</span>
       )}
     </div>
   );
@@ -101,7 +108,7 @@ function ChoiceWrap({
         <button
           key={opt}
           type="button"
-          className={memberFormTagClass(value === opt)}
+          className={surveyChoiceClass(value === opt)}
           onClick={() => onChange(opt)}
         >
           {opt}
@@ -203,9 +210,7 @@ function PageHeader({ store }: { store: ClosingStore }) {
       }}
     >
       <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/15 blur-3xl" />
-      <div className="pointer-events-none absolute left-1/2 top-4 h-44 w-44 -translate-x-1/2 rounded-full border border-white/20" />
-      <div className="pointer-events-none absolute left-1/2 -top-2 h-56 w-56 -translate-x-1/2 rounded-full border border-white/10" />
+      <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/10 blur-3xl" />
 
       <div
         className={cn(
@@ -426,7 +431,7 @@ export function TodaClosingSurvey({ store }: Props) {
     <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
       <PageHeader store={store} />
 
-      <div className="relative z-[1] -mt-9 px-5 pb-2">
+      <div className="relative z-[1] -mt-9 space-y-6 px-5 pb-8">
         <div className="grid gap-3 sm:grid-cols-2">
           <VisitTypeCard
             label="見学"
@@ -443,77 +448,74 @@ export function TodaClosingSurvey({ store }: Props) {
             onClick={() => selectVisitType("taiken")}
           />
         </div>
-      </div>
 
-      <div className={cn(memberFormBodyClass, "border-t-0")}>
-        <section className={memberFormSectionClass}>
-          <FieldLabel required>お名前 (フルネーム)</FieldLabel>
-          <Input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className={memberFormInputClass}
-            autoComplete="name"
-            placeholder="山田 花子"
-          />
-        </section>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <section className="space-y-2">
+            <FieldLabel required>お名前 (フルネーム)</FieldLabel>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className={surveyInputClass}
+              autoComplete="name"
+              placeholder="山田 花子"
+            />
+          </section>
+          <section className="space-y-2">
+            <FieldLabel required>フリガナ</FieldLabel>
+            <Input
+              value={furigana}
+              onChange={(e) => setFurigana(e.target.value)}
+              className={surveyInputClass}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="ヤマダ ハナコ"
+            />
+          </section>
+          <section className="space-y-2">
+            <FieldLabel required>ご連絡先 (電話番号)</FieldLabel>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(digitsOnly(e.target.value))}
+              className={surveyInputClass}
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="tel-national"
+              placeholder="09012345678"
+            />
+          </section>
+          <section className="space-y-2">
+            <FieldLabel required>メールアドレス</FieldLabel>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={surveyInputClass}
+              type="email"
+              inputMode="email"
+              name="closing-email"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="example@email.com"
+              aria-invalid={emailInvalid}
+            />
+            {emailInvalid ? (
+              <p className="text-[12px] font-medium text-[color:var(--joyfit-red)]">
+                メールアドレスの形式をご確認ください
+              </p>
+            ) : null}
+          </section>
+        </div>
 
-        <section className={memberFormSectionClass}>
-          <FieldLabel required>フリガナ</FieldLabel>
-          <Input
-            value={furigana}
-            onChange={(e) => setFurigana(e.target.value)}
-            className={memberFormInputClass}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="ヤマダ ハナコ"
-          />
-        </section>
-
-        <section className={memberFormSectionClass}>
-          <FieldLabel required>ご連絡先 (電話番号)</FieldLabel>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(digitsOnly(e.target.value))}
-            className={memberFormInputClass}
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            autoComplete="tel-national"
-            placeholder="09012345678"
-          />
-        </section>
-
-        <section className={memberFormSectionClass}>
-          <FieldLabel required>メールアドレス</FieldLabel>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={memberFormInputClass}
-            type="email"
-            inputMode="email"
-            name="closing-email"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="example@email.com"
-            aria-invalid={emailInvalid}
-          />
-          {emailInvalid ? (
-            <p className="text-[12px] font-medium text-[color:var(--joyfit-red)]">
-              メールアドレスの形式をご確認ください
-            </p>
-          ) : null}
-        </section>
-
-        <section className={memberFormSectionClass}>
+        <section className="space-y-2">
           <FieldLabel required>性別</FieldLabel>
           <div className="grid grid-cols-3 gap-2">
             {GENDER_OPTIONS.map((opt) => (
               <button
                 key={opt}
                 type="button"
-                className={memberFormChoiceClass(gender === opt)}
+                className={surveyChoiceClass(gender === opt)}
                 onClick={() => setGender(opt)}
               >
                 {opt}
@@ -522,12 +524,12 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className={memberFormSectionClass}>
+        <section className="space-y-2">
           <FieldLabel required>ご年齢</FieldLabel>
           <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={setAge} />
           <button
             type="button"
-            className={memberFormTagClass(isStudent)}
+            className={surveyChoiceClass(isStudent)}
             onClick={() => {
               setIsStudent((prev) => {
                 const next = !prev;
@@ -542,14 +544,14 @@ export function TodaClosingSurvey({ store }: Props) {
             <Input
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className={memberFormInputClass}
+              className={surveyInputClass}
               autoComplete="off"
               placeholder="大学名（任意）"
             />
           ) : null}
         </section>
 
-        <section className={memberFormSectionClass}>
+        <section className="space-y-2">
           <FieldLabel required>ジムのご利用経験について</FieldLabel>
           <div className="grid grid-cols-2 gap-2">
             {GYM_EXPERIENCE_OPTIONS.map((opt) => (
@@ -557,7 +559,7 @@ export function TodaClosingSurvey({ store }: Props) {
                 key={opt}
                 type="button"
                 className={cn(
-                  memberFormChoiceClass(gymExperience === opt),
+                  surveyChoiceClass(gymExperience === opt),
                   "min-h-12 px-2 text-center text-[12px] leading-snug",
                 )}
                 onClick={() => setGymExperience(opt)}
@@ -568,14 +570,14 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className={memberFormSectionClass}>
+        <section className="space-y-2">
           <FieldLabel required>当クラブをどこでお知りになりましたか？</FieldLabel>
           <div className="grid grid-cols-2 gap-2">
             {HOW_FOUND_OPTIONS.map((opt) => (
               <button
                 key={opt}
                 type="button"
-                className={memberFormChoiceClass(howFound === opt)}
+                className={surveyChoiceClass(howFound === opt)}
                 onClick={() => setHowFound(opt)}
               >
                 {opt}
@@ -586,7 +588,7 @@ export function TodaClosingSurvey({ store }: Props) {
             <Input
               value={howFoundOther}
               onChange={(e) => setHowFoundOther(e.target.value)}
-              className={memberFormInputClass}
+              className={surveyInputClass}
               autoComplete="off"
               placeholder="その他の回答"
             />
@@ -594,14 +596,14 @@ export function TodaClosingSurvey({ store }: Props) {
         </section>
 
         {visitType === "taiken" ? (
-          <section className={memberFormSectionClass}>
+          <section className="space-y-2">
             <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
             <div className="grid grid-cols-2 gap-2">
               {JOIN_OPTIONS.map((opt) => (
                 <button
                   key={opt}
                   type="button"
-                  className={memberFormChoiceClass(joinIntent === opt)}
+                  className={surveyChoiceClass(joinIntent === opt)}
                   onClick={() => setJoinIntent(opt)}
                 >
                   {opt}
@@ -611,18 +613,18 @@ export function TodaClosingSurvey({ store }: Props) {
           </section>
         ) : null}
 
-        <section className={memberFormSectionClass}>
+        <section className="space-y-2">
           <FieldLabel>{EXTRA_COMMENT_TITLE}</FieldLabel>
           <Textarea
             value={extraComment}
             onChange={(e) => setExtraComment(e.target.value)}
             rows={3}
-            className={memberFormTextareaClass}
+            className={surveyTextareaClass}
             placeholder="任意"
           />
         </section>
 
-        <section className={memberFormSectionDividerClass}>
+        <section className="space-y-2 border-t border-zinc-100 pt-6">
           <div className="space-y-1">
             <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>
             <p className="text-[12px] leading-relaxed text-zinc-500">
@@ -637,7 +639,7 @@ export function TodaClosingSurvey({ store }: Props) {
                   key={opt}
                   type="button"
                   aria-pressed={active}
-                  className={memberFormTagClass(active)}
+                  className={surveyChoiceClass(active)}
                   onClick={() =>
                     setPositives((prev) =>
                       toggleLimited(prev, opt, MAX_REVIEW_POSITIVES),
@@ -651,13 +653,13 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className={`${memberFormSectionClass} text-center`}>
+        <section className="space-y-2 text-center">
           <FieldLabel required>{RATING_QUESTION}</FieldLabel>
           <p className="text-[13px] text-zinc-500">{RATING_HINT}</p>
           <RatingStars rating={rating ?? 0} onSelect={setRating} />
         </section>
 
-        <section className={memberFormSectionClass}>
+        <section className="space-y-2">
           <FieldLabel>口コミ文面（必要なら直してください）</FieldLabel>
           <Textarea
             value={shownDraft}
@@ -666,7 +668,7 @@ export function TodaClosingSurvey({ store }: Props) {
               setDraft(e.target.value);
             }}
             rows={5}
-            className={memberFormTextareaClass}
+            className={surveyTextareaClass}
             autoComplete="off"
             placeholder="よかった点を選ぶと、ここに文面ができます"
           />
@@ -676,7 +678,7 @@ export function TodaClosingSurvey({ store }: Props) {
           type="button"
           onClick={handleSubmit}
           disabled={!formReady}
-          className="h-12 w-full rounded-xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-300 disabled:text-zinc-500"
+          className="h-12 w-full rounded-2xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-200 disabled:text-zinc-400"
         >
           {rating !== null && rating >= 4 && canPostGoogle
             ? "保存してGoogle口コミへ"
