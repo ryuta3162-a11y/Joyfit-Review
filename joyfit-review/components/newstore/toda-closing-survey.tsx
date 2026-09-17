@@ -175,10 +175,31 @@ function VisitTypeButton({
   );
 }
 
+function HeaderWave() {
+  return (
+    <svg
+      className="relative z-[1] -mb-px block h-[5.75rem] w-full text-white"
+      viewBox="0 0 1440 184"
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <path
+        fill="currentColor"
+        fillOpacity="0.32"
+        d="M0 58c168-48 312 92 492 38 180-54 264 86 468 32 204-54 312 70 480 18v38H0Z"
+      />
+      <path
+        fill="currentColor"
+        d="M0 118c176-62 308 78 516 18 208-60 292 72 520 16 168-42 268 28 404 8v32H0Z"
+      />
+    </svg>
+  );
+}
+
 function PageHeader({ store }: { store: ClosingStore }) {
   return (
     <div
-      className="relative overflow-hidden px-6 pb-[4.75rem] pt-10 text-center text-white"
+      className="relative overflow-hidden text-center text-white"
       style={{
         background:
           "linear-gradient(165deg, var(--joyfit-red) 0%, var(--joyfit-red-dark) 100%)",
@@ -187,46 +208,38 @@ function PageHeader({ store }: { store: ClosingStore }) {
       <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/10 blur-3xl" />
 
-      <div className="relative z-[1] mx-auto flex justify-center">
-        {store.brand === "fit365" ? (
-          <div className="relative w-[9.75rem]">
-            <div className="pointer-events-none absolute inset-6 rounded-full bg-white/50 blur-2xl" />
-            <Image
-              src="/fit365-bear-sign.png"
-              alt="FIT365 ベアクマ"
-              width={353}
-              height={293}
-              priority
-              className="relative h-auto w-full object-contain drop-shadow-[0_10px_18px_rgba(47,24,32,0.16)]"
-            />
-          </div>
-        ) : (
-          <div className="w-full max-w-[15rem]">
-            <JoyfitHeaderLogo
-              brand={store.brand}
-              className="py-2 [&_img]:h-11 [&_img]:md:h-12"
-            />
-          </div>
-        )}
+      <div className="relative z-[1] px-6 pb-3 pt-10">
+        <div className="mx-auto flex justify-center">
+          {store.brand === "fit365" ? (
+            <div className="relative w-[9.75rem]">
+              <div className="pointer-events-none absolute inset-6 rounded-full bg-white/50 blur-2xl" />
+              <Image
+                src="/fit365-bear-sign.png"
+                alt="FIT365 ベアクマ"
+                width={353}
+                height={293}
+                priority
+                className="relative h-auto w-full object-contain drop-shadow-[0_10px_18px_rgba(47,24,32,0.16)]"
+              />
+            </div>
+          ) : (
+            <div className="w-full max-w-[15rem]">
+              <JoyfitHeaderLogo
+                brand={store.brand}
+                className="py-2 [&_img]:h-11 [&_img]:md:h-12"
+              />
+            </div>
+          )}
+        </div>
+        <h1 className="mt-6 text-[1.65rem] font-bold tracking-tight">
+          {PAGE_TITLE}
+        </h1>
+        <p className="mx-auto mt-3 inline-flex rounded-full bg-white/18 px-3.5 py-1 text-[12px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm">
+          {store.name}
+        </p>
       </div>
-      <h1 className="relative z-[1] mt-6 text-[1.65rem] font-bold tracking-tight">
-        {PAGE_TITLE}
-      </h1>
-      <p className="relative z-[1] mx-auto mt-3 inline-flex rounded-full bg-white/18 px-3.5 py-1 text-[12px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm">
-        {store.name}
-      </p>
 
-      <svg
-        className="pointer-events-none absolute inset-x-0 -bottom-px h-11 w-full text-white"
-        viewBox="0 0 1440 88"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <path
-          fill="currentColor"
-          d="M0 54c180 28 360-36 540-28 180 8 270 52 450 44 180-8 330-56 450-36v54H0Z"
-        />
-      </svg>
+      <HeaderWave />
     </div>
   );
 }
@@ -413,7 +426,7 @@ export function TodaClosingSurvey({ store }: Props) {
     <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
       <PageHeader store={store} />
 
-      <div className="relative z-[1] -mt-9 space-y-6 px-5 pb-8">
+      <div className="relative z-[1] -mt-4 space-y-6 px-5 pb-8">
         <div className="grid grid-cols-2 gap-3">
           <VisitTypeButton
             label="見学"
