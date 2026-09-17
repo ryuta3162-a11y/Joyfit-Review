@@ -414,22 +414,17 @@ export function TodaClosingSurvey({ store }: Props) {
       <PageHeader store={store} />
 
       <div className="relative z-[1] -mt-9 space-y-6 px-5 pb-8">
-        <div className="space-y-3">
-          <p className="text-center text-[12px] leading-relaxed text-zinc-500">
-            見学した方は「見学」、体験した方は「体験」
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <VisitTypeButton
-              label="見学"
-              selected={visitType === "kengaku"}
-              onClick={() => selectVisitType("kengaku")}
-            />
-            <VisitTypeButton
-              label="体験"
-              selected={visitType === "taiken"}
-              onClick={() => selectVisitType("taiken")}
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <VisitTypeButton
+            label="見学"
+            selected={visitType === "kengaku"}
+            onClick={() => selectVisitType("kengaku")}
+          />
+          <VisitTypeButton
+            label="体験"
+            selected={visitType === "taiken"}
+            onClick={() => selectVisitType("taiken")}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
