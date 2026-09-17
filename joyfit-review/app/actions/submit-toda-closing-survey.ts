@@ -43,7 +43,7 @@ export async function submitTodaClosingSurvey(
     };
   }
   if (input.visitType !== "kengaku" && input.visitType !== "taiken") {
-    return { ok: false, error: "見学か無料体験を選択してください。" };
+    return { ok: false, error: "見学か体験を選択してください。" };
   }
   if (!input.storeId.trim() || !input.storeName.trim()) {
     return { ok: false, error: "店舗を確認できませんでした。" };

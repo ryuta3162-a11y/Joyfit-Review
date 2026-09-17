@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, Eye, Sparkles, Star } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
@@ -149,16 +149,12 @@ function RatingStars({
   );
 }
 
-function VisitTypeCard({
+function VisitTypeButton({
   label,
-  hint,
-  icon,
   selected,
   onClick,
 }: {
   label: string;
-  hint: string;
-  icon: ReactNode;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -168,34 +164,13 @@ function VisitTypeCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "group relative overflow-hidden rounded-[1.6rem] border bg-white px-5 py-5 text-left shadow-[0_12px_30px_rgba(24,24,27,0.08)] transition",
+        "h-[4.25rem] rounded-[1.5rem] text-[1.45rem] font-bold tracking-[0.28em] transition",
         selected
-          ? "border-[color:var(--joyfit-red)] ring-2 ring-[color:var(--joyfit-red)]/15"
-          : "border-zinc-100/80 hover:-translate-y-0.5 hover:border-[color:var(--joyfit-red)]/30 hover:shadow-[0_18px_36px_rgba(24,24,27,0.12)]",
+          ? "bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_24px_rgba(24,24,27,0.12)]"
+          : "bg-white text-zinc-800 shadow-[0_10px_24px_rgba(24,24,27,0.06)] ring-1 ring-zinc-100 hover:-translate-y-0.5",
       )}
     >
-      <span
-        className={cn(
-          "pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full transition",
-          selected ? "bg-[color:var(--joyfit-red)]/15" : "bg-[color:var(--joyfit-red)]/[0.07]",
-        )}
-      />
-      <span
-        className={cn(
-          "relative flex h-11 w-11 items-center justify-center rounded-2xl transition",
-          selected
-            ? "bg-[color:var(--joyfit-red)] text-white"
-            : "bg-[color:var(--joyfit-red)]/10 text-[color:var(--joyfit-red)]",
-        )}
-      >
-        {icon}
-      </span>
-      <span className="relative mt-3 block text-[1.2rem] font-bold tracking-tight text-zinc-900">
-        {label}
-      </span>
-      <span className="relative mt-1 block text-[12px] leading-relaxed text-zinc-500">
-        {hint}
-      </span>
+      {label}
     </button>
   );
 }
@@ -439,21 +414,22 @@ export function TodaClosingSurvey({ store }: Props) {
       <PageHeader store={store} />
 
       <div className="relative z-[1] -mt-9 space-y-6 px-5 pb-8">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <VisitTypeCard
-            label="見学"
-            hint="施設のご案内を受けた方"
-            icon={<Eye className="h-5 w-5" strokeWidth={2.2} />}
-            selected={visitType === "kengaku"}
-            onClick={() => selectVisitType("kengaku")}
-          />
-          <VisitTypeCard
-            label="無料体験"
-            hint="体験トレーニングをされた方"
-            icon={<Sparkles className="h-5 w-5" strokeWidth={2.2} />}
-            selected={visitType === "taiken"}
-            onClick={() => selectVisitType("taiken")}
-          />
+        <div className="space-y-3">
+          <p className="text-center text-[12px] leading-relaxed text-zinc-500">
+            見学した方は「見学」、体験した方は「体験」
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <VisitTypeButton
+              label="見学"
+              selected={visitType === "kengaku"}
+              onClick={() => selectVisitType("kengaku")}
+            />
+            <VisitTypeButton
+              label="体験"
+              selected={visitType === "taiken"}
+              onClick={() => selectVisitType("taiken")}
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

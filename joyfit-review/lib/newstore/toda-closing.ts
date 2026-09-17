@@ -58,7 +58,7 @@ export type TodaVisitType = "kengaku" | "taiken";
 
 export const VISIT_TYPE_LABEL: Record<TodaVisitType, string> = {
   kengaku: "見学",
-  taiken: "無料体験",
+  taiken: "体験",
 };
 
 export const PAGE_TITLE = "見学体験後アンケート";
@@ -147,11 +147,86 @@ export function toggleLimited(
   return [...current, item];
 }
 
-function formatEnumPhrases(items: string[]): string {
-  const list = items.filter(Boolean);
-  if (list.length === 0) return "";
-  if (list.length === 1) return list[0];
-  return `${list.slice(0, -1).join("、")}や${list[list.length - 1]}`;
+type ReviewPhrase = {
+  mid: string;
+  midAlso: string;
+  end: string;
+};
+
+const REVIEW_POSITIVE_PHRASE: Record<string, ReviewPhrase> = {
+  スタッフの案内が丁寧: {
+    mid: "スタッフの案内が丁寧で",
+    midAlso: "案内も丁寧で",
+    end: "スタッフの案内が丁寧でした",
+  },
+  店内が清潔で新しい: {
+    mid: "店内が清潔で新しく",
+    midAlso: "店内も清潔で新しく",
+    end: "店内が清潔で新しかったです",
+  },
+  マシンが充実している: {
+    mid: "マシンが充実していて",
+    midAlso: "マシンも充実していて",
+    end: "マシンが充実していました",
+  },
+  "24時間通える": {
+    mid: "24時間通えて",
+    midAlso: "24時間通えるのも便利で",
+    end: "24時間通えるのも助かります",
+  },
+  駐車場がある: {
+    mid: "駐車場があり",
+    midAlso: "駐車場もあり",
+    end: "駐車場もあるので通いやすいです",
+  },
+  通いやすい立地: {
+    mid: "立地が通いやすく",
+    midAlso: "立地も通いやすく",
+    end: "立地が通いやすいです",
+  },
+  初心者でも入りやすい: {
+    mid: "初心者でも入りやすく",
+    midAlso: "初心者でも入りやすく",
+    end: "初心者でも入りやすいと感じました",
+  },
+  料金が分かりやすい: {
+    mid: "料金が分かりやすく",
+    midAlso: "料金も分かりやすく",
+    end: "料金が分かりやすいです",
+  },
+  セキュリティが安心: {
+    mid: "セキュリティが安心で",
+    midAlso: "セキュリティも安心で",
+    end: "セキュリティが安心です",
+  },
+  レディースエリアがある: {
+    mid: "レディースエリアがあり",
+    midAlso: "レディースエリアもあり",
+    end: "レディースエリアがあるのもよかったです",
+  },
+  雰囲気が明るい: {
+    mid: "雰囲気が明るく",
+    midAlso: "雰囲気も明るく",
+    end: "雰囲気が明るいです",
+  },
+  説明が分かりやすい: {
+    mid: "説明が分かりやすく",
+    midAlso: "説明も分かりやすく",
+    end: "説明が分かりやすかったです",
+  },
+};
+
+function joinPositivePhrases(items: string[]): string {
+  const phrases = items
+    .map((item) => REVIEW_POSITIVE_PHRASE[item])
+    .filter((phrase): phrase is ReviewPhrase => Boolean(phrase));
+  if (phrases.length === 0) return "";
+  if (phrases.length === 1) return `${phrases[0].end}。`;
+  const head = phrases
+    .slice(0, -1)
+    .map((phrase, index) => (index === 0 ? phrase.mid : phrase.midAlso))
+    .join("、");
+  return `${head}、${phrases[phrases.length - 1].end}。`;
 }
 
 export type TodaReviewDraftInput = {
@@ -167,9 +242,8 @@ export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
   const lines: string[] = [];
   lines.push(`${input.storeName}を${visitWord}しました。`);
 
-  if (input.positives.length) {
-    lines.push(`${formatEnumPhrases(input.positives)}と感じました。`);
-  }
+  const positivesLine = joinPositivePhrases(input.positives);
+  if (positivesLine) lines.push(positivesLine);
 
   const comment = input.extraComment.trim();
   if (comment) lines.push(comment);
@@ -177,8 +251,8 @@ export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
   if (input.rating >= 4) {
     lines.push(
       input.visitType === "kengaku"
-        ? "見学してよかったです。"
-        : "通いやすく、また利用したいと思いました。",
+        ? "見学できてよかったです。"
+        : "また利用したいと思いました。",
     );
   }
 
