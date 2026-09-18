@@ -6,7 +6,6 @@ import { Check, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
-import { JoyfitHeaderLogo } from "@/components/joyfit/header-logo";
 import {
   memberFormCardClass,
 } from "@/components/member/member-form-styles";
@@ -176,54 +175,22 @@ function VisitTypeButton({
 }
 
 function HeaderWave() {
-  const crestBack =
-    "M0 58c168-48 312 92 492 38 180-54 264 86 468 32 204-54 312 70 480 18";
-  const crestFront =
-    "M0 118c176-62 308 78 516 18 208-60 292 72 520 16 168-42 268 28 404 8";
+  const crest =
+    "M0 92c200-56 340 72 560 18 220-54 360 76 580 20 160-40 240 28 300 8";
 
   return (
     <svg
-      className="relative z-[1] -mb-px block h-[5.75rem] w-full overflow-visible text-white"
-      viewBox="0 0 1440 184"
+      className="relative z-[1] -mb-px block h-20 w-full text-white"
+      viewBox="0 0 1440 160"
       preserveAspectRatio="none"
       aria-hidden
     >
-      <defs>
-        <filter
-          id="closing-wave-shadow"
-          x="-8%"
-          y="-50%"
-          width="116%"
-          height="220%"
-        >
-          <feDropShadow
-            dx="0"
-            dy="5"
-            stdDeviation="6"
-            floodColor="#18181b"
-            floodOpacity="0.18"
-          />
-        </filter>
-      </defs>
-      <path fill="currentColor" fillOpacity="0.4" d={`${crestBack}v38H0Z`} />
+      <path d={`${crest}V160H0Z`} fill="currentColor" />
       <path
-        d={crestBack}
+        d={crest}
         fill="none"
         stroke="#18181b"
-        strokeOpacity="0.22"
         strokeWidth="3"
-        vectorEffect="non-scaling-stroke"
-      />
-      <path
-        d={`${crestFront}v32H0Z`}
-        fill="currentColor"
-        filter="url(#closing-wave-shadow)"
-      />
-      <path
-        d={crestFront}
-        fill="none"
-        stroke="#18181b"
-        strokeWidth="3.5"
         vectorEffect="non-scaling-stroke"
       />
     </svg>
@@ -234,33 +201,30 @@ function PageHeader({ store }: { store: ClosingStore }) {
   return (
     <div
       className="relative text-center text-white"
-      style={{
-        background:
-          "linear-gradient(165deg, var(--joyfit-red) 0%, var(--joyfit-red-dark) 100%)",
-      }}
+      style={{ background: "var(--joyfit-red)" }}
     >
-      <div className="relative overflow-hidden px-6 pb-3 pt-10">
-        <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/30 blur-3xl" />
-        <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-48 w-48 rounded-full bg-black/10 blur-3xl" />
-
-        <div className="relative z-[1] mx-auto flex justify-center">
+      <div className="relative px-6 pb-3 pt-10">
+        <div className="mx-auto flex justify-center">
           {store.brand === "fit365" ? (
-            <div className="relative w-[9.75rem]">
-              <div className="pointer-events-none absolute inset-6 rounded-full bg-white/50 blur-2xl" />
+            <div className="w-[9.75rem]">
               <Image
                 src="/fit365-bear-sign.png"
                 alt="FIT365 ベアクマ"
                 width={353}
                 height={293}
                 priority
-                className="relative h-auto w-full object-contain drop-shadow-[0_10px_18px_rgba(47,24,32,0.16)]"
+                className="h-auto w-full object-contain"
               />
             </div>
           ) : (
-            <div className="w-full max-w-[15rem]">
-              <JoyfitHeaderLogo
-                brand={store.brand}
-                className="py-2 [&_img]:h-11 [&_img]:md:h-12"
+            <div className="w-[13.5rem]">
+              <Image
+                src="/joyfit-logo-mark.png"
+                alt="JOYFIT24"
+                width={579}
+                height={122}
+                priority
+                className="h-auto w-full object-contain"
               />
             </div>
           )}
@@ -268,7 +232,7 @@ function PageHeader({ store }: { store: ClosingStore }) {
         <h1 className="mt-6 text-[1.65rem] font-bold tracking-tight">
           {PAGE_TITLE}
         </h1>
-        <p className="mx-auto mt-3 inline-flex rounded-full bg-white/18 px-3.5 py-1 text-[12px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm">
+        <p className="mt-3 text-[13px] font-medium text-white">
           {store.name}
         </p>
       </div>
@@ -390,19 +354,14 @@ export function TodaClosingSurvey({ store }: Props) {
     const goGoogle = rating !== null && rating >= 4 && canPostGoogle;
     return (
       <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
-        <div
-          className="relative overflow-hidden px-6 pb-10 pt-12 text-center text-white"
-          style={{ background: "var(--joyfit-red)" }}
-        >
-          <div className="pointer-events-none absolute -right-12 -top-16 h-52 w-52 rounded-full bg-white/25 blur-3xl" />
-          <div className="pointer-events-none absolute -left-16 bottom-[-4rem] h-44 w-44 rounded-full bg-black/10 blur-3xl" />
-          <div className="relative z-[1] mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+        <div className="px-6 pb-10 pt-12 text-center text-white" style={{ background: "var(--joyfit-red)" }}>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
             <Check className="h-7 w-7" strokeWidth={2.75} />
           </div>
-          <h2 className="relative z-[1] mt-7 text-[22px] font-bold tracking-tight">
+          <h2 className="mt-7 text-[22px] font-bold tracking-tight">
             ご協力ありがとうございます
           </h2>
-          <p className="relative z-[1] mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
+          <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
             {goGoogle
               ? "口コミ文をコピーしました。Googleマップへ投稿をお願いします。"
               : "回答を受け付けました。"}
