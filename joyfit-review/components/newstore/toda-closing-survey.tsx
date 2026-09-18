@@ -1,13 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
 import {
+  memberFormBodyClass,
   memberFormCardClass,
+  memberFormChoiceClass,
+  memberFormErrorClass,
+  memberFormHintClass,
+  memberFormInputClass,
+  memberFormTextareaClass,
 } from "@/components/member/member-form-styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +39,10 @@ import {
   JOIN_QUESTION_TITLE,
   MAX_REVIEW_POSITIVES,
   PAGE_TITLE,
+  PHONE_ERROR,
+  PHONE_FIELD_TITLE,
+  PHONE_HINT,
+  PHONE_PLACEHOLDER,
   RATING_HINT,
   RATING_QUESTION,
   REVIEW_POSITIVE_OPTIONS,
@@ -62,22 +72,33 @@ function newSubmissionId(): string {
 }
 
 function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 11);
+  return value
+    .replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+    .replace(/\D/g, "")
+    .slice(0, 11);
 }
 
-const surveyInputClass =
-  "h-12 w-full rounded-2xl border-0 bg-zinc-100/90 px-4 text-[15px] text-zinc-900 outline-none ring-1 ring-zinc-200/70 transition placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-[color:var(--joyfit-red)]/35";
+function isPhoneComplete(value: string): boolean {
+  return value.length === 10 || value.length === 11;
+}
 
-const surveyTextareaClass =
-  "min-h-16 w-full rounded-2xl border-0 bg-zinc-100/90 px-4 py-3 text-[15px] text-zinc-900 outline-none ring-1 ring-zinc-200/70 transition placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-[color:var(--joyfit-red)]/35";
-
-function surveyChoiceClass(active: boolean) {
-  return cn(
-    "rounded-2xl px-3 py-2.5 text-[13px] font-semibold leading-snug transition",
-    active
-      ? "bg-[color:var(--joyfit-red)] text-white shadow-sm shadow-[color:var(--joyfit-red)]/20"
-      : "bg-zinc-100/90 text-zinc-700 hover:bg-zinc-200/80",
-  );
+function handlePhoneKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  const allowed = [
+    "Backspace",
+    "Delete",
+    "Tab",
+    "Enter",
+    "Escape",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+  ];
+  if (allowed.includes(event.key)) return;
+  if (!/^\d$/.test(event.key)) event.preventDefault();
 }
 
 function FieldLabel({
@@ -118,7 +139,7 @@ function ChoiceWrap({
         <button
           key={opt}
           type="button"
-          className={surveyChoiceClass(value === opt)}
+          className={memberFormChoiceClass(value === opt)}
           onClick={() => onChange(opt)}
         >
           {opt}
@@ -174,10 +195,10 @@ function VisitTypeButton({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "h-[4.25rem] rounded-[1.5rem] text-[1.45rem] font-bold tracking-[0.28em] transition",
+        "h-[4.35rem] rounded-2xl text-[1.5rem] font-bold tracking-[0.28em] transition",
         selected
-          ? "bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_24px_rgba(24,24,27,0.12)]"
-          : "bg-white text-zinc-800 shadow-[0_10px_24px_rgba(24,24,27,0.08)] ring-1 ring-zinc-800/25 hover:-translate-y-0.5",
+          ? "border-2 border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_22px_rgba(0,0,0,0.18),0_2px_0_rgba(0,0,0,0.12)]"
+          : "border-2 border-zinc-800 bg-white text-zinc-900 shadow-[0_8px_18px_rgba(24,24,27,0.14)] hover:-translate-y-0.5",
       )}
     >
       {label}
@@ -187,13 +208,10 @@ function VisitTypeButton({
 
 function PageHeader({ store }: { store: ClosingStore }) {
   return (
-    <div
-      className="px-6 pb-9 pt-10 text-center text-white"
-      style={{ background: "var(--joyfit-red)" }}
-    >
-      <div className="mx-auto flex justify-center">
+    <div className="joyfit-brand-header px-6 pb-14 pt-10 text-center text-white">
+      <div className="relative z-[1] mx-auto flex justify-center">
         {store.brand === "fit365" ? (
-          <div className="w-[8.75rem]">
+          <div className="w-[8.75rem] drop-shadow-[0_10px_18px_rgba(0,0,0,0.22)]">
             <Image
               src="/fit365-bear-sign.png"
               alt="FIT365 ベアクマ"
@@ -204,7 +222,7 @@ function PageHeader({ store }: { store: ClosingStore }) {
             />
           </div>
         ) : (
-          <div className="w-[11.5rem]">
+          <div className="w-[11.5rem] drop-shadow-[0_8px_16px_rgba(0,0,0,0.28)]">
             <Image
               src="/joyfit-logo-mark.png"
               alt="JOYFIT24"
@@ -216,10 +234,10 @@ function PageHeader({ store }: { store: ClosingStore }) {
           </div>
         )}
       </div>
-      <h1 className="mt-5 text-[1.45rem] font-bold tracking-tight">
+      <h1 className="relative z-[1] mt-5 text-[1.55rem] font-bold tracking-tight [text-shadow:0_2px_0_rgba(0,0,0,0.2),0_10px_18px_rgba(0,0,0,0.22)]">
         {PAGE_TITLE}
       </h1>
-      <p className="mt-1.5 text-[12px] font-medium text-white/80">
+      <p className="relative z-[1] mt-3 inline-flex rounded-full bg-white px-4 py-1.5 text-[13px] font-bold text-[color:var(--joyfit-red)] shadow-[0_8px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.9)]">
         {store.name}
       </p>
     </div>
@@ -260,6 +278,7 @@ export function TodaClosingSurvey({ store }: Props) {
   const emailTrimmed = email.trim();
   const emailInvalid =
     Boolean(emailTrimmed) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
+  const phoneInvalid = phone.length > 0 && !isPhoneComplete(phone);
   const needsHowFoundOther = howFound === "その他";
 
   const liveDraft = useMemo(() => {
@@ -279,7 +298,7 @@ export function TodaClosingSurvey({ store }: Props) {
     visitType !== null &&
     fullName.trim() &&
     furigana.trim() &&
-    phone.trim() &&
+    isPhoneComplete(phone) &&
     emailTrimmed &&
     !emailInvalid &&
     Boolean(gender) &&
@@ -403,7 +422,12 @@ export function TodaClosingSurvey({ store }: Props) {
     <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
       <PageHeader store={store} />
 
-      <div className="space-y-6 px-5 pb-8 pt-5">
+      <div
+        className={cn(
+          memberFormBodyClass,
+          "relative z-[1] -mt-8 space-y-6 rounded-t-[1.75rem] border-t-0 px-5 pb-8 pt-6 shadow-[0_-10px_24px_rgba(24,24,27,0.12)]",
+        )}
+      >
         <div className="grid grid-cols-2 gap-3">
           <VisitTypeButton
             label="見学"
@@ -423,7 +447,7 @@ export function TodaClosingSurvey({ store }: Props) {
             <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className={surveyInputClass}
+              className={memberFormInputClass}
               autoComplete="name"
               placeholder="山田 花子"
             />
@@ -433,7 +457,7 @@ export function TodaClosingSurvey({ store }: Props) {
             <Input
               value={furigana}
               onChange={(e) => setFurigana(e.target.value)}
-              className={surveyInputClass}
+              className={memberFormInputClass}
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
@@ -441,24 +465,31 @@ export function TodaClosingSurvey({ store }: Props) {
             />
           </section>
           <section className="space-y-2">
-            <FieldLabel required>ご連絡先 (電話番号)</FieldLabel>
+            <FieldLabel required>{PHONE_FIELD_TITLE}</FieldLabel>
+            <p className={memberFormHintClass}>{PHONE_HINT}</p>
             <Input
               value={phone}
               onChange={(e) => setPhone(digitsOnly(e.target.value))}
-              className={surveyInputClass}
+              onKeyDown={handlePhoneKeyDown}
+              className={memberFormInputClass}
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
+              maxLength={11}
               autoComplete="tel-national"
-              placeholder="09012345678"
+              placeholder={PHONE_PLACEHOLDER}
+              aria-invalid={phoneInvalid}
             />
+            {phoneInvalid ? (
+              <p className={memberFormErrorClass}>{PHONE_ERROR}</p>
+            ) : null}
           </section>
           <section className="space-y-2">
             <FieldLabel required>メールアドレス</FieldLabel>
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={surveyInputClass}
+              className={memberFormInputClass}
               type="email"
               inputMode="email"
               name="closing-email"
@@ -469,7 +500,7 @@ export function TodaClosingSurvey({ store }: Props) {
               aria-invalid={emailInvalid}
             />
             {emailInvalid ? (
-              <p className="text-[12px] font-medium text-[color:var(--joyfit-red)]">
+              <p className={memberFormErrorClass}>
                 メールアドレスの形式をご確認ください
               </p>
             ) : null}
@@ -483,7 +514,7 @@ export function TodaClosingSurvey({ store }: Props) {
               <button
                 key={opt}
                 type="button"
-                className={surveyChoiceClass(gender === opt)}
+                className={memberFormChoiceClass(gender === opt)}
                 onClick={() => setGender(opt)}
               >
                 {opt}
@@ -497,7 +528,7 @@ export function TodaClosingSurvey({ store }: Props) {
           <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={setAge} />
           <button
             type="button"
-            className={surveyChoiceClass(isStudent)}
+            className={memberFormChoiceClass(isStudent)}
             onClick={() => {
               setIsStudent((prev) => {
                 const next = !prev;
@@ -512,7 +543,7 @@ export function TodaClosingSurvey({ store }: Props) {
             <Input
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className={surveyInputClass}
+              className={memberFormInputClass}
               autoComplete="off"
               placeholder="大学名（任意）"
             />
@@ -527,7 +558,7 @@ export function TodaClosingSurvey({ store }: Props) {
                 key={opt}
                 type="button"
                 className={cn(
-                  surveyChoiceClass(gymExperience === opt),
+                  memberFormChoiceClass(gymExperience === opt),
                   "min-h-12 px-2 text-center text-[12px] leading-snug",
                 )}
                 onClick={() => setGymExperience(opt)}
@@ -545,7 +576,7 @@ export function TodaClosingSurvey({ store }: Props) {
               <button
                 key={opt}
                 type="button"
-                className={surveyChoiceClass(howFound === opt)}
+                className={memberFormChoiceClass(howFound === opt)}
                 onClick={() => setHowFound(opt)}
               >
                 {opt}
@@ -556,7 +587,7 @@ export function TodaClosingSurvey({ store }: Props) {
             <Input
               value={howFoundOther}
               onChange={(e) => setHowFoundOther(e.target.value)}
-              className={surveyInputClass}
+              className={memberFormInputClass}
               autoComplete="off"
               placeholder="その他の回答"
             />
@@ -571,7 +602,7 @@ export function TodaClosingSurvey({ store }: Props) {
                 <button
                   key={opt}
                   type="button"
-                  className={surveyChoiceClass(joinIntent === opt)}
+                  className={memberFormChoiceClass(joinIntent === opt)}
                   onClick={() => setJoinIntent(opt)}
                 >
                   {opt}
@@ -587,7 +618,7 @@ export function TodaClosingSurvey({ store }: Props) {
             value={extraComment}
             onChange={(e) => setExtraComment(e.target.value)}
             rows={3}
-            className={surveyTextareaClass}
+            className={memberFormTextareaClass}
             placeholder="任意"
           />
         </section>
@@ -595,7 +626,7 @@ export function TodaClosingSurvey({ store }: Props) {
         <section className="space-y-2 border-t border-zinc-100 pt-6">
           <div className="space-y-1">
             <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>
-            <p className="text-[12px] leading-relaxed text-zinc-500">
+            <p className={memberFormHintClass}>
               {REVIEW_POSITIVES_HINT}（最大{MAX_REVIEW_POSITIVES}つ）
             </p>
           </div>
@@ -607,7 +638,7 @@ export function TodaClosingSurvey({ store }: Props) {
                   key={opt}
                   type="button"
                   aria-pressed={active}
-                  className={surveyChoiceClass(active)}
+                  className={memberFormChoiceClass(active)}
                   onClick={() =>
                     setPositives((prev) =>
                       toggleLimited(prev, opt, MAX_REVIEW_POSITIVES),
@@ -623,7 +654,7 @@ export function TodaClosingSurvey({ store }: Props) {
 
         <section className="space-y-2 text-center">
           <FieldLabel required>{RATING_QUESTION}</FieldLabel>
-          <p className="text-[13px] text-zinc-500">{RATING_HINT}</p>
+          <p className={memberFormHintClass}>{RATING_HINT}</p>
           <RatingStars rating={rating ?? 0} onSelect={setRating} />
         </section>
 
@@ -636,7 +667,7 @@ export function TodaClosingSurvey({ store }: Props) {
               setDraft(e.target.value);
             }}
             rows={5}
-            className={surveyTextareaClass}
+            className={memberFormTextareaClass}
             autoComplete="off"
             placeholder={DRAFT_PLACEHOLDER}
           />
