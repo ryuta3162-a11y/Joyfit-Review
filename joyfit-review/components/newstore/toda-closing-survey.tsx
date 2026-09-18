@@ -40,6 +40,7 @@ import {
   PHONE_PLACEHOLDER,
   RATING_HINT,
   RATING_QUESTION,
+  resolveAppInstallUrl,
   REVIEW_POSITIVE_OPTIONS,
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
@@ -249,6 +250,7 @@ export function TodaClosingSurvey({ store }: Props) {
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
   const googleReviewUrl = store.googleReviewUrl.trim();
   const canPostGoogle = Boolean(googleReviewUrl);
+  const [appInstallUrl, setAppInstallUrl] = useState(store.appInstallUrl);
   const submissionIdRef = useRef(newSubmissionId());
 
   const [visitType, setVisitType] = useState<TodaVisitType | null>(null);
@@ -274,6 +276,10 @@ export function TodaClosingSurvey({ store }: Props) {
   useEffect(() => {
     void warmupClosingSurveyGas();
   }, []);
+
+  useEffect(() => {
+    setAppInstallUrl(resolveAppInstallUrl(store, navigator.userAgent));
+  }, [store]);
 
   const emailTrimmed = email.trim();
   const emailInvalid =
@@ -394,7 +400,7 @@ export function TodaClosingSurvey({ store }: Props) {
               </div>
             </div>
             <a
-              href={store.appInstallUrl}
+              href={appInstallUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white px-4 text-[14px] font-bold text-[color:var(--joyfit-red)] transition hover:bg-white/92"

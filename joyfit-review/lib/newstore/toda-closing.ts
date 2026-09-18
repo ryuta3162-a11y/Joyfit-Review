@@ -16,6 +16,8 @@ export type ClosingStore = {
   googleReviewUrl: string;
   mapsUrl: string;
   appInstallUrl: string;
+  appInstallIosUrl: string;
+  appInstallAndroidUrl: string;
   appInstallBody: string;
   appInstallLinkLabel: string;
 };
@@ -29,6 +31,10 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
     mapsUrl: "https://g.page/r/Cdo92khF2w03EAE",
     appInstallUrl: "https://joyfit.jp/kyodo/app_join/",
+    appInstallIosUrl:
+      "https://apps.apple.com/jp/app/joyfit-app/id1492426384?l=ja&ls=1",
+    appInstallAndroidUrl:
+      "https://play.google.com/store/apps/details?id=jp.joyfit.joyfitappandroid",
     appInstallBody: "入会ご希望の方はJOYFITAPPから手続きが可能です",
     appInstallLinkLabel: "アプリをインストール",
   },
@@ -40,7 +46,11 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     googleReviewUrl:
       "https://www.google.com/maps/place//data=!4m3!3m2!1s0x6018ebf70f0ce3d5:0x11aae5a2eeb77b1d!12e1?source=g.page.m.kd._&laa=lu-desktop-review-solicitation",
     mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
-    appInstallUrl: "https://fit365.jp/pr_app/",
+    appInstallUrl:
+      "https://play.google.com/store/apps/details?id=jp.fit365.fit365appandroid",
+    appInstallIosUrl: "https://apps.apple.com/jp/app/fit365-app/id1521399707",
+    appInstallAndroidUrl:
+      "https://play.google.com/store/apps/details?id=jp.fit365.fit365appandroid",
     appInstallBody: "入会ご希望の方はFIT365アプリから手続きが可能です",
     appInstallLinkLabel: "アプリをインストール",
   },
@@ -49,6 +59,15 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
 export function parseClosingStoreSlug(value: string | undefined | null): ClosingStoreSlug | null {
   if (value === "kyodo" || value === "toda") return value;
   return null;
+}
+
+export function resolveAppInstallUrl(
+  store: ClosingStore,
+  userAgent = "",
+): string {
+  if (/iPhone|iPad|iPod/i.test(userAgent)) return store.appInstallIosUrl;
+  if (/Android/i.test(userAgent)) return store.appInstallAndroidUrl;
+  return store.appInstallUrl;
 }
 
 /** @deprecated 戸田単体時の別名。CLOSING_STORES.toda を使う */
