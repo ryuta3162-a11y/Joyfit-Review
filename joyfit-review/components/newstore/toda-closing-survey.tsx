@@ -21,7 +21,6 @@ import {
   REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   SURVEY_COMPLETION_THANK_YOU,
-  getHighRatingGoogleMapHint,
 } from "@/lib/member-reward-copy";
 import {
   AGE_OPTIONS,
@@ -48,7 +47,6 @@ import {
   REVIEW_POSITIVES_TITLE,
   STUDENT_TOGGLE_LABEL,
   SUCCESS_DRAFT_LABEL,
-  SUCCESS_GOOGLE_GUIDE,
   SUCCESS_SAVED,
   toggleLimited,
   type ClosingStore,
@@ -381,21 +379,14 @@ export function TodaClosingSurvey({ store }: Props) {
                 {shownDraft}
               </pre>
               {goGoogle && rating !== null ? (
-                <>
-                  <p className="mt-3 text-center text-[13px] leading-relaxed text-zinc-500">
-                    {SUCCESS_GOOGLE_GUIDE}
-                    <br />
-                    {getHighRatingGoogleMapHint(rating)}
-                  </p>
-                  <a
-                    href={googleReviewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white transition hover:bg-[color:var(--joyfit-red-dark)]"
-                  >
-                    {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
-                  </a>
-                </>
+                <a
+                  href={googleReviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white transition hover:bg-[color:var(--joyfit-red-dark)]"
+                >
+                  {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
+                </a>
               ) : null}
             </div>
           ) : null}

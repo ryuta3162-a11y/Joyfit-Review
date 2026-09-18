@@ -129,8 +129,6 @@ export const DRAFT_FIELD_TITLE = "ご回答内容の確認（修正できます�
 export const DRAFT_PLACEHOLDER =
   "よかった点を選ぶと、ここにご回答内容ができます";
 export const SUCCESS_SAVED = "回答を保存しました。";
-export const SUCCESS_GOOGLE_GUIDE =
-  "下のボタンからGoogleマップへ進んでください。";
 export const SUCCESS_DRAFT_LABEL = "ご回答内容";
 export const MAX_REVIEW_POSITIVES = 4;
 
