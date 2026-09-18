@@ -174,70 +174,43 @@ function VisitTypeButton({
   );
 }
 
-function HeaderWave() {
-  const crest =
-    "M0 92c200-56 340 72 560 18 220-54 360 76 580 20 160-40 240 28 300 8";
-
-  return (
-    <svg
-      className="relative z-[1] -mb-px block h-20 w-full text-white"
-      viewBox="0 0 1440 160"
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      <path d={`${crest}V160H0Z`} fill="currentColor" />
-      <path
-        d={crest}
-        fill="none"
-        stroke="#18181b"
-        strokeWidth="3"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
 function PageHeader({ store }: { store: ClosingStore }) {
   return (
     <div
-      className="relative text-center text-white"
+      className="px-6 pb-9 pt-10 text-center text-white"
       style={{ background: "var(--joyfit-red)" }}
     >
-      <div className="relative px-6 pb-3 pt-10">
-        <div className="mx-auto flex justify-center">
-          {store.brand === "fit365" ? (
-            <div className="w-[9.75rem]">
-              <Image
-                src="/fit365-bear-sign.png"
-                alt="FIT365 ベアクマ"
-                width={353}
-                height={293}
-                priority
-                className="h-auto w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="w-[13.5rem]">
-              <Image
-                src="/joyfit-logo-mark.png"
-                alt="JOYFIT24"
-                width={579}
-                height={122}
-                priority
-                className="h-auto w-full object-contain"
-              />
-            </div>
-          )}
-        </div>
-        <h1 className="mt-6 text-[1.65rem] font-bold tracking-tight">
-          {PAGE_TITLE}
-        </h1>
-        <p className="mt-3 text-[13px] font-medium text-white">
-          {store.name}
-        </p>
+      <div className="mx-auto flex justify-center">
+        {store.brand === "fit365" ? (
+          <div className="w-[8.75rem]">
+            <Image
+              src="/fit365-bear-sign.png"
+              alt="FIT365 ベアクマ"
+              width={353}
+              height={293}
+              priority
+              className="h-auto w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="w-[11.5rem]">
+            <Image
+              src="/joyfit-logo-mark.png"
+              alt="JOYFIT24"
+              width={579}
+              height={122}
+              priority
+              className="h-auto w-full object-contain"
+            />
+          </div>
+        )}
       </div>
-
-      <HeaderWave />
+      <h1 className="mt-5 text-[1.45rem] font-bold tracking-tight">
+        {PAGE_TITLE}
+      </h1>
+      <p className="mt-1.5 text-[12px] font-medium text-white/80">
+        {store.name}
+      </p>
     </div>
   );
 }
@@ -419,7 +392,7 @@ export function TodaClosingSurvey({ store }: Props) {
     <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
       <PageHeader store={store} />
 
-      <div className="relative z-[1] -mt-4 space-y-6 px-5 pb-8">
+      <div className="space-y-6 px-5 pb-8 pt-5">
         <div className="grid grid-cols-2 gap-3">
           <VisitTypeButton
             label="見学"
