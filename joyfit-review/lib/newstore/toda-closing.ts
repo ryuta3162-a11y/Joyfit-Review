@@ -12,7 +12,7 @@ export type ClosingStore = {
   id: string;
   name: string;
   brand: Brand;
-  /** 空なら Google 口コミ投稿フォームはまだ使わない */
+  /** 空なら Google マップ投稿フォームはまだ使わない */
   googleReviewUrl: string;
   mapsUrl: string;
   appInstallUrl: string;
@@ -119,7 +119,14 @@ export const APP_SECTION_TITLE = "入会ご希望の方へ";
 export const REVIEW_POSITIVES_TITLE =
   "見学・体験で、どこが良かったですか？";
 export const REVIEW_POSITIVES_HINT =
-  "当てはまるものをいくつかタップしてください。口コミ文に使います。";
+  "当てはまるものをいくつかタップしてください。";
+export const DRAFT_FIELD_TITLE = "ご回答内容の確認（修正できます）";
+export const DRAFT_PLACEHOLDER =
+  "よかった点を選ぶと、ここにご回答内容ができます";
+export const SUCCESS_SAVED = "回答を保存しました。";
+export const SUCCESS_GOOGLE_GUIDE =
+  "下のボタンからGoogleマップへ進んでください。";
+export const SUCCESS_DRAFT_LABEL = "ご回答内容";
 export const MAX_REVIEW_POSITIVES = 4;
 
 export const REVIEW_POSITIVE_OPTIONS = [

@@ -14,9 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { brandCssVars, BRAND_THEMES } from "@/lib/brand";
 import {
+  REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
+  REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
+  SURVEY_COMPLETION_THANK_YOU,
+  getHighRatingGoogleMapHint,
+} from "@/lib/member-reward-copy";
+import {
   AGE_OPTIONS,
   APP_SECTION_TITLE,
   buildTodaReviewDraft,
+  DRAFT_FIELD_TITLE,
+  DRAFT_PLACEHOLDER,
   EXTRA_COMMENT_TITLE,
   GENDER_OPTIONS,
   GYM_EXPERIENCE_OPTIONS,
@@ -31,6 +39,9 @@ import {
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
   STUDENT_TOGGLE_LABEL,
+  SUCCESS_DRAFT_LABEL,
+  SUCCESS_GOOGLE_GUIDE,
+  SUCCESS_SAVED,
   toggleLimited,
   type ClosingStore,
   type TodaVisitType,
@@ -332,27 +343,27 @@ export function TodaClosingSurvey({ store }: Props) {
             <Check className="h-7 w-7" strokeWidth={2.75} />
           </div>
           <h2 className="mt-7 text-[22px] font-bold tracking-tight">
-            ご協力ありがとうございます
+            {SURVEY_COMPLETION_THANK_YOU}
           </h2>
           <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
-            {goGoogle
-              ? "口コミ文をコピーしました。Googleマップへ投稿をお願いします。"
-              : "回答を受け付けました。"}
+            {SUCCESS_SAVED}
           </p>
         </div>
         <div className="space-y-5 px-6 py-8">
           {shownDraft ? (
             <div className="mx-auto max-w-sm text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
-                口コミ文面（コピー済み）
+                {SUCCESS_DRAFT_LABEL}
               </p>
               <pre className="whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
                 {shownDraft}
               </pre>
-              {goGoogle ? (
+              {goGoogle && rating !== null ? (
                 <>
-                  <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-                    Googleマップでも星{rating}の評価を選択してください。
+                  <p className="mt-3 text-center text-[13px] leading-relaxed text-zinc-500">
+                    {SUCCESS_GOOGLE_GUIDE}
+                    <br />
+                    {getHighRatingGoogleMapHint(rating)}
                   </p>
                   <a
                     href={googleReviewUrl}
@@ -360,7 +371,7 @@ export function TodaClosingSurvey({ store }: Props) {
                     rel="noopener noreferrer"
                     className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white transition hover:bg-[color:var(--joyfit-red-dark)]"
                   >
-                    Google口コミを投稿する
+                    {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
                   </a>
                 </>
               ) : null}
@@ -617,7 +628,7 @@ export function TodaClosingSurvey({ store }: Props) {
         </section>
 
         <section className="space-y-2">
-          <FieldLabel>口コミ文面（必要なら直してください）</FieldLabel>
+          <FieldLabel>{DRAFT_FIELD_TITLE}</FieldLabel>
           <Textarea
             value={shownDraft}
             onChange={(e) => {
@@ -627,7 +638,7 @@ export function TodaClosingSurvey({ store }: Props) {
             rows={5}
             className={surveyTextareaClass}
             autoComplete="off"
-            placeholder="よかった点を選ぶと、ここに文面ができます"
+            placeholder={DRAFT_PLACEHOLDER}
           />
         </section>
 
@@ -637,9 +648,7 @@ export function TodaClosingSurvey({ store }: Props) {
           disabled={!formReady}
           className="h-12 w-full rounded-2xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-200 disabled:text-zinc-400"
         >
-          {rating !== null && rating >= 4 && canPostGoogle
-            ? "保存してGoogle口コミへ"
-            : "回答を保存する"}
+          {REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
         </Button>
       </div>
     </div>
