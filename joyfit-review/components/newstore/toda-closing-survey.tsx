@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Check, Star } from "lucide-react";
+import { Check, Smartphone, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { brandCssVars, BRAND_THEMES } from "@/lib/brand";
 import {
-  REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL,
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   SURVEY_COMPLETION_THANK_YOU,
 } from "@/lib/member-reward-copy";
@@ -47,6 +46,7 @@ import {
   REVIEW_POSITIVES_TITLE,
   STUDENT_TOGGLE_LABEL,
   SUCCESS_DRAFT_LABEL,
+  SUCCESS_GOOGLE_BUTTON_LABEL,
   SUCCESS_SAVED,
   toggleLimited,
   type ClosingStore,
@@ -327,9 +327,6 @@ export function TodaClosingSurvey({ store }: Props) {
     } catch {
       /* ignore */
     }
-    if (rating >= 4 && googleReviewUrl) {
-      window.open(googleReviewUrl, "_blank", "noopener,noreferrer");
-    }
 
     void submitTodaClosingSurvey({
       storeId: store.id,
@@ -359,54 +356,74 @@ export function TodaClosingSurvey({ store }: Props) {
     return (
       <div data-brand={store.brand} style={brandVars}>
         <div className="px-2 pb-8 pt-8 text-center text-white">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/20 shadow-[0_8px_18px_rgba(0,0,0,0.16)]">
-            <Check className="h-7 w-7" strokeWidth={2.75} />
+          <div className="survey-success-icon mx-auto" aria-hidden>
+            <span className="survey-success-ring" />
+            <span className="survey-success-ring survey-success-ring--delay" />
+            <span className="survey-success-circle">
+              <Check className="survey-success-check h-7 w-7" strokeWidth={2.75} />
+            </span>
           </div>
-          <h2 className="mt-6 text-[22px] font-bold tracking-tight [text-shadow:0_2px_0_rgba(0,0,0,0.18)]">
+          <h2 className="survey-success-fade-up mt-6 text-[22px] font-bold tracking-tight [text-shadow:0_2px_0_rgba(0,0,0,0.18)]">
             {SURVEY_COMPLETION_THANK_YOU}
           </h2>
-          <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
+          <p className="survey-success-fade-up survey-success-fade-up--delay-1 mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
             {SUCCESS_SAVED}
           </p>
         </div>
+
         <div className="space-y-5 rounded-[1.75rem] bg-white px-5 py-7 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
           {shownDraft ? (
-            <div className="text-left">
+            <div className="survey-success-fade-up survey-success-fade-up--delay-2 text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
                 {SUCCESS_DRAFT_LABEL}
               </p>
-              <pre className="whitespace-pre-wrap rounded-xl border border-zinc-800/75 bg-white px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
+              <pre className="whitespace-pre-wrap rounded-xl border border-zinc-800/75 bg-zinc-50 px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
                 {shownDraft}
               </pre>
-              {goGoogle && rating !== null ? (
-                <a
-                  href={googleReviewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white transition hover:bg-[color:var(--joyfit-red-dark)]"
-                >
-                  {REVIEW_GOOGLE_POST_OPEN_BUTTON_LABEL}
-                </a>
-              ) : null}
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-zinc-800/75 bg-white p-4 text-left">
-            <p className="text-[14px] font-semibold text-zinc-900">
-              {APP_SECTION_TITLE}
-            </p>
-            <p className="mt-1 text-[13px] leading-relaxed text-zinc-600">
-              {store.appInstallBody}
-            </p>
+          <div className="survey-success-fade-up survey-success-fade-up--delay-3 overflow-hidden rounded-2xl bg-[color:var(--joyfit-red)] p-5 text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                <Smartphone className="h-5 w-5" strokeWidth={2.25} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold tracking-tight">
+                  {APP_SECTION_TITLE}
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-white/90">
+                  {store.appInstallBody}
+                </p>
+              </div>
+            </div>
             <a
               href={store.appInstallUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex text-[13px] font-semibold text-[color:var(--joyfit-red)] underline underline-offset-2"
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white px-4 text-[14px] font-bold text-[color:var(--joyfit-red)] transition hover:bg-white/92"
             >
               {store.appInstallLinkLabel}
             </a>
           </div>
+
+          {goGoogle ? (
+            <a
+              href={googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                try {
+                  void navigator.clipboard.writeText(shownDraft.trim());
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className="survey-google-open-btn survey-success-fade-up survey-success-fade-up--delay-4 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--joyfit-red)] px-4 text-[15px] font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)]"
+            >
+              {SUCCESS_GOOGLE_BUTTON_LABEL}
+            </a>
+          ) : null}
         </div>
       </div>
     );

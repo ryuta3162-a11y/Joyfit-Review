@@ -28,9 +28,9 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     brand: "joyfit",
     googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
     mapsUrl: "https://g.page/r/Cdo92khF2w03EAE",
-    appInstallUrl: "https://procedure.joyfit.jp/qrcode2/index.html",
-    appInstallBody: "JOYFITアプリよりご入会手続きが可能でございます。",
-    appInstallLinkLabel: "アプリ登録はこちら",
+    appInstallUrl: "https://joyfit.jp/kyodo/app_join/",
+    appInstallBody: "JOYFIT Appをインストールして、ご入会手続きが可能です。",
+    appInstallLinkLabel: "アプリをインストール",
   },
   toda: {
     slug: "toda",
@@ -41,8 +41,8 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
       "https://www.google.com/maps/place//data=!4m3!3m2!1s0x6018ebf70f0ce3d5:0x11aae5a2eeb77b1d!12e1?source=g.page.m.kd._&laa=lu-desktop-review-solicitation",
     mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
     appInstallUrl: "https://fit365.jp/pr_app/",
-    appInstallBody: "FIT365アプリよりご入会手続きが可能でございます。",
-    appInstallLinkLabel: "アプリインストールはこちら",
+    appInstallBody: "FIT365アプリをインストールして、ご入会手続きが可能です。",
+    appInstallLinkLabel: "アプリをインストール",
   },
 };
 
@@ -130,6 +130,8 @@ export const DRAFT_PLACEHOLDER =
   "よかった点を選ぶと、ここにご回答内容ができます";
 export const SUCCESS_SAVED = "回答を保存しました。";
 export const SUCCESS_DRAFT_LABEL = "ご回答内容";
+export const SUCCESS_GOOGLE_BUTTON_LABEL =
+  "こちらからアンケートご協力をお願いします";
 export const MAX_REVIEW_POSITIVES = 4;
 
 export const REVIEW_POSITIVE_OPTIONS = [
