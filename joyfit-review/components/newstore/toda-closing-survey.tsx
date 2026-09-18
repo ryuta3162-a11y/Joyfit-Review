@@ -7,8 +7,6 @@ import { Check, Star } from "lucide-react";
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
 import {
-  memberFormBodyClass,
-  memberFormCardClass,
   memberFormChoiceClass,
   memberFormErrorClass,
   memberFormHintClass,
@@ -104,13 +102,15 @@ function handlePhoneKeyDown(event: KeyboardEvent<HTMLInputElement>) {
 function FieldLabel({
   children,
   required,
+  hint,
 }: {
   children: string;
   required?: boolean;
+  hint?: string;
 }) {
   return (
-    <div className="flex items-baseline gap-2">
-      <p className="text-[13px] font-semibold tracking-tight text-zinc-800">
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <p className="text-[14px] font-semibold tracking-tight text-zinc-800">
         {children}
       </p>
       {required ? (
@@ -120,6 +120,9 @@ function FieldLabel({
       ) : (
         <span className="text-[11px] font-medium text-zinc-400">任意</span>
       )}
+      {hint ? (
+        <span className="text-[11px] font-medium text-zinc-500">{hint}</span>
+      ) : null}
     </div>
   );
 }
@@ -195,10 +198,10 @@ function VisitTypeButton({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "h-[4.35rem] rounded-2xl text-[1.5rem] font-bold tracking-[0.28em] transition",
+        "h-16 rounded-2xl text-[1.35rem] font-bold tracking-[0.18em] transition",
         selected
-          ? "border-2 border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_22px_rgba(0,0,0,0.18),0_2px_0_rgba(0,0,0,0.12)]"
-          : "border-2 border-zinc-800 bg-white text-zinc-900 shadow-[0_8px_18px_rgba(24,24,27,0.14)] hover:-translate-y-0.5",
+          ? "border border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]"
+          : "border border-zinc-800/80 bg-white text-zinc-900 shadow-[0_4px_12px_rgba(24,24,27,0.08)] hover:-translate-y-0.5",
       )}
     >
       {label}
@@ -208,7 +211,7 @@ function VisitTypeButton({
 
 function PageHeader({ store }: { store: ClosingStore }) {
   return (
-    <div className="joyfit-brand-header px-6 pb-14 pt-10 text-center text-white">
+    <div className="px-2 pb-8 pt-4 text-center text-white">
       <div className="relative z-[1] mx-auto flex justify-center">
         {store.brand === "fit365" ? (
           <div className="w-[8.75rem] drop-shadow-[0_10px_18px_rgba(0,0,0,0.22)]">
@@ -356,25 +359,25 @@ export function TodaClosingSurvey({ store }: Props) {
   if (sent) {
     const goGoogle = rating !== null && rating >= 4 && canPostGoogle;
     return (
-      <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
-        <div className="px-6 pb-10 pt-12 text-center text-white" style={{ background: "var(--joyfit-red)" }}>
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
+      <div data-brand={store.brand} style={brandVars}>
+        <div className="px-2 pb-8 pt-8 text-center text-white">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/20 shadow-[0_8px_18px_rgba(0,0,0,0.16)]">
             <Check className="h-7 w-7" strokeWidth={2.75} />
           </div>
-          <h2 className="mt-7 text-[22px] font-bold tracking-tight">
+          <h2 className="mt-6 text-[22px] font-bold tracking-tight [text-shadow:0_2px_0_rgba(0,0,0,0.18)]">
             {SURVEY_COMPLETION_THANK_YOU}
           </h2>
           <p className="mx-auto mt-3 max-w-xs text-[14px] leading-relaxed text-white/90">
             {SUCCESS_SAVED}
           </p>
         </div>
-        <div className="space-y-5 px-6 py-8">
+        <div className="space-y-5 rounded-[1.75rem] bg-white px-5 py-7 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
           {shownDraft ? (
-            <div className="mx-auto max-w-sm text-left">
+            <div className="text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
                 {SUCCESS_DRAFT_LABEL}
               </p>
-              <pre className="whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
+              <pre className="whitespace-pre-wrap rounded-xl border border-zinc-800/75 bg-white px-4 py-3 text-[13px] leading-relaxed text-zinc-800">
                 {shownDraft}
               </pre>
               {goGoogle && rating !== null ? (
@@ -397,7 +400,7 @@ export function TodaClosingSurvey({ store }: Props) {
             </div>
           ) : null}
 
-          <div className="mx-auto max-w-sm rounded-2xl border border-zinc-200/80 bg-white p-4 text-left">
+          <div className="rounded-2xl border border-zinc-800/75 bg-white p-4 text-left">
             <p className="text-[14px] font-semibold text-zinc-900">
               {APP_SECTION_TITLE}
             </p>
@@ -419,15 +422,10 @@ export function TodaClosingSurvey({ store }: Props) {
   }
 
   return (
-    <div data-brand={store.brand} className={memberFormCardClass} style={brandVars}>
+    <div data-brand={store.brand} style={brandVars}>
       <PageHeader store={store} />
 
-      <div
-        className={cn(
-          memberFormBodyClass,
-          "relative z-[1] -mt-8 space-y-6 rounded-t-[1.75rem] border-t-0 px-5 pb-8 pt-6 shadow-[0_-10px_24px_rgba(24,24,27,0.12)]",
-        )}
-      >
+      <div className="space-y-5 rounded-[1.75rem] bg-white px-5 py-6 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
         <div className="grid grid-cols-2 gap-3">
           <VisitTypeButton
             label="見学"
@@ -441,71 +439,70 @@ export function TodaClosingSurvey({ store }: Props) {
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <section className="space-y-2">
-            <FieldLabel required>お名前 (フルネーム)</FieldLabel>
-            <Input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={memberFormInputClass}
-              autoComplete="name"
-              placeholder="山田 花子"
-            />
-          </section>
-          <section className="space-y-2">
-            <FieldLabel required>フリガナ</FieldLabel>
-            <Input
-              value={furigana}
-              onChange={(e) => setFurigana(e.target.value)}
-              className={memberFormInputClass}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="ヤマダ ハナコ"
-            />
-          </section>
-          <section className="space-y-2">
-            <FieldLabel required>{PHONE_FIELD_TITLE}</FieldLabel>
-            <p className={memberFormHintClass}>{PHONE_HINT}</p>
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(digitsOnly(e.target.value))}
-              onKeyDown={handlePhoneKeyDown}
-              className={memberFormInputClass}
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={11}
-              autoComplete="tel-national"
-              placeholder={PHONE_PLACEHOLDER}
-              aria-invalid={phoneInvalid}
-            />
-            {phoneInvalid ? (
-              <p className={memberFormErrorClass}>{PHONE_ERROR}</p>
-            ) : null}
-          </section>
-          <section className="space-y-2">
-            <FieldLabel required>メールアドレス</FieldLabel>
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={memberFormInputClass}
-              type="email"
-              inputMode="email"
-              name="closing-email"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="example@email.com"
-              aria-invalid={emailInvalid}
-            />
-            {emailInvalid ? (
-              <p className={memberFormErrorClass}>
-                メールアドレスの形式をご確認ください
-              </p>
-            ) : null}
-          </section>
-        </div>
+        <section className="space-y-2">
+          <FieldLabel required>お名前 (フルネーム)</FieldLabel>
+          <Input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className={memberFormInputClass}
+            autoComplete="name"
+            placeholder="山田 花子"
+          />
+        </section>
+        <section className="space-y-2">
+          <FieldLabel required>フリガナ</FieldLabel>
+          <Input
+            value={furigana}
+            onChange={(e) => setFurigana(e.target.value)}
+            className={memberFormInputClass}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="ヤマダ ハナコ"
+          />
+        </section>
+        <section className="space-y-2">
+          <FieldLabel required hint={PHONE_HINT}>
+            {PHONE_FIELD_TITLE}
+          </FieldLabel>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(digitsOnly(e.target.value))}
+            onKeyDown={handlePhoneKeyDown}
+            className={memberFormInputClass}
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={11}
+            autoComplete="tel-national"
+            placeholder={PHONE_PLACEHOLDER}
+            aria-invalid={phoneInvalid}
+          />
+          {phoneInvalid ? (
+            <p className={memberFormErrorClass}>{PHONE_ERROR}</p>
+          ) : null}
+        </section>
+        <section className="space-y-2">
+          <FieldLabel required>メールアドレス</FieldLabel>
+          <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={memberFormInputClass}
+            type="email"
+            inputMode="email"
+            name="closing-email"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="example@email.com"
+            aria-invalid={emailInvalid}
+          />
+          {emailInvalid ? (
+            <p className={memberFormErrorClass}>
+              メールアドレスの形式をご確認ください
+            </p>
+          ) : null}
+        </section>
 
         <section className="space-y-2">
           <FieldLabel required>性別</FieldLabel>

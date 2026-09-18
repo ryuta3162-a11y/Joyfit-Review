@@ -64,7 +64,7 @@ export const VISIT_TYPE_LABEL: Record<TodaVisitType, string> = {
 export const PAGE_TITLE = "見学体験後アンケート";
 
 export const PHONE_FIELD_TITLE = "ご連絡先（電話番号）";
-export const PHONE_HINT = "ハイフンなし・数字のみで入力してください";
+export const PHONE_HINT = "ハイフンなし";
 export const PHONE_PLACEHOLDER = "09012345678";
 export const PHONE_ERROR = "10桁または11桁の数字で入力してください";
 

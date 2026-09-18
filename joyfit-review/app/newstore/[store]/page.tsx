@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { TodaClosingSurvey } from "@/components/newstore/toda-closing-survey";
-import { MemberPageShell } from "@/components/joyfit/member-page-shell";
+import { BRAND_THEMES, brandCssVars } from "@/lib/brand";
 import {
   CLOSING_STORES,
   parseClosingStoreSlug,
@@ -32,9 +32,21 @@ export default async function ClosingStorePage({ params }: Props) {
   const slug = parseClosingStoreSlug(raw);
   if (!slug) notFound();
 
+  const store = CLOSING_STORES[slug];
+  const theme = BRAND_THEMES[store.brand];
+
   return (
-    <MemberPageShell>
-      <TodaClosingSurvey store={CLOSING_STORES[slug]} />
-    </MemberPageShell>
+    <div
+      data-brand={store.brand}
+      className="min-h-screen px-4 pb-12 pt-7 md:px-6 md:pt-9"
+      style={{
+        ...brandCssVars(theme),
+        background: "var(--joyfit-red)",
+      }}
+    >
+      <div className="mx-auto w-full max-w-xl">
+        <TodaClosingSurvey store={store} />
+      </div>
+    </div>
   );
 }
