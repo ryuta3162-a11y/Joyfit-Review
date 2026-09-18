@@ -23,7 +23,6 @@ import {
 } from "@/lib/member-reward-copy";
 import {
   AGE_OPTIONS,
-  APP_SECTION_TITLE,
   buildTodaReviewDraft,
   DRAFT_FIELD_TITLE,
   DRAFT_PLACEHOLDER,
@@ -389,10 +388,7 @@ export function TodaClosingSurvey({ store }: Props) {
                 <Smartphone className="h-5 w-5" strokeWidth={2.25} />
               </div>
               <div className="min-w-0">
-                <p className="text-[15px] font-bold tracking-tight">
-                  {APP_SECTION_TITLE}
-                </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-white/90">
+                <p className="text-[15px] font-bold leading-snug tracking-tight">
                   {store.appInstallBody}
                 </p>
               </div>

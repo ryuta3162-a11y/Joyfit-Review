@@ -29,7 +29,7 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     googleReviewUrl: "https://g.page/r/Cdo92khF2w03EAE/review",
     mapsUrl: "https://g.page/r/Cdo92khF2w03EAE",
     appInstallUrl: "https://joyfit.jp/kyodo/app_join/",
-    appInstallBody: "JOYFIT Appをインストールして、ご入会手続きが可能です。",
+    appInstallBody: "入会ご希望の方はJOYFITAPPから手続きが可能です",
     appInstallLinkLabel: "アプリをインストール",
   },
   toda: {
@@ -41,7 +41,7 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
       "https://www.google.com/maps/place//data=!4m3!3m2!1s0x6018ebf70f0ce3d5:0x11aae5a2eeb77b1d!12e1?source=g.page.m.kd._&laa=lu-desktop-review-solicitation",
     mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
     appInstallUrl: "https://fit365.jp/pr_app/",
-    appInstallBody: "FIT365アプリをインストールして、ご入会手続きが可能です。",
+    appInstallBody: "入会ご希望の方はFIT365アプリから手続きが可能です",
     appInstallLinkLabel: "アプリをインストール",
   },
 };
@@ -69,9 +69,9 @@ export const PHONE_PLACEHOLDER = "09012345678";
 export const PHONE_ERROR = "10桁または11桁の数字で入力してください";
 
 export const FORM_NOTE =
-  "ご入力完了後にスタッフをお呼びください。ご不安な場合は、スタッフへお気軽にお申し付けください。";
+  "ご入力完了後にスタッフをお呼びください ご不安な場合は、スタッフへお気軽にお申し付けください";
 export const PRIVACY_NOTE =
-  "お預かりした個人情報は、当店にて厳重に管理いたします。";
+  "お預かりした個人情報は、当店にて厳重に管理いたします";
 
 export const GENDER_OPTIONS = ["男性", "女性", "回答しない"] as const;
 
@@ -119,16 +119,14 @@ export const JOIN_OPTIONS = [
   "検討中",
 ] as const;
 
-export const APP_SECTION_TITLE = "入会ご希望の方へ";
-
 export const REVIEW_POSITIVES_TITLE =
   "見学・体験で、どこが良かったですか？";
 export const REVIEW_POSITIVES_HINT =
-  "当てはまるものをいくつかタップしてください。";
+  "当てはまるものをいくつかタップしてください";
 export const DRAFT_FIELD_TITLE = "ご回答内容の確認（修正できます）";
 export const DRAFT_PLACEHOLDER =
   "よかった点を選ぶと、ここにご回答内容ができます";
-export const SUCCESS_SAVED = "回答を保存しました。";
+export const SUCCESS_SAVED = "回答を保存しました";
 export const SUCCESS_DRAFT_LABEL = "ご回答内容";
 export const SUCCESS_GOOGLE_BUTTON_LABEL =
   "こちらからアンケートご協力をお願いします";

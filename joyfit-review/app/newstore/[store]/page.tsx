@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const store = CLOSING_STORES[slug];
   return {
     title: `見学体験後アンケート | ${store.name}`,
-    description: `${store.name}の見学・体験後アンケートです。`,
+    description: `${store.name}の見学・体験後アンケートです`,
   };
 }
 
