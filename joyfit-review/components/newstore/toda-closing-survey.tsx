@@ -23,6 +23,7 @@ import {
 } from "@/lib/member-reward-copy";
 import {
   AGE_OPTIONS,
+  APP_INSTALL_LEAD,
   buildTodaReviewDraft,
   DRAFT_FIELD_TITLE,
   DRAFT_PLACEHOLDER,
@@ -388,22 +389,21 @@ export function TodaClosingSurvey({ store }: Props) {
             </div>
           ) : null}
 
-          <div className="survey-success-fade-up survey-success-fade-up--delay-3 overflow-hidden rounded-2xl bg-[color:var(--joyfit-red)] p-5 text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                <Smartphone className="h-5 w-5" strokeWidth={2.25} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[15px] font-bold leading-snug tracking-tight">
-                  {store.appInstallBody}
-                </p>
-              </div>
+          <div className="survey-success-fade-up survey-success-fade-up--delay-3 overflow-hidden rounded-2xl bg-[color:var(--joyfit-red)] px-5 py-6 text-center text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/15">
+              <Smartphone className="h-5 w-5" strokeWidth={2.25} />
             </div>
+            <p className="mt-4 text-[13px] font-medium tracking-wide text-white/85">
+              {APP_INSTALL_LEAD}
+            </p>
+            <p className="mt-1 text-[16px] font-bold leading-snug tracking-tight">
+              {store.appInstallBody}
+            </p>
             <a
               href={appInstallUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white px-4 text-[14px] font-bold text-[color:var(--joyfit-red)] transition hover:bg-white/92"
+              className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-white px-4 text-[14px] font-bold text-[color:var(--joyfit-red)] shadow-[0_6px_16px_rgba(0,0,0,0.12)] transition hover:bg-white/92"
             >
               {store.appInstallLinkLabel}
             </a>

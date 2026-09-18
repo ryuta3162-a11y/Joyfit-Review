@@ -22,6 +22,8 @@ export type ClosingStore = {
   appInstallLinkLabel: string;
 };
 
+export const APP_INSTALL_LEAD = "入会ご希望の方は";
+
 export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
   kyodo: {
     slug: "kyodo",
@@ -35,8 +37,8 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
       "https://apps.apple.com/jp/app/joyfit-app/id1492426384?l=ja&ls=1",
     appInstallAndroidUrl:
       "https://play.google.com/store/apps/details?id=jp.joyfit.joyfitappandroid",
-    appInstallBody: "入会ご希望の方はJOYFITAPPから手続きが可能です",
-    appInstallLinkLabel: "アプリをインストール",
+    appInstallBody: "JOYFITAPPから手続きが可能です",
+    appInstallLinkLabel: "APPをインストール",
   },
   toda: {
     slug: "toda",
@@ -51,8 +53,8 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     appInstallIosUrl: "https://apps.apple.com/jp/app/fit365-app/id1521399707",
     appInstallAndroidUrl:
       "https://play.google.com/store/apps/details?id=jp.fit365.fit365appandroid",
-    appInstallBody: "入会ご希望の方はFIT365アプリから手続きが可能です",
-    appInstallLinkLabel: "アプリをインストール",
+    appInstallBody: "FIT365APPから手続きが可能です",
+    appInstallLinkLabel: "APPをインストール",
   },
 };
 
