@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>戸田 見学体験 運用</title>
+    <style>
+      :root {
+        --brand: #e85a86;
+        --brand-dark: #c4406b;
+        --ink: #27272a;
+        --muted: #71717a;
+        --line: #e4e4e7;
+        --bg: #faf7f8;
+        --card: #ffffff;
+        --ok: #15803d;
+        --warn: #b45309;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Hiragino Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .hero {
+        background: var(--brand);
+        color: #fff;
+        padding: 22px 18px 18px;
+      }
+      .hero h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 800;
+      }
+      .hero p {
+        margin: 6px 0 0;
+        font-size: 0.82rem;
+        opacity: 0.9;
+      }
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .tab {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 12px;
+        font-weight: 800;
+        background: rgba(255,255,255,0.18);
+        color: #fff;
+      }
+      .tab.active { background: #fff; color: var(--brand-dark); }
+      .page { padding: 14px 14px 40px; max-width: 720px; margin: 0 auto; }
+      .filters {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-bottom: 12px;
+      }
+      .chip {
+        flex: 0 0 auto;
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .chip.active {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+      .status {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 20px rgba(24,24,27,0.05);
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .name { font-size: 1.05rem; font-weight: 800; margin: 0; }
+      .kana { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
+      .badge {
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        background: #f4f4f5;
+      }
+      .badge.taiken { background: #fce7f3; color: var(--brand-dark); }
+      .badge.join { background: #dcfce7; color: var(--ok); }
+      .meta {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 4px 8px;
+        margin-top: 10px;
+        font-size: 0.82rem;
+      }
+      .meta b { color: var(--muted); font-weight: 700; }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        min-height: 44px;
+        font-weight: 800;
+        font-size: 0.82rem;
+      }
+      .btn.ghost {
+        background: #f4f4f5;
+        color: var(--ink);
+      }
+      .btn.on {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn.warn {
+        background: #fff7ed;
+        color: var(--warn);
+      }
+      .btn.warn.on {
+        background: var(--ok);
+        color: #fff;
+      }
+      .member {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .member input {
+        flex: 1;
+        min-width: 0;
+        height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .copy {
+        width: 88px;
+        border: 0;
+        border-radius: 12px;
+        background: #111827;
+        color: #fff;
+        font-weight: 800;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+      }
+      .stat span { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
+      .stat b { display: block; margin-top: 6px; font-size: 1.7rem; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <h1>FIT365 戸田新曽</h1>
+      <p>見学体験の対応と個別会費調整</p>
+      <div class="tabs">
+        <button class="tab active" data-view="floor" type="button">現場</button>
+        <button class="tab" data-view="admin" type="button">数字</button>
+      </div>
+    </div>
+    <div class="page">
+      <div id="floor">
+        <div class="filters" id="filters"></div>
+        <div class="status" id="status">読み込み中…</div>
+        <div id="list"></div>
+      </div>
+      <div id="admin" class="hidden">
+        <div class="stats" id="stats"></div>
+      </div>
+    </div>
+    <script>
+      var state = { rows: [], stats: {}, filter: "all", view: "floor" };
+      var filters = [
+        { id: "all", label: "すべて" },
+        { id: "unhandled", label: "未対応" },
+        { id: "join", label: "本日入会" },
+        { id: "taiken", label: "体験" },
+        { id: "kengaku", label: "見学" },
+        { id: "fee", label: "未調整" }
+      ];
+
+      function $(id) { return document.getElementById(id); }
+
+      function renderFilters() {
+        $("filters").innerHTML = filters.map(function (f) {
+          return '<button class="chip' + (state.filter === f.id ? " active" : "") + '" data-filter="' + f.id + '">' + f.label + "</button>";
+        }).join("");
+      }
+
+      function matches(row) {
+        if (state.filter === "unhandled") return !row.handled;
+        if (state.filter === "join") return row.sameDayJoin;
+        if (state.filter === "taiken") return String(row.visitType).indexOf("体験") >= 0;
+        if (state.filter === "kengaku") return String(row.visitType).indexOf("見学") >= 0;
+        if (state.filter === "fee") return row.sameDayJoin && !row.feeAdjusted;
+        return true;
+      }
+
+      function esc(v) {
+        return String(v || "").replace(/[&<>"']/g, function (ch) {
+          return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch];
+        });
+      }
+
+      function renderList() {
+        var rows = state.rows.filter(matches);
+        $("status").textContent = rows.length + "件";
+        $("list").innerHTML = rows.map(function (row) {
+          return (
+            '<article class="card" data-row="' + row.sheetRow + '">' +
+              '<div class="card-top">' +
+                "<div><p class=\"name\">" + esc(row.fullName) + "</p><p class=\"kana\">" + esc(row.furigana) + "</p></div>" +
+                "<div>" +
+                  '<span class="badge' + (String(row.visitType).indexOf("体験") >= 0 ? " taiken" : "") + '">' + esc(row.visitType || "-") + "</span> " +
+                  (row.sameDayJoin ? '<span class="badge join">本日入会</span>' : "") +
+                "</div>" +
+              "</div>" +
+              '<div class="meta">' +
+                "<b>日付</b><span>" + esc(row.dateLabel) + "</span>" +
+                "<b>電話</b><span>" + esc(row.phone) + "</span>" +
+                "<b>メール</b><span>" + esc(row.email) + "</span>" +
+                "<b>性別</b><span>" + esc(row.gender) + "</span>" +
+                "<b>年齢</b><span>" + esc(row.age) + "</span>" +
+                "<b>学校</b><span>" + esc(row.university || "-") + "</span>" +
+                "<b>経験</b><span>" + esc(row.gymExperience) + "</span>" +
+                "<b>きっかけ</b><span>" + esc(row.howFound) + "</span>" +
+                "<b>星</b><span>" + esc(row.rating) + "</span>" +
+                "<b>入会</b><span>" + esc(row.joinIntent || "-") + "</span>" +
+              "</div>" +
+              '<div class="member">' +
+                '<input data-member value="' + esc(row.memberCode) + '" placeholder="会員番号" inputmode="numeric" />' +
+                '<button class="copy" type="button" data-copy>コピー</button>' +
+              "</div>" +
+              '<div class="actions">' +
+                '<button class="btn ' + (row.handled ? "on" : "ghost") + '" data-handled type="button">' + (row.handled ? "対応済み" : "未対応") + "</button>" +
+                '<button class="btn warn ' + (row.feeAdjusted ? "on" : "") + '" data-fee type="button">' + (row.feeAdjusted ? "調整済み" : "未調整") + "</button>" +
+              "</div>" +
+            "</article>"
+          );
+        }).join("") || '<p class="status">該当なし</p>';
+      }
+
+      function renderStats() {
+        var s = state.stats || {};
+        $("stats").innerHTML = [
+          ["回答", s.total || 0],
+          ["見学", s.kengaku || 0],
+          ["体験", s.taiken || 0],
+          ["本日入会", s.sameDayJoin || 0],
+          ["未対応", s.unhandled || 0],
+          ["未調整", s.feePending || 0]
+        ].map(function (item) {
+          return '<div class="stat"><span>' + item[0] + "</span><b>" + item[1] + "</b></div>";
+        }).join("");
+      }
+
+      function apply(result) {
+        if (!result || !result.ok) {
+          $("status").textContent = (result && result.error) || "読み込みに失敗しました";
+          return;
+        }
+        state.rows = result.rows || [];
+        state.stats = result.stats || {};
+        renderList();
+        renderStats();
+      }
+
+      function save(sheetRow, payload) {
+        payload.sheetRow = sheetRow;
+        google.script.run.withSuccessHandler(apply).withFailureHandler(function (err) {
+          $("status").textContent = String(err);
+        }).updateTodaOpsRow(payload);
+      }
+
+      document.querySelectorAll(".tab").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          state.view = btn.getAttribute("data-view");
+          document.querySelectorAll(".tab").forEach(function (el) { el.classList.toggle("active", el === btn); });
+          $("floor").classList.toggle("hidden", state.view !== "floor");
+          $("admin").classList.toggle("hidden", state.view !== "admin");
+        });
+      });
+
+      $("filters").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-filter]");
+        if (!btn) return;
+        state.filter = btn.getAttribute("data-filter");
+        renderFilters();
+        renderList();
+      });
+
+      $("list").addEventListener("click", function (e) {
+        var card = e.target.closest(".card");
+        if (!card) return;
+        var row = Number(card.getAttribute("data-row"));
+        if (e.target.matches("[data-copy]")) {
+          var value = card.querySelector("[data-member]").value.trim();
+          if (!value) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value);
+          } else {
+            card.querySelector("[data-member]").select();
+            document.execCommand("copy");
+          }
+          e.target.textContent = "コピー済";
+          setTimeout(function () { e.target.textContent = "コピー"; }, 900);
+          return;
+        }
+        if (e.target.matches("[data-handled]")) {
+          var next = e.target.textContent !== "対応済み";
+          save(row, { handled: next });
+        }
+        if (e.target.matches("[data-fee]")) {
+          var feeNext = e.target.textContent !== "調整済み";
+          save(row, { feeAdjusted: feeNext });
+        }
+      });
+
+      $("list").addEventListener("change", function (e) {
+        if (!e.target.matches("[data-member]")) return;
+        var card = e.target.closest(".card");
+        save(Number(card.getAttribute("data-row")), { memberCode: e.target.value });
+      });
+
+      renderFilters();
+      google.script.run.withSuccessHandler(apply).withFailureHandler(function (err) {
+        $("status").textContent = String(err);
+      }).listTodaOpsRows();
+    </script>
+  </body>
+</html>
