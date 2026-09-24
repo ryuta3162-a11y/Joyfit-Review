@@ -92,6 +92,12 @@ function doGet(e) {
   if (format === "json" && action === "stripStoreNameBrandPrefixes") {
     return outputJson(stripStoreNameBrandPrefixes_());
   }
+  if (format === "json" && action === "inspectAnswerSheetFilter") {
+    return outputJson(inspectAnswerSheetFilter_(e && e.parameter ? e.parameter.brand : "JOYFIT"));
+  }
+  if (format === "json" && action === "refreshAnswerSheetFilters") {
+    return outputJson(refreshAnswerSheetFilters_());
+  }
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
@@ -2214,9 +2220,121 @@ function ensureBrandSheetFilter_(sheet) {
   } catch (e) {}
   var lastRow = Math.max(sheet.getLastRow(), 1);
   var lastCol = Math.max(sheet.getLastColumn(), SURVEY_STANDARD_HEADERS.length);
+  // 末尾に余白を足して、新規追記行がフィルタ外にならないようにする
+  var filterRows = Math.max(lastRow + 500, 1000);
   try {
-    sheet.getRange(1, 1, lastRow, lastCol).createFilter();
+    sheet.getRange(1, 1, filterRows, lastCol).createFilter();
   } catch (e2) {}
+}
+
+/** 回答シートのフィルタ範囲と、指定付近の行列を診断 */
+function inspectAnswerSheetFilter_(brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(brandAnswerSheetName_(brand));
+  if (!sheet) return { ok: false, error: "missing sheet" };
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var filterInfo = null;
+  var filter = sheet.getFilter();
+  if (filter) {
+    var fr = filter.getRange();
+    filterInfo = {
+      a1: fr.getA1Notation(),
+      startRow: fr.getRow(),
+      numRows: fr.getNumRows(),
+      endRow: fr.getRow() + fr.getNumRows() - 1,
+      startCol: fr.getColumn(),
+      numCols: fr.getNumColumns(),
+    };
+  }
+
+  var headers = sheet.getRange(1, 1, 1, Math.max(lastCol, 1)).getValues()[0];
+  var sampleStart = Math.max(2, lastRow - 20);
+  var sampleCount = Math.max(0, lastRow - sampleStart + 1);
+  var sample = [];
+  if (sampleCount > 0) {
+    var values = sheet.getRange(sampleStart, 1, sampleCount, Math.min(lastCol, 6)).getValues();
+    for (var i = 0; i < values.length; i++) {
+      sample.push({
+        row: sampleStart + i,
+        timestamp: values[i][0] instanceof Date
+          ? Utilities.formatDate(values[i][0], "Asia/Tokyo", "yyyy-MM-dd HH:mm")
+          : String(values[i][0] || ""),
+        storeId: String(values[i][1] || ""),
+        storeName: String(values[i][2] || ""),
+        rating: String(values[i][3] || ""),
+        fullName: String(values[i][4] || "").slice(0, 20),
+        memberCode: String(values[i][5] || ""),
+        hiddenByFilter: sheet.isRowHiddenByFilter(sampleStart + i),
+      });
+    }
+  }
+
+  // 713付近も見る
+  var around = [];
+  var aroundStart = 708;
+  var aroundEnd = Math.min(lastRow, 725);
+  if (lastRow >= aroundStart) {
+    var av = sheet.getRange(aroundStart, 1, aroundEnd - aroundStart + 1, Math.min(lastCol, 6)).getValues();
+    for (var j = 0; j < av.length; j++) {
+      var rowNum = aroundStart + j;
+      around.push({
+        row: rowNum,
+        timestamp: av[j][0] instanceof Date
+          ? Utilities.formatDate(av[j][0], "Asia/Tokyo", "yyyy-MM-dd HH:mm")
+          : String(av[j][0] || ""),
+        storeId: String(av[j][1] || ""),
+        storeName: String(av[j][2] || ""),
+        rating: String(av[j][3] || ""),
+        hiddenByFilter: sheet.isRowHiddenByFilter(rowNum),
+      });
+    }
+  }
+
+  return {
+    ok: true,
+    sheetName: sheet.getName(),
+    lastRow: lastRow,
+    lastCol: lastCol,
+    headers: headers.slice(0, 8),
+    filter: filterInfo,
+    filterCoversAllData:
+      !!filterInfo && filterInfo.startRow === 1 && filterInfo.endRow >= lastRow,
+    sampleTail: sample,
+    around713: around,
+    note: filterInfo && filterInfo.endRow < lastRow
+      ? "フィルタ範囲が最終行より短いため、新規行が条件分け対象外になっています。"
+      : "フィルタはデータ末尾までカバーしています。",
+  };
+}
+
+function refreshAnswerSheetFilters_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var summary = {};
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brand]);
+    if (!sheet) {
+      summary[brand] = { ok: false, error: "missing" };
+      continue;
+    }
+    ensureBrandSheetFilter_(sheet);
+    var filter = sheet.getFilter();
+    var fr = filter ? filter.getRange() : null;
+    summary[brand] = {
+      ok: true,
+      lastRow: sheet.getLastRow(),
+      filterA1: fr ? fr.getA1Notation() : null,
+    };
+  }
+  return {
+    ok: true,
+    summary: summary,
+    note: "回答シートのフィルタ範囲をデータ末尾+余白まで広げ直しました。",
+  };
 }
 
 function isMemberCodeOnSheet_(sheet, memberCode, storeId) {
@@ -2298,6 +2416,14 @@ function appendSurveyRecord_(sheet, record) {
     record.generatedReview,
     record.submissionId,
   ]);
+  // 追記後にフィルタ範囲が短い場合は広げ直す（条件分けが新行に効くように）
+  try {
+    var filter = sheet.getFilter();
+    var lastRow = sheet.getLastRow();
+    if (!filter || filter.getRange().getLastRow() < lastRow) {
+      ensureBrandSheetFilter_(sheet);
+    }
+  } catch (eFilter) {}
 }
 
 function safeSheetName(value) {
