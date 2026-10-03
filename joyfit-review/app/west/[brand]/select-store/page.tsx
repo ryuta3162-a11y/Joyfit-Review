@@ -21,7 +21,9 @@ export default async function WestBrandSelectStorePage({ params }: Props) {
   const stores = await fetchStoresRemote(REGION);
   const filtered = stores.filter(
     (store) =>
-      !isWestSampleStoreId(store.id) && resolveStoreBrand(store) === brand,
+      !isWestSampleStoreId(store.id) &&
+      store.googleReviewUrl.trim() !== "" &&
+      resolveStoreBrand(store) === brand,
   );
 
   return (
