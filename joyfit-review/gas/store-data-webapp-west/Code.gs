@@ -114,6 +114,9 @@ function doGet(e) {
   if (format === "json" && action === "cleanupLegacySheets") {
     return outputJson(cleanupLegacySheets_());
   }
+  if (format === "json" && action === "removeSubmission") {
+    return outputJson(removeSubmission_(e.parameter.submissionId));
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
@@ -2658,6 +2661,38 @@ function cleanupLegacySheets_() {
   }
 
   return { ok: true, deleted: deleted, kept: kept, remaining: listSheets_().sheets };
+}
+
+/** 動作確認用の送信を回答シートと _survey_dedup から取り除く */
+function removeSubmission_(submissionId) {
+  var sid = String(submissionId || "").trim();
+  if (!sid) return { ok: false, error: "submissionId is required" };
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var targets = [];
+  for (var b = 0; b < SURVEY_BRANDS.length; b++) {
+    var sh = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[SURVEY_BRANDS[b]]);
+    if (sh) targets.push({ sheet: sh, col: 16 });
+  }
+  var dedup = ss.getSheetByName("_survey_dedup");
+  if (dedup) targets.push({ sheet: dedup, col: 1 });
+
+  var removed = [];
+  for (var t = 0; t < targets.length; t++) {
+    var sheet = targets[t].sheet;
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) continue;
+    var values = sheet.getRange(2, targets[t].col, lastRow - 1, 1).getValues();
+    for (var r = values.length - 1; r >= 0; r--) {
+      if (String(values[r][0] || "").trim() === sid) {
+        sheet.deleteRow(r + 2);
+        removed.push(sheet.getName() + "!" + (r + 2));
+      }
+    }
+  }
+  try {
+    CacheService.getScriptCache().remove(submissionIdCacheKey_(sid));
+  } catch (eCache) {}
+  return { ok: true, removed: removed };
 }
 
 function countUnmigratedRows_(sheet, migrated) {
