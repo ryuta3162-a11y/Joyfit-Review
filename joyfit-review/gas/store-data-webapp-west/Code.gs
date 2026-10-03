@@ -81,6 +81,9 @@ function doGet(e) {
       }),
     );
   }
+  if (format === "json" && action && !isAdminRequest_(e.parameter.key)) {
+    return outputJson({ ok: false, error: "forbidden" });
+  }
   if (format === "json" && action === "setupWorkbook") {
     return outputJson(setupWestWorkbook());
   }
@@ -114,22 +117,6 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var action = String(data.action || "").trim();
 
-    if (action === "setupWorkbook") {
-      return outputJson(setupWestWorkbook());
-    }
-
-    if (action === "removeGuideSheet") {
-      return outputJson(removeWestGuideSheet());
-    }
-
-    if (action === "upsertDemoStore") {
-      return outputJson(upsertWestDemoStore());
-    }
-
-    if (action === "seedSampleStores") {
-      return outputJson(seedWestSampleStores());
-    }
-
     if (action === "checkRespondent") {
       return outputJson(checkSurveyRespondent(data));
     }
@@ -150,12 +137,12 @@ function doPost(e) {
     }
 
     // 旧互換: メール送信だけのPOST
-    var to = String(data.to || "").trim();
-    if (!to || to.indexOf("@") < 0) {
+    var to = filterInternalRecipients_(data.to);
+    if (!to) {
       return outputJson({ ok: false, error: "invalid recipient" });
     }
-    var subject = String(data.subject || "【JOYFIT】低評価フィードバック");
-    var body = String(data.body || "");
+    var subject = String(data.subject || "【JOYFIT】低評価フィードバック").slice(0, 200);
+    var body = String(data.body || "").slice(0, 10000);
     MailApp.sendEmail(to, subject, body);
     return outputJson({ ok: true });
   } catch (err) {
@@ -857,7 +844,32 @@ function sendLowRatingMail(data, to) {
     "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
   ].join("\n");
 
-  MailApp.sendEmail(to, subject, body);
+  var safeTo = filterInternalRecipients_(to);
+  if (!safeTo) return;
+  MailApp.sendEmail(safeTo, subject.slice(0, 200), body);
+}
+
+var ALLOWED_MAIL_DOMAIN = "okamoto-group.co.jp";
+
+/** 社内ドメイン以外の宛先を除外する（公開URL経由で外部へメールを送らせないため） */
+function filterInternalRecipients_(value) {
+  var parts = String(value || "").split(/[,;\s]+/);
+  var out = [];
+  var suffix = "@" + ALLOWED_MAIL_DOMAIN;
+  for (var i = 0; i < parts.length; i++) {
+    var addr = parts[i].trim().toLowerCase();
+    if (!addr) continue;
+    if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+$/.test(addr)) continue;
+    if (addr.slice(-suffix.length) !== suffix) continue;
+    if (out.indexOf(addr) < 0) out.push(addr);
+  }
+  return out.slice(0, 10).join(",");
+}
+
+/** メンテ用 action の鍵。値は git 管理外の AdminKey.gs（ADMIN_KEY）で定義 */
+function isAdminRequest_(key) {
+  var expected = typeof ADMIN_KEY !== "undefined" ? String(ADMIN_KEY || "") : "";
+  return expected.length >= 16 && String(key || "") === expected;
 }
 
 // ---------------------------------------------------------------------------

@@ -59,6 +59,9 @@ function doGet(e) {
       }),
     );
   }
+  if (format === "json" && action && !isAdminRequest_(e.parameter.key)) {
+    return outputJson({ ok: false, error: "forbidden" });
+  }
   if (format === "json" && action === "formatStoreBrands") {
     return outputJson(rebuildStoreMasterForStaff());
   }
@@ -138,12 +141,12 @@ function doPost(e) {
     }
 
     // 旧互換: メール送信だけのPOST
-    var to = String(data.to || "").trim();
-    if (!to || to.indexOf("@") < 0) {
+    var to = filterInternalRecipients_(data.to);
+    if (!to) {
       return outputJson({ ok: false, error: "invalid recipient" });
     }
-    var subject = String(data.subject || "【JOYFIT】低評価フィードバック");
-    var body = String(data.body || "");
+    var subject = String(data.subject || "【JOYFIT】低評価フィードバック").slice(0, 200);
+    var body = String(data.body || "").slice(0, 10000);
     MailApp.sendEmail(to, subject, body);
     return outputJson({ ok: true });
   } catch (err) {
@@ -2213,18 +2216,59 @@ function appendLegacyAnswerRowsToBrand_(source, target, submissionIdSet) {
   return { added: out.length, skipped: skipped };
 }
 
+/** 回答シートのフィルタに確保する追記余白行数（新規回答があってもすぐ範囲外にならない） */
+var ANSWER_FILTER_ROW_BUFFER = 2000;
+
+/** timestamp / storeId がある最終行（空の幽霊行は無視） */
+function findAnswerSheetDataLastRow_(sheet) {
+  var checkTo = Math.max(sheet.getLastRow(), 1);
+  if (checkTo <= 1) return 1;
+  var values = sheet.getRange(1, 1, checkTo, 2).getValues();
+  for (var i = values.length - 1; i >= 1; i--) {
+    var ts = values[i][0];
+    var sid = String(values[i][1] || "").trim();
+    if (sid || (ts !== "" && ts != null)) return i + 1;
+  }
+  return 1;
+}
+
 function ensureBrandSheetFilter_(sheet) {
   try {
     var existing = sheet.getFilter();
     if (existing) existing.remove();
   } catch (e) {}
-  var lastRow = Math.max(sheet.getLastRow(), 1);
-  var lastCol = Math.max(sheet.getLastColumn(), SURVEY_STANDARD_HEADERS.length);
-  // 末尾に余白を足して、新規追記行がフィルタ外にならないようにする
-  var filterRows = Math.max(lastRow + 500, 1000);
+
+  var dataLastRow = findAnswerSheetDataLastRow_(sheet);
+  var lastCol = Math.max(sheet.getLastColumn(), SURVEY_STANDARD_HEADERS.length, 23);
+  var filterRows = dataLastRow + ANSWER_FILTER_ROW_BUFFER;
+
+  // appendRow が末端の空行に引きずられないよう、実データより下の内容を消す
+  var dirtyLast = sheet.getLastRow();
+  if (dirtyLast > dataLastRow) {
+    try {
+      sheet.getRange(dataLastRow + 1, 1, dirtyLast - dataLastRow, lastCol).clearContent();
+    } catch (eClear) {}
+  }
+
+  // シート行数が足りないとフィルタ範囲を広く取れないので余白行を確保
+  var maxRows = sheet.getMaxRows();
+  if (maxRows < filterRows) {
+    try {
+      sheet.insertRowsAfter(maxRows, filterRows - maxRows);
+    } catch (eIns) {}
+  } else if (maxRows > filterRows + 100) {
+    try {
+      sheet.deleteRows(filterRows + 1, maxRows - filterRows);
+    } catch (eDel) {}
+  }
+
   try {
     sheet.getRange(1, 1, filterRows, lastCol).createFilter();
-  } catch (e2) {}
+  } catch (e2) {
+    try {
+      sheet.getRange(1, 1, Math.max(dataLastRow, 1), lastCol).createFilter();
+    } catch (e3) {}
+  }
 }
 
 /** 回答シートのフィルタ範囲と、指定付近の行列を診断 */
@@ -2321,13 +2365,17 @@ function refreshAnswerSheetFilters_() {
       summary[brand] = { ok: false, error: "missing" };
       continue;
     }
+    var dataLastRow = findAnswerSheetDataLastRow_(sheet);
     ensureBrandSheetFilter_(sheet);
     var filter = sheet.getFilter();
     var fr = filter ? filter.getRange() : null;
     summary[brand] = {
       ok: true,
-      lastRow: sheet.getLastRow(),
+      dataLastRow: dataLastRow,
+      maxRows: sheet.getMaxRows(),
       filterA1: fr ? fr.getA1Notation() : null,
+      filterEndRow: fr ? fr.getRow() + fr.getNumRows() - 1 : null,
+      bufferRows: ANSWER_FILTER_ROW_BUFFER,
     };
   }
   return {
@@ -2419,8 +2467,8 @@ function appendSurveyRecord_(sheet, record) {
   // 追記後にフィルタ範囲が短い場合は広げ直す（条件分けが新行に効くように）
   try {
     var filter = sheet.getFilter();
-    var lastRow = sheet.getLastRow();
-    if (!filter || filter.getRange().getLastRow() < lastRow) {
+    var dataLastRow = findAnswerSheetDataLastRow_(sheet);
+    if (!filter || filter.getRange().getLastRow() < dataLastRow) {
       ensureBrandSheetFilter_(sheet);
     }
   } catch (eFilter) {}
@@ -2457,5 +2505,30 @@ function sendLowRatingMail(data, to) {
     "今後のサービス向上の為、素直なご意見をいただければ幸いです。",
   ].join("\n");
 
-  MailApp.sendEmail(to, subject, body);
+  var safeTo = filterInternalRecipients_(to);
+  if (!safeTo) return;
+  MailApp.sendEmail(safeTo, subject.slice(0, 200), body);
+}
+
+var ALLOWED_MAIL_DOMAIN = "okamoto-group.co.jp";
+
+/** 社内ドメイン以外の宛先を除外する（公開URL経由で外部へメールを送らせないため） */
+function filterInternalRecipients_(value) {
+  var parts = String(value || "").split(/[,;\s]+/);
+  var out = [];
+  var suffix = "@" + ALLOWED_MAIL_DOMAIN;
+  for (var i = 0; i < parts.length; i++) {
+    var addr = parts[i].trim().toLowerCase();
+    if (!addr) continue;
+    if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+$/.test(addr)) continue;
+    if (addr.slice(-suffix.length) !== suffix) continue;
+    if (out.indexOf(addr) < 0) out.push(addr);
+  }
+  return out.slice(0, 10).join(",");
+}
+
+/** メンテ用 action の鍵。値は git 管理外の AdminKey.gs（ADMIN_KEY）で定義 */
+function isAdminRequest_(key) {
+  var expected = typeof ADMIN_KEY !== "undefined" ? String(ADMIN_KEY || "") : "";
+  return expected.length >= 16 && String(key || "") === expected;
 }

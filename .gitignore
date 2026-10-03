@@ -1,2 +1,4 @@
 .vercel
 .env*
+
+joyfit-review/gas/**/AdminKey.gs
