@@ -105,6 +105,15 @@ function doGet(e) {
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
+  if (format === "json" && action === "prepareStoreInputRows") {
+    return outputJson(prepareStoreInputRows_());
+  }
+  if (format === "json" && action === "listSheets") {
+    return outputJson(listSheets_());
+  }
+  if (format === "json" && action === "cleanupLegacySheets") {
+    return outputJson(cleanupLegacySheets_());
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
@@ -661,11 +670,8 @@ function writeStoreMasterLayout_(sheet, rows) {
   // データ行の全面色分けは見づらいため付けない（上段カウントとヘッダーのみ色付き）
   SpreadsheetApp.flush();
 
-  try {
-    sheet.getRange("A6:J" + endRow).createFilter();
-  } catch (e2) {}
-
   sheet.setFrozenRows(STORE_HEADER_ROW);
+  applyStoreInputRows_(sheet);
   SpreadsheetApp.flush();
 
   var checkBrand = String(sheet.getRange("A7").getValue() || "").trim();
@@ -2541,4 +2547,142 @@ function filterInternalRecipients_(value) {
 function isAdminRequest_(key) {
   var expected = typeof ADMIN_KEY !== "undefined" ? String(ADMIN_KEY || "") : "";
   return expected.length >= 16 && String(key || "") === expected;
+}
+
+/** 店舗追加用にあらかじめ用意する入力行数（7行目〜） */
+var STORE_INPUT_ROWS = 300;
+
+/** 空行にもブランドのプルダウン・罫線・フィルタを先に用意する */
+function applyStoreInputRows_(sheet) {
+  var lastInputRow = STORE_DATA_START_ROW + STORE_INPUT_ROWS - 1;
+  var lastCol = STORE_HEADERS.length;
+  var maxRows = sheet.getMaxRows();
+  if (maxRows < lastInputRow) {
+    sheet.insertRowsAfter(maxRows, lastInputRow - maxRows);
+  }
+
+  var rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(STORE_BRAND_OPTIONS, true)
+    .setAllowInvalid(false)
+    .build();
+  sheet.getRange(STORE_DATA_START_ROW, 1, STORE_INPUT_ROWS, 1).setDataValidation(rule);
+
+  sheet
+    .getRange(STORE_HEADER_ROW, 1, lastInputRow - STORE_HEADER_ROW + 1, lastCol)
+    .setBorder(true, true, true, true, true, true, "#CBD5E1", SpreadsheetApp.BorderStyle.SOLID);
+
+  var existing = sheet.getFilter();
+  if (existing) existing.remove();
+  sheet.getRange(STORE_HEADER_ROW, 1, lastInputRow - STORE_HEADER_ROW + 1, lastCol).createFilter();
+
+  return lastInputRow;
+}
+
+function prepareStoreInputRows_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("店舗データ");
+  if (!sheet) return { ok: false, error: "店舗データ sheet missing" };
+  var lastInputRow = applyStoreInputRows_(sheet);
+  return {
+    ok: true,
+    inputRows: STORE_DATA_START_ROW + "〜" + lastInputRow,
+    storeCount: collectStoreMasterRows_(sheet).length,
+  };
+}
+
+function listSheets_() {
+  var sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  var out = [];
+  for (var i = 0; i < sheets.length; i++) {
+    out.push({
+      name: sheets[i].getName(),
+      hidden: sheets[i].isSheetHidden(),
+      lastRow: sheets[i].getLastRow(),
+    });
+  }
+  return { ok: true, sheets: out };
+}
+
+/**
+ * 移行後に不要になったシートを削除する。
+ * 旧 回答_* は、全行の submissionId がブランド回答シートにある場合だけ削除（サンプル店舗は無条件）。
+ */
+function cleanupLegacySheets_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var migrated = {};
+  for (var b = 0; b < SURVEY_BRANDS.length; b++) {
+    var brandSheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[SURVEY_BRANDS[b]]);
+    if (!brandSheet) continue;
+    var ids = loadSubmissionIdSet_(brandSheet);
+    for (var k in ids) migrated[k] = true;
+  }
+
+  var guideNames = { 店舗データ入力方法: true, はじめに: true, 使い方: true };
+  var deleted = [];
+  var kept = [];
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var sh = sheets[i];
+    var name = String(sh.getName() || "");
+    var remove = false;
+    var reason = "";
+
+    if (
+      name.indexOf("店舗データ_backup_") === 0 ||
+      name.indexOf("_店舗データ_old_") === 0 ||
+      name === "_店舗データ_rebuild_tmp" ||
+      guideNames[name]
+    ) {
+      remove = true;
+    } else if ((name === "シート1" || name === "Sheet1") && sh.getLastRow() <= 1) {
+      remove = true;
+    } else if (isLegacyAnswerSheetName_(name)) {
+      if (/_kansai$/i.test(name)) {
+        remove = true;
+      } else {
+        var unmigrated = countUnmigratedRows_(sh, migrated);
+        if (unmigrated === 0) remove = true;
+        else reason = unmigrated + " rows not in brand sheets";
+      }
+    }
+
+    if (!remove) {
+      if (reason) kept.push({ name: name, reason: reason });
+      continue;
+    }
+    try {
+      ss.deleteSheet(sh);
+      deleted.push(name);
+    } catch (eDel) {
+      kept.push({ name: name, reason: String(eDel) });
+    }
+  }
+
+  return { ok: true, deleted: deleted, kept: kept, remaining: listSheets_().sheets };
+}
+
+function countUnmigratedRows_(sheet, migrated) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow <= 1 || lastCol < 1) return 0;
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idCol = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (String(headers[h] || "").trim() === "submissionId") idCol = h;
+  }
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var count = 0;
+  for (var r = 0; r < values.length; r++) {
+    var row = values[r];
+    var hasData = false;
+    for (var c = 0; c < Math.min(row.length, 16); c++) {
+      if (row[c] !== "" && row[c] != null) {
+        hasData = true;
+        break;
+      }
+    }
+    if (!hasData) continue;
+    var sid = idCol >= 0 ? String(row[idCol] || "").trim() : "";
+    if (!sid || !migrated[sid]) count++;
+  }
+  return count;
 }
