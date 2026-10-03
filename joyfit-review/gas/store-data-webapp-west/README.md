@@ -15,6 +15,11 @@
 | サイト入口 | https://joyfit-review.vercel.app/west |
 | スタッフ試験 | https://joyfit-review.vercel.app/west/sample |
 
-## 列規則（EASTと同じ）
+## 列規則（EASTと同じ・6行目ヘッダー / 7行目〜データ）
 
-A 店舗名 | B レビューURL | C 低評価通知メール | D 店舗ID | E 住所 | F 緯度 | G 経度 | H 検索用 | I 特典文言
+A ブランド（JOYFIT / FIT365） | B 店舗名（ブランド名なし） | C レビューURL | D 低評価通知メール | E 店舗ID | F 住所 | G 緯度 | H 経度 | I 検索用 | J 特典文言
+
+- C列（レビューURL）が入っている店舗だけサイトに表示されます
+- 回答はブランド別の `回答シート_JOYFIT` / `回答シート_FIT365` に入ります（storeId / storeName でフィルタ）
+- 旧 `回答_*` タブは非表示のバックアップとして残しています
+- メンテ用 action（`?format=json&action=...`）は `&key=`（git管理外 `AdminKey.gs`）が必要です

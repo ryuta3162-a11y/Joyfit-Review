@@ -2,7 +2,7 @@
  * WEST ポイント付与管理（社内専用）
  *
  * 会員向けの公開GASとは別プロジェクト。
- * データブック: WEST口コミ APP
+ * データブック: WEST口コミ APP（会員回答の本番）
  *
  * デプロイ: ウェブアプリ
  * - 実行: 自分
@@ -10,13 +10,58 @@
  */
 
 var SOURCE_SPREADSHEET_ID = "1OibrErQsRQYVsqCs6E9SdiQYOGs3KlMVgTyLOfw4IH8";
-var DEST_SPREADSHEET_ID = "1OibrErQsRQYVsqCs6E9SdiQYOGs3KlMVgTyLOfw4IH8";
-var CLONE_BATCH_SIZE = 12;
 
 var POINT_GRANT_CHECK_COL = 22;
 var POINT_GRANT_AT_COL = 23;
 var POINT_GRANT_HEADER = "ポイント付与済";
 var POINT_GRANT_AT_HEADER = "付与日時";
+
+var SURVEY_BRAND_SHEET_NAMES = {
+  JOYFIT: "回答シート_JOYFIT",
+  FIT365: "回答シート_FIT365",
+  YOGA: "回答シート_YOGA",
+};
+
+function isBrandAnswerSheetName_(name) {
+  return String(name || "").indexOf("回答シート_") === 0;
+}
+
+function isLegacyAnswerSheetName_(name) {
+  var n = String(name || "");
+  return n.indexOf("回答_") === 0 && !isBrandAnswerSheetName_(n);
+}
+
+function detectStoreBrandLabelFromName_(storeName) {
+  var name = String(storeName || "");
+  var normalized = name.replace(/\s+/g, "").toLowerCase();
+  if (
+    (normalized.indexOf("yoga") >= 0 || normalized.indexOf("ヨガ") >= 0) &&
+    (normalized.indexOf("ひばりが丘") >= 0 || normalized.indexOf("ひばりヶ丘") >= 0)
+  ) {
+    return "YOGA";
+  }
+  if (/fit365/i.test(name)) {
+    return "FIT365";
+  }
+  return "JOYFIT";
+}
+
+function normalizeStoreBrandLabel_(value) {
+  var raw = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+  if (!raw) return "";
+  if (raw === "FIT365" || raw.indexOf("FIT365") === 0) return "FIT365";
+  if (raw === "YOGA" || raw.indexOf("YOGA") >= 0) return "YOGA";
+  if (raw === "JOYFIT" || raw.indexOf("JOYFIT") === 0) return "JOYFIT";
+  return "";
+}
+
+function brandAnswerSheetName_(brandLabel) {
+  var brand = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  return SURVEY_BRAND_SHEET_NAMES[brand] || SURVEY_BRAND_SHEET_NAMES.JOYFIT;
+}
 
 function getWorkbook() {
   return SpreadsheetApp.openById(SOURCE_SPREADSHEET_ID);
@@ -24,108 +69,171 @@ function getWorkbook() {
 
 function doGet() {
   var pointsTemplate = HtmlService.createTemplateFromFile("points");
-  pointsTemplate.storesJson = storePickerJson_();
+  var answerStats = countAnswerDataStats_();
+  pointsTemplate.storesJson = storePickerJsonFromStats_(answerStats);
+  pointsTemplate.answerStatsJson = JSON.stringify(answerStats);
   return pointsTemplate
     .evaluate()
     .setTitle("WEST /ENJOYポイント付与")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function storePickerJson_() {
-  var stores = readStoreRows();
-  var out = [];
-  for (var i = 0; i < stores.length; i++) {
-    out.push({ id: stores[i].id, name: stores[i].name });
-  }
-  return JSON.stringify(out);
+function answerStatsJson_() {
+  return JSON.stringify(countAnswerDataStats_());
 }
 
 /**
- * エディタから実行。現行 EAST ブックから店舗データと回答_* をコピーする。
- * シート数が多い場合は、完了するまで繰り返し実行する。
+ * ブランド回答シートのみから「回答がある店舗数」「回答行数」を集計。
+ * 旧 回答_* / row* 残骸は数えない（シートの storeName フィルタと一致させる）。
  */
-function cloneFromEastSurveyWorkbook() {
-  var source = SpreadsheetApp.openById(SOURCE_SPREADSHEET_ID);
-  var dest = SpreadsheetApp.openById(DEST_SPREADSHEET_ID);
-  try {
-    dest.rename("EAST ポイント付与管理");
-  } catch (e) {}
+function countAnswerDataStats_() {
+  var ss = getWorkbook();
+  var stores = readStoreRows();
+  var masterIds = {};
+  for (var i = 0; i < stores.length; i++) {
+    var mid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (mid) masterIds[mid] = true;
+  }
+  var registered = stores.length;
+  var storeIds = {};
+  var rowCount = 0;
+  var byBrand = {
+    JOYFIT: { storeIds: {}, rows: 0 },
+    FIT365: { storeIds: {}, rows: 0 },
+    YOGA: { storeIds: {}, rows: 0 },
+  };
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
 
-  var copied = [];
-  var skipped = [];
-  var remaining = 0;
-  var budget = CLONE_BATCH_SIZE;
-
-  remaining += copyNamedSheet_(source, dest, "店舗データ", copied, skipped, budget);
-  budget = CLONE_BATCH_SIZE - copied.length;
-
-  var sourceSheets = source.getSheets();
-  for (var i = 0; i < sourceSheets.length; i++) {
-    var sh = sourceSheets[i];
-    var name = String(sh.getName() || "");
-    if (name.indexOf("回答_") !== 0) {
-      continue;
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brand]);
+    if (!sheet) continue;
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) continue;
+    var lastCol = Math.max(sheet.getLastColumn(), 6);
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var storeIdCol = 2;
+    for (var h = 0; h < headers.length; h++) {
+      if (String(headers[h] || "").trim() === "storeId") {
+        storeIdCol = h + 1;
+        break;
+      }
     }
-    if (budget <= 0) {
-      remaining += 1;
-      continue;
+    var width = Math.max(storeIdCol, lastCol);
+    var values = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+    for (var r = 0; r < values.length; r++) {
+      var row = values[r];
+      if (!answerRowHasData_(row)) continue;
+      rowCount++;
+      byBrand[brand].rows++;
+      var sid = String(row[storeIdCol - 1] || "")
+        .trim()
+        .toLowerCase();
+      // 店舗マスタにある正規 storeId のみ「回答あり店舗」に数える
+      if (!sid || !masterIds[sid]) continue;
+      storeIds[sid] = true;
+      byBrand[brand].storeIds[sid] = true;
     }
-    remaining += copyNamedSheet_(source, dest, name, copied, skipped, 1);
-    budget = CLONE_BATCH_SIZE - copied.length;
   }
 
-  removeBlankDefaultSheets_(dest);
+  function countKeys(obj) {
+    var n = 0;
+    for (var k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) n++;
+    }
+    return n;
+  }
+
+  function keysOf(obj) {
+    var arr = [];
+    for (var k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) arr.push(k);
+    }
+    return arr;
+  }
 
   return {
-    ok: true,
-    copiedCount: copied.length,
-    copied: copied,
-    skipped: skipped,
-    remainingEstimate: remaining,
-    done: remaining === 0,
-    destUrl: dest.getUrl(),
-    note:
-      remaining > 0
-        ? "未コピーのシートが残っています。cloneFromEastSurveyWorkbook をもう一度実行してください。"
-        : "クローン完了。このブックでポイント管理を確認できます。",
+    registeredStores: registered,
+    storesWithAnswers: countKeys(storeIds),
+    answerStoreIds: keysOf(storeIds),
+    answerRows: rowCount,
+    byBrand: {
+      JOYFIT: {
+        stores: countKeys(byBrand.JOYFIT.storeIds),
+        rows: byBrand.JOYFIT.rows,
+        storeIds: keysOf(byBrand.JOYFIT.storeIds),
+      },
+      FIT365: {
+        stores: countKeys(byBrand.FIT365.storeIds),
+        rows: byBrand.FIT365.rows,
+        storeIds: keysOf(byBrand.FIT365.storeIds),
+      },
+      YOGA: {
+        stores: countKeys(byBrand.YOGA.storeIds),
+        rows: byBrand.YOGA.rows,
+        storeIds: keysOf(byBrand.YOGA.storeIds),
+      },
+    },
   };
 }
 
-function copyNamedSheet_(source, dest, name, copied, skipped, budget) {
-  if (budget <= 0) {
-    return 1;
+function answerRowHasData_(row) {
+  if (!row || !row.length) return false;
+  var scan = Math.min(row.length, 16);
+  for (var c = 0; c < scan; c++) {
+    var v = row[c];
+    if (v !== "" && v != null) return true;
   }
-  var src = source.getSheetByName(name);
-  if (!src) {
-    skipped.push(name + "（元に無し）");
-    return 0;
-  }
-  var existing = dest.getSheetByName(name);
-  if (existing) {
-    skipped.push(name + "（先に既存）");
-    return 0;
-  }
-  var clone = src.copyTo(dest);
-  clone.setName(name);
-  copied.push(name);
-  return 0;
+  return false;
 }
 
-function removeBlankDefaultSheets_(ss) {
-  var sheets = ss.getSheets();
-  if (sheets.length <= 1) {
-    return;
+/** 回答がある店舗だけを返す（ポイント付与の選択リスト用） */
+function storePickerJson_() {
+  return storePickerJsonFromStats_(countAnswerDataStats_());
+}
+
+function storePickerJsonFromStats_(stats) {
+  var stores = readStoreRows();
+  var answerSet = {};
+  var ids = (stats && stats.answerStoreIds) || [];
+  for (var a = 0; a < ids.length; a++) {
+    answerSet[String(ids[a]).toLowerCase()] = true;
   }
-  for (var i = 0; i < sheets.length; i++) {
-    var sh = sheets[i];
-    var name = String(sh.getName() || "");
-    if (name !== "シート1" && name !== "Sheet1") {
-      continue;
-    }
-    try {
-      ss.deleteSheet(sh);
-    } catch (e) {}
+
+  var out = [];
+  for (var i = 0; i < stores.length; i++) {
+    var sid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (!sid || !answerSet[sid]) continue;
+    var brand =
+      normalizeStoreBrandLabel_(stores[i].brandLabel) ||
+      detectStoreBrandLabelFromName_(stores[i].name) ||
+      "JOYFIT";
+    out.push({
+      id: stores[i].id,
+      name: stores[i].name,
+      brandLabel: brand,
+      searchText: String(stores[i].searchText || [stores[i].name, stores[i].id].join(" ")),
+    });
   }
+  out.sort(function (a, b) {
+    var ba = brandSortKey_(a.brandLabel);
+    var bb = brandSortKey_(b.brandLabel);
+    if (ba !== bb) return ba - bb;
+    return String(a.name || "").localeCompare(String(b.name || ""), "ja");
+  });
+  return JSON.stringify(out);
+}
+
+function brandSortKey_(brandLabel) {
+  var b = normalizeStoreBrandLabel_(brandLabel) || "JOYFIT";
+  if (b === "JOYFIT") return 1;
+  if (b === "FIT365") return 2;
+  if (b === "YOGA") return 3;
+  return 9;
 }
 
 function readStoreRows() {
@@ -140,57 +248,98 @@ function readStoreRows() {
     return [];
   }
 
-  var startIndex = 0;
-  var firstA = String(values[0][0] || "").trim();
-  if (isHeaderRow(firstA)) {
-    startIndex = 1;
+  var headerIndex = -1;
+  var maxScan = Math.min(values.length, 30);
+  for (var h = 0; h < maxScan; h++) {
+    var rowH = values[h] || [];
+    for (var c = 0; c < rowH.length; c++) {
+      var cell = String(rowH[c] || "").trim();
+      if (cell === "店舗名" || cell.indexOf("店舗名") === 0) {
+        headerIndex = h;
+        break;
+      }
+    }
+    if (headerIndex >= 0) break;
   }
 
+  var col = {
+    brand: -1,
+    name: 0,
+    url: 1,
+    email: 2,
+    id: 3,
+    address: 4,
+    lat: 5,
+    lng: 6,
+    search: 7,
+    reward: 8,
+  };
+  if (headerIndex >= 0) {
+    var headerRow = values[headerIndex];
+    var idx = {};
+    for (var i = 0; i < headerRow.length; i++) {
+      var key = String(headerRow[i] || "").trim();
+      if (key && idx[key] == null) idx[key] = i;
+    }
+    if (idx["ブランド"] != null) col.brand = idx["ブランド"];
+    if (idx["店舗名"] != null) col.name = idx["店舗名"];
+    if (idx["レビューURL"] != null) col.url = idx["レビューURL"];
+    if (idx["低評価通知メール"] != null) col.email = idx["低評価通知メール"];
+    if (idx["店舗ID"] != null) col.id = idx["店舗ID"];
+    if (idx["住所"] != null) col.address = idx["住所"];
+    if (idx["緯度"] != null) col.lat = idx["緯度"];
+    if (idx["経度"] != null) col.lng = idx["経度"];
+    if (idx["検索用"] != null) col.search = idx["検索用"];
+    if (idx["特典文言"] != null) col.reward = idx["特典文言"];
+  }
+
+  var startIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
   var out = [];
-  for (var i = startIndex; i < values.length; i++) {
-    var row = values[i];
-    var name = String(row[0] || "").trim();
-    if (!name) {
+  for (var r = startIndex; r < values.length; r++) {
+    var row = values[r];
+    var name = String(row[col.name] || "").trim();
+    if (!name) continue;
+    if (
+      name === "JOYFIT" ||
+      name === "FIT365" ||
+      name === "YOGA" ||
+      name === "合計" ||
+      name === "ブランド" ||
+      name === "店舗名" ||
+      ((name.indexOf("EAST") === 0 || name.indexOf("WEST") === 0) && name.indexOf("店舗") >= 0)
+    ) {
       continue;
     }
-    var googleReviewUrl = String(row[1] || "").trim();
-    var c = String(row[2] || "").trim();
-    var d = String(row[3] || "").trim();
-    var e = String(row[4] || "").trim();
-    var f = String(row[5] || "").trim();
-    var g = String(row[6] || "").trim();
-    var h = String(row[7] || "").trim();
-    var rewardLabel = String(row[8] || "").trim();
+    var googleReviewUrl = String(row[col.url] || "").trim();
+    if (!googleReviewUrl) continue;
 
-    var feedbackEmail = "";
-    var id = "";
-    var searchText = "";
-    var address = "";
-    var latitude = null;
-    var longitude = null;
+    var email = String(row[col.email] || "").trim();
+    var id = String(row[col.id] || "").trim();
+    var address = String(row[col.address] || "").trim();
+    var searchText = String(row[col.search] || "").trim();
+    var rewardLabel = String(row[col.reward] || "").trim();
 
-    if (c.indexOf("@") >= 0 || !c) {
-      feedbackEmail = c.indexOf("@") >= 0 ? c : "";
-      id = d || "row" + (i + 1);
-      address = e;
-      latitude = parseCoordinate(f);
-      longitude = parseCoordinate(g);
-      searchText = h || defaultSearchText(name, id, address);
-    } else {
-      id = c || "row" + (i + 1);
-      searchText = d || defaultSearchText(name, id, "");
+    if (email && email.indexOf("@") < 0 && !id) {
+      id = email;
+      email = "";
     }
+    if (!id) id = "row" + (r + 1);
+    if (!searchText) searchText = defaultSearchText(name, id, address);
 
     out.push({
       id: id,
       name: name,
       searchText: searchText,
       googleReviewUrl: googleReviewUrl,
-      feedbackEmail: feedbackEmail,
+      feedbackEmail: email.indexOf("@") >= 0 ? email : "",
       address: address,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: parseCoordinate(row[col.lat]),
+      longitude: parseCoordinate(row[col.lng]),
       rewardLabel: rewardLabel,
+      brandLabel:
+        col.brand >= 0
+          ? normalizeStoreBrandLabel_(row[col.brand]) || detectStoreBrandLabelFromName_(name)
+          : detectStoreBrandLabelFromName_(name),
     });
   }
 
@@ -201,7 +350,8 @@ function isHeaderRow(cellA) {
   if (!cellA) {
     return false;
   }
-  return cellA.indexOf("店舗") !== -1 || cellA === "名前" || cellA === "店舗名";
+  var t = String(cellA).trim();
+  return t === "店舗名" || t === "名前" || t.indexOf("店舗名") === 0 || t === "ブランド";
 }
 
 function defaultSearchText(name, id, address) {
@@ -327,6 +477,9 @@ function getPointGrantStoresForWeb() {
 
 function getPointGrantRowsForWeb(storeId) {
   try {
+    var sid = String(storeId || "")
+      .trim()
+      .toLowerCase();
     var sheet = findSurveySheetByStoreId(storeId);
     if (!sheet) {
       return { ok: false, error: "この店舗の回答シートが見つかりません。" };
@@ -345,6 +498,9 @@ function getPointGrantRowsForWeb(storeId) {
       var row = values[i];
       var rowIndex = i + 2;
       var fields = coerceSurveyRowFields_(row, cols);
+      if (sid && fields.storeId && String(fields.storeId).trim().toLowerCase() !== sid) {
+        continue;
+      }
       if (!fields.fullName && !fields.memberCode && !fields.timestamp && !fields.timestampRaw) {
         continue;
       }
@@ -461,27 +617,35 @@ function findSurveySheetByStoreId(storeId) {
     return null;
   }
   var ss = getWorkbook();
+  var stores = readStoreRows();
+  var brand = "JOYFIT";
+  var matched = null;
+  for (var i = 0; i < stores.length; i++) {
+    if (String(stores[i].id || "").trim().toLowerCase() === sid) {
+      matched = stores[i];
+      brand = stores[i].brandLabel || detectStoreBrandLabelFromName_(stores[i].name);
+      break;
+    }
+  }
+  var brandSheet = ss.getSheetByName(brandAnswerSheetName_(brand));
+  if (brandSheet) {
+    return brandSheet;
+  }
+
   var sheets = ss.getSheets();
   var suffix = "_" + sid;
   for (var s = 0; s < sheets.length; s++) {
     var sh = sheets[s];
     var name = sh.getName();
-    if (name.indexOf("回答_") !== 0) {
+    if (!isLegacyAnswerSheetName_(name)) {
       continue;
     }
     if (name.toLowerCase().slice(-suffix.length) === suffix) {
       return sh;
     }
   }
-  var stores = readStoreRows();
-  for (var i = 0; i < stores.length; i++) {
-    if (String(stores[i].id || "").trim().toLowerCase() !== sid) {
-      continue;
-    }
-    var expected = ("回答_" + safeSheetName(stores[i].name) + "_" + safeSheetName(stores[i].id)).slice(
-      0,
-      90,
-    );
+  if (matched) {
+    var expected = ("回答_" + safeSheetName(matched.name) + "_" + safeSheetName(matched.id)).slice(0, 90);
     var byName = ss.getSheetByName(expected);
     if (byName) {
       return byName;

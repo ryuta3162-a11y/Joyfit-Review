@@ -53,6 +53,20 @@
         opacity: 0.92;
         line-height: 1.55;
       }
+      .hero-meta {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.22);
+        font-size: 0.9rem;
+        font-weight: 600;
+        opacity: 0.95;
+        line-height: 1.5;
+      }
+      .hero-meta strong {
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
       .panel {
         margin-top: 18px;
         background: var(--surface);
@@ -257,6 +271,33 @@
         opacity: 0.45;
         cursor: not-allowed;
       }
+      .code-copy.copied {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: #fff5f6;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 28px;
+        transform: translateX(-50%) translateY(12px);
+        z-index: 60;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: rgba(30, 41, 59, 0.94);
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        box-shadow: var(--shadow);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
       .rating {
         font-size: 1rem;
         font-weight: 800;
@@ -436,19 +477,96 @@
         color: var(--brand);
         background: var(--surface);
       }
+      .store-picker {
+        display: grid;
+        gap: 10px;
+      }
+      .brand-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .brand-tab {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.88rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .brand-tab.active {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: #fff5f6;
+      }
+      .store-search-wrap {
+        position: relative;
+      }
+      .store-search-wrap::before {
+        content: "⌕";
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: 1.1rem;
+        pointer-events: none;
+      }
+      .store-search {
+        width: 100%;
+        height: 46px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0 14px 0 38px;
+        font-size: 1rem;
+        font-weight: 600;
+        background: var(--surface);
+        box-shadow: var(--shadow-inset);
+        color: var(--ink);
+      }
+      .store-search:focus {
+        outline: 2px solid rgba(165, 53, 75, 0.25);
+        border-color: var(--brand);
+      }
+      .store-count-hint {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
     <div class="page">
       <header class="hero">
         <h1>WEST /ENJOYポイント付与</h1>
+        <p class="hero-meta" id="heroStoreMeta">登録店舗を読み込み中…</p>
       </header>
 
       <section class="panel">
         <label for="storeSelect">店舗を選択</label>
-        <select id="storeSelect">
-          <option value="">— 店舗を選んでください —</option>
-        </select>
+        <div class="store-picker">
+          <div class="brand-tabs" id="brandTabs" role="tablist" aria-label="ブランド">
+            <button type="button" class="brand-tab active" data-brand="ALL">すべて</button>
+            <button type="button" class="brand-tab" data-brand="JOYFIT">JOYFIT</button>
+            <button type="button" class="brand-tab" data-brand="FIT365">FIT365</button>
+          </div>
+          <div class="store-search-wrap">
+            <input
+              type="search"
+              id="storeSearch"
+              class="store-search"
+              placeholder="店名で検索"
+              autocomplete="off"
+            />
+          </div>
+          <select id="storeSelect">
+            <option value="">— 店舗を選ぶ —</option>
+          </select>
+          <p class="store-count-hint" id="storeCountHint"></p>
+        </div>
 
         <div class="stats" id="stats" hidden>
           <div class="stat">合計 <b id="statTotal">0</b></div>
@@ -496,17 +614,24 @@
       </div>
     </div>
 
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <script>
       var state = {
         stores: [],
         sheetName: "",
         rows: [],
         filter: "all",
+        brandFilter: "ALL",
+        storeQuery: "",
         modalRow: null,
       };
 
       var els = {
         storeSelect: document.getElementById("storeSelect"),
+        storeSearch: document.getElementById("storeSearch"),
+        brandTabs: document.getElementById("brandTabs"),
+        storeCountHint: document.getElementById("storeCountHint"),
         stats: document.getElementById("stats"),
         statTotal: document.getElementById("statTotal"),
         statGranted: document.getElementById("statGranted"),
@@ -521,9 +646,12 @@
         detailGrid: document.getElementById("detailGrid"),
         modalClose: document.getElementById("modalClose"),
         modalToggleGrant: document.getElementById("modalToggleGrant"),
+        heroStoreMeta: document.getElementById("heroStoreMeta"),
+        toast: document.getElementById("toast"),
       };
 
       var BOOTSTRAP_STORES = <?!= storesJson ?>;
+      var ANSWER_STATS = <?!= answerStatsJson ?>;
 
       init();
 
@@ -531,6 +659,24 @@
         onStoresLoaded(BOOTSTRAP_STORES);
 
         els.storeSelect.addEventListener("change", onStoreChange);
+        if (els.storeSearch) {
+          els.storeSearch.addEventListener("input", function () {
+            state.storeQuery = String(els.storeSearch.value || "").trim();
+            renderStoreOptions(els.storeSelect.value);
+          });
+        }
+        if (els.brandTabs) {
+          els.brandTabs.querySelectorAll(".brand-tab").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              els.brandTabs.querySelectorAll(".brand-tab").forEach(function (b) {
+                b.classList.remove("active");
+              });
+              btn.classList.add("active");
+              state.brandFilter = btn.dataset.brand || "ALL";
+              renderStoreOptions(els.storeSelect.value);
+            });
+          });
+        }
         els.modalClose.addEventListener("click", closeModal);
         els.modalBackdrop.addEventListener("click", function (e) {
           if (e.target === els.modalBackdrop) closeModal();
@@ -551,14 +697,124 @@
 
       function onStoresLoaded(stores) {
         state.stores = stores || [];
-        els.storeSelect.innerHTML = '<option value="">— 店舗を選んでください —</option>';
-        state.stores.forEach(function (s) {
-          var opt = document.createElement("option");
-          opt.value = s.id;
-          opt.textContent = s.name;
-          els.storeSelect.appendChild(opt);
-        });
+        renderStoreOptions("");
+        updateHeroStoreMeta();
         setStatus("店舗を選択してください。");
+      }
+
+      function storeBrandOf(store) {
+        var b = String(store.brandLabel || "").toUpperCase();
+        if (b.indexOf("FIT365") >= 0) return "FIT365";
+        if (b.indexOf("YOGA") >= 0) return "YOGA";
+        return "JOYFIT";
+      }
+
+      function filteredStores() {
+        var q = String(state.storeQuery || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "");
+        return state.stores.filter(function (s) {
+          if (state.brandFilter !== "ALL" && storeBrandOf(s) !== state.brandFilter) {
+            return false;
+          }
+          if (!q) return true;
+          var hay = [s.name, s.id, s.searchText, s.brandLabel]
+            .join(" ")
+            .toLowerCase()
+            .replace(/\s+/g, "");
+          return hay.indexOf(q) >= 0;
+        });
+      }
+
+      function renderStoreOptions(keepSelectedId) {
+        var selected = keepSelectedId || "";
+        var list = filteredStores();
+        var stillVisible = list.some(function (s) {
+          return s.id === selected;
+        });
+        els.storeSelect.innerHTML = '<option value="">— 店舗を選ぶ —</option>';
+
+        var groups = { JOYFIT: [], FIT365: [], YOGA: [] };
+        list.forEach(function (s) {
+          var brand = storeBrandOf(s);
+          if (!groups[brand]) groups[brand] = [];
+          groups[brand].push(s);
+        });
+
+        ["JOYFIT", "FIT365", "YOGA"].forEach(function (brand) {
+          var items = groups[brand] || [];
+          if (!items.length) return;
+          var og = document.createElement("optgroup");
+          og.label = brand;
+          items.forEach(function (s) {
+            var opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = s.name;
+            if (stillVisible && s.id === selected) opt.selected = true;
+            og.appendChild(opt);
+          });
+          els.storeSelect.appendChild(og);
+        });
+
+        if (els.storeCountHint) {
+          els.storeCountHint.textContent = "回答あり " + list.length + " 店舗";
+        }
+
+        updateBrandTabCounts();
+
+        if (selected && !stillVisible) {
+          els.storeSelect.value = "";
+          onStoreChange();
+        }
+      }
+
+      function updateBrandTabCounts() {
+        if (!els.brandTabs) return;
+        var counts = { ALL: 0, JOYFIT: 0, FIT365: 0, YOGA: 0 };
+        state.stores.forEach(function (s) {
+          var b = storeBrandOf(s);
+          counts[b] = (counts[b] || 0) + 1;
+          counts.ALL++;
+        });
+        els.brandTabs.querySelectorAll(".brand-tab").forEach(function (btn) {
+          var brand = btn.dataset.brand || "ALL";
+          var label =
+            brand === "ALL"
+              ? "すべて"
+              : brand === "JOYFIT"
+                ? "JOYFIT"
+                : brand === "FIT365"
+                  ? "FIT365"
+                  : "YOGA";
+          btn.textContent = label + " " + (counts[brand] || 0);
+        });
+      }
+
+      function updateHeroStoreMeta() {
+        if (!els.heroStoreMeta) return;
+        var stats = ANSWER_STATS || {};
+        var storesWith = Number(stats.storesWithAnswers || 0);
+        var rows = Number(stats.answerRows || 0);
+        var bb = stats.byBrand || {};
+        var j = (bb.JOYFIT && bb.JOYFIT.stores) || 0;
+        var f = (bb.FIT365 && bb.FIT365.stores) || 0;
+        var y = (bb.YOGA && bb.YOGA.stores) || 0;
+        if (!storesWith) {
+          els.heroStoreMeta.textContent = "回答データなし";
+          return;
+        }
+        els.heroStoreMeta.innerHTML =
+          "回答あり <strong>" +
+          storesWith +
+          "</strong> 店舗・<strong>" +
+          rows +
+          "</strong> 件" +
+          "（J " +
+          j +
+          " / 365 " +
+          f +
+          "）";
       }
 
       function onStoreChange() {
@@ -682,7 +938,7 @@
           } else {
             codeBtn.addEventListener("click", function (e) {
               e.stopPropagation();
-              copyMemberCode(memberCode, row.rowIndex, !!row.granted);
+              copyMemberCode(memberCode, row.rowIndex, !!row.granted, codeBtn);
             });
           }
           tdCode.appendChild(codeBtn);
@@ -701,7 +957,7 @@
         });
       }
 
-      function setGranted(rowIndex, granted) {
+      function setGranted(rowIndex, granted, onDone) {
         google.script.run
           .withSuccessHandler(function (res) {
             if (!res || !res.ok) {
@@ -730,6 +986,7 @@
             stats.pending = stats.total - stats.granted;
             updateStats(stats);
             renderList();
+            if (typeof onDone === "function") onDone(res);
           })
           .withFailureHandler(onError)
           .setPointGrantedForWeb(state.sheetName, rowIndex, granted);
@@ -837,18 +1094,52 @@
         });
       }
 
-      function copyMemberCode(code, rowIndex, alreadyGranted) {
+      function copyMemberCode(code, rowIndex, alreadyGranted, buttonEl) {
         var text = String(code || "").trim();
         if (!text) return;
         copyText(text)
           .then(function () {
             if (!alreadyGranted && rowIndex) {
-              setGranted(rowIndex, true);
+              // 付与更新で一覧が再描画されるため、完了後にフィードバックを出す
+              setGranted(rowIndex, true, function () {
+                var btn = els.listBody.querySelector(
+                  'tr[data-row-index="' + rowIndex + '"] .code-copy'
+                );
+                showCopiedFeedback(btn || buttonEl, text);
+              });
+            } else {
+              showCopiedFeedback(buttonEl, text);
             }
           })
           .catch(function () {
             alert("コピーできませんでした。会員番号: " + text);
           });
+      }
+
+      var copiedFeedbackTimer = null;
+      function showCopiedFeedback(buttonEl, code) {
+        setStatus("コピーしました: " + code);
+        showToast("コピーしました");
+        if (buttonEl) {
+          var original = buttonEl.textContent;
+          buttonEl.classList.add("copied");
+          buttonEl.textContent = "コピーしました";
+          window.clearTimeout(buttonEl._copiedTimer);
+          buttonEl._copiedTimer = window.setTimeout(function () {
+            buttonEl.classList.remove("copied");
+            buttonEl.textContent = original;
+          }, 1600);
+        }
+      }
+
+      function showToast(msg) {
+        if (!els.toast) return;
+        els.toast.textContent = msg;
+        els.toast.classList.add("show");
+        window.clearTimeout(copiedFeedbackTimer);
+        copiedFeedbackTimer = window.setTimeout(function () {
+          els.toast.classList.remove("show");
+        }, 1600);
       }
 
       function setStatus(msg, isError) {
