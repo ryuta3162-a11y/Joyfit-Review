@@ -4,9 +4,13 @@
 
 | 項目 | 値 |
 |------|------|
-| 経堂 | https://joyfit-review.vercel.app/newstore/kyodo |
+| 経堂 アンケート | https://joyfit-review.vercel.app/newstore/kyodo |
+| 経堂 口コミ | https://joyfit-review.vercel.app/newstore/kyodo/review |
+| 経堂 店頭ポップ | https://joyfit-review.vercel.app/newstore/kyodo/pop |
 | 戸田新曽 | https://joyfit-review.vercel.app/newstore/toda |
-| 回答シート | https://docs.google.com/spreadsheets/d/1jkYhtkXaxqV5-BPpTkeR0HNm6NNXjA8gxC2-0LKKjnY/edit |
+| 回答ブック | https://docs.google.com/spreadsheets/d/1jkYhtkXaxqV5-BPpTkeR0HNm6NNXjA8gxC2-0LKKjnY/edit |
+| 経堂タブ | `経堂_回答` |
+| 戸田タブ | `戸田_回答` |
 | ウェブアプリ | https://script.google.com/macros/s/AKfycbyjyfr1fCvYQjvuFhLbkINwo7KUk8MhNwYALvXjecJ-zM5J1z4TfHJ0YnLHAQcmB-ZS6A/exec |
 | Script ID（公開用） | `1t0Eb61QGViZ_WFphF9uZ6ApHgG3VSffvW1r_X6qLaWLDTfDL1w4gZ9V-` |
 | シート紐付けスクリプト | `1925tdyQEaEb56Bsc_JliT5JFMHSQT941CHb_UtKWLHCZHWpSwtiJIu2G` |

@@ -1,11 +1,15 @@
 "use server";
 
-import { postJsonToGasWebApp } from "@/lib/gas-webapp";
+import {
+  CUSTOMER_SAVE_FAILED,
+  CUSTOMER_SAVE_SLOW,
+  postJsonToGasWebApp,
+} from "@/lib/gas-webapp";
 
 const DEFAULT_CLOSING_GAS_URL =
   "https://script.google.com/macros/s/AKfycbyjyfr1fCvYQjvuFhLbkINwo7KUk8MhNwYALvXjecJ-zM5J1z4TfHJ0YnLHAQcmB-ZS6A/exec";
 
-const GAS_TIMEOUT_MS = 8_000;
+const GAS_TIMEOUT_MS = 20_000;
 
 export type SubmitTodaClosingSurveyInput = {
   storeId: string;
@@ -27,6 +31,7 @@ export type SubmitTodaClosingSurveyInput = {
   positives: string[];
   generatedReview: string;
   submissionId: string;
+  sessionMinutes?: string;
 };
 
 export type SubmitTodaClosingSurveyResult =
@@ -48,8 +53,18 @@ export async function submitTodaClosingSurvey(
   if (!input.storeId.trim() || !input.storeName.trim()) {
     return { ok: false, error: "店舗を確認できませんでした。" };
   }
-  if (!input.fullName.trim() || !input.furigana.trim() || !input.phone.trim()) {
+  const isKyodo = input.storeId.trim() === "kyodo";
+  if (!input.fullName.trim() || (!isKyodo && !input.furigana.trim())) {
     return { ok: false, error: "必須項目をご入力ください。" };
+  }
+  if (!isKyodo && !input.phone.trim()) {
+    return { ok: false, error: "必須項目をご入力ください。" };
+  }
+  if (isKyodo && !input.joinIntent.trim()) {
+    return { ok: false, error: "ご入会について選択してください。" };
+  }
+  if (isKyodo && input.visitType === "taiken" && !input.sessionMinutes?.trim()) {
+    return { ok: false, error: "利用時間を選択してください。" };
   }
   if (!input.rating || input.rating < 1 || input.rating > 5) {
     return { ok: false, error: "星評価を選択してください。" };
@@ -59,7 +74,7 @@ export async function submitTodaClosingSurvey(
     process.env.TODA_CLOSING_GAS_URL?.trim() || DEFAULT_CLOSING_GAS_URL;
 
   if (!gasUrl) {
-    return { ok: true, saved: false };
+    return { ok: false, error: CUSTOMER_SAVE_FAILED };
   }
 
   const posted = await postJsonToGasWebApp(
@@ -75,7 +90,7 @@ export async function submitTodaClosingSurvey(
       email: input.email.trim(),
       gender: input.gender.trim(),
       age: input.age.trim(),
-      university: input.university.trim(),
+      university: isKyodo ? "" : input.university.trim(),
       gymExperience: input.gymExperience.trim(),
       howFound: input.howFound.trim(),
       howFoundOther: input.howFoundOther.trim(),
@@ -85,15 +100,16 @@ export async function submitTodaClosingSurvey(
       positives: input.positives,
       generatedReview: input.generatedReview.trim(),
       submissionId: input.submissionId.trim(),
+      sessionMinutes: input.sessionMinutes?.trim() || "",
     },
     GAS_TIMEOUT_MS,
   );
 
-  if ("timeout" in posted || "failed" in posted) {
-    return { ok: true, saved: false };
+  if ("timeout" in posted) {
+    return { ok: false, error: CUSTOMER_SAVE_SLOW };
   }
-  if (!posted.json.ok) {
-    return { ok: true, saved: false };
+  if ("failed" in posted || !posted.json.ok) {
+    return { ok: false, error: CUSTOMER_SAVE_FAILED };
   }
   return { ok: true, saved: true };
 }

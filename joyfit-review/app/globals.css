@@ -284,3 +284,15 @@
 .survey-google-open-btn {
   animation: survey-google-btn-pulse 1.6s ease-in-out infinite;
 }
+
+@media print {
+  @page {
+    size: A6;
+    margin: 6mm;
+  }
+
+  .kyodo-pop {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { Check, Smartphone, Star } from "lucide-react";
 
 import { submitTodaClosingSurvey } from "@/app/actions/submit-toda-closing-survey";
+import { CUSTOMER_SAVE_FAILED } from "@/lib/gas-webapp";
 import { warmupClosingSurveyGas } from "@/app/actions/warmup-closing-survey-gas";
 import {
   memberFormChoiceClass,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { brandCssVars, BRAND_THEMES } from "@/lib/brand";
+import { buildKyodoReviewDraft } from "@/lib/newstore/kyodo-review";
 import {
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   SURVEY_COMPLETION_THANK_YOU,
@@ -31,8 +33,30 @@ import {
   GENDER_OPTIONS,
   GYM_EXPERIENCE_OPTIONS,
   HOW_FOUND_OPTIONS,
+  HOW_FOUND_TITLE,
+  KYODO_HOW_FOUND_CAMPAIGN,
+  KYODO_HOW_FOUND_HINT,
+  KYODO_HOW_FOUND_OPTIONS,
+  KYODO_HOW_FOUND_TITLE,
+  KYODO_POSITIVES_HINT,
+  KYODO_POSITIVES_KICKER,
+  KYODO_POSITIVES_TITLE,
+  KYODO_REVIEW_POSITIVE_OPTIONS,
+  KYODO_TRAINING_OPTIONS,
+  KYODO_TRAINING_TITLE,
   JOIN_OPTIONS,
+  JOIN_PERK_AMOUNT,
+  JOIN_PERK_COMBO,
+  JOIN_PERK_FEE,
+  JOIN_PERK_KICKER,
+  JOIN_PERK_UNIT,
+  KYODO_JOIN_PERK_AMOUNT,
+  KYODO_JOIN_PERK_FEE,
+  KYODO_JOIN_PERK_KENGAKU,
+  KYODO_JOIN_PERK_TAIKEN,
+  KYODO_JOIN_PERK_UNIT,
   JOIN_QUESTION_TITLE,
+  JOIN_SAME_DAY_LABEL,
   MAX_REVIEW_POSITIVES,
   PAGE_TITLE,
   PHONE_ERROR,
@@ -42,6 +66,9 @@ import {
   RATING_HINT,
   RATING_QUESTION,
   resolveAppInstallUrl,
+  SESSION_MINUTES_HINT,
+  SESSION_MINUTES_OPTIONS,
+  SESSION_MINUTES_TITLE,
   REVIEW_POSITIVE_OPTIONS,
   REVIEW_POSITIVES_HINT,
   REVIEW_POSITIVES_TITLE,
@@ -251,7 +278,7 @@ export function TodaClosingSurvey({ store }: Props) {
   const brandVars = useMemo(() => brandCssVars(theme), [theme]);
   const googleReviewUrl = store.googleReviewUrl.trim();
   const canPostGoogle = Boolean(googleReviewUrl);
-  const [appInstallUrl, setAppInstallUrl] = useState(store.appInstallUrl);
+  const [appInstallUrl, setAppInstallUrl] = useState(store.appInstallIosUrl);
   const submissionIdRef = useRef(newSubmissionId());
 
   const [visitType, setVisitType] = useState<TodaVisitType | null>(null);
@@ -261,10 +288,12 @@ export function TodaClosingSurvey({ store }: Props) {
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
+  const [sessionMinutes, setSessionMinutes] = useState("");
+  const slimKyodo = store.slug === "kyodo";
   const [isStudent, setIsStudent] = useState(false);
   const [university, setUniversity] = useState("");
   const [gymExperience, setGymExperience] = useState("");
-  const [howFound, setHowFound] = useState("");
+  const [howFound, setHowFound] = useState<string[]>([]);
   const [howFoundOther, setHowFoundOther] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [joinIntent, setJoinIntent] = useState("");
@@ -273,23 +302,48 @@ export function TodaClosingSurvey({ store }: Props) {
   const [draft, setDraft] = useState("");
   const [draftTouched, setDraftTouched] = useState(false);
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [reviewSeed, setReviewSeed] = useState(0);
 
   useEffect(() => {
     void warmupClosingSurveyGas();
   }, []);
 
   useEffect(() => {
-    setAppInstallUrl(resolveAppInstallUrl(store, navigator.userAgent));
+    if (!slimKyodo) return;
+    setReviewSeed(Math.floor(Math.random() * 1_000_000_000) + 1);
+  }, [slimKyodo]);
+
+  useEffect(() => {
+    setAppInstallUrl(
+      resolveAppInstallUrl(store, {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        maxTouchPoints: navigator.maxTouchPoints,
+      }),
+    );
   }, [store]);
 
   const emailTrimmed = email.trim();
   const emailInvalid =
     Boolean(emailTrimmed) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
   const phoneInvalid = phone.length > 0 && !isPhoneComplete(phone);
-  const needsHowFoundOther = howFound === "その他";
+  const needsHowFoundOther = howFound.includes("その他");
 
   const liveDraft = useMemo(() => {
     if (!visitType) return "";
+    if (slimKyodo) {
+      if (!reviewSeed) return "";
+      return buildKyodoReviewDraft({
+        storeName: store.name,
+        visitType,
+        positives,
+        seed: reviewSeed,
+        howFound,
+        extraComment,
+      });
+    }
     return buildTodaReviewDraft({
       storeName: store.name,
       visitType,
@@ -297,64 +351,97 @@ export function TodaClosingSurvey({ store }: Props) {
       extraComment,
       rating: rating ?? 0,
     });
-  }, [store.name, visitType, positives, extraComment, rating]);
+  }, [
+    slimKyodo,
+    reviewSeed,
+    store.name,
+    visitType,
+    positives,
+    extraComment,
+    rating,
+    howFound,
+  ]);
 
   const shownDraft = draftTouched ? draft : liveDraft;
+
+  const contactReady = slimKyodo
+    ? true
+    : isPhoneComplete(phone) && Boolean(emailTrimmed) && !emailInvalid;
+  const ageReady = slimKyodo || Boolean(age);
+  const durationReady =
+    !slimKyodo || visitType !== "taiken" || Boolean(sessionMinutes);
 
   const formReady =
     visitType !== null &&
     fullName.trim() &&
-    furigana.trim() &&
-    isPhoneComplete(phone) &&
-    emailTrimmed &&
-    !emailInvalid &&
+    (slimKyodo || furigana.trim()) &&
+    contactReady &&
     Boolean(gender) &&
-    Boolean(age) &&
+    ageReady &&
     Boolean(gymExperience) &&
-    Boolean(howFound) &&
+    howFound.length > 0 &&
     (!needsHowFoundOther || howFoundOther.trim()) &&
     rating !== null &&
-    (visitType === "kengaku" || Boolean(joinIntent)) &&
+    (slimKyodo
+      ? Boolean(joinIntent)
+      : visitType === "kengaku" || Boolean(joinIntent)) &&
+    durationReady &&
     positives.length > 0;
 
   function selectVisitType(next: TodaVisitType) {
     setVisitType(next);
-    if (next !== "taiken") setJoinIntent("");
+    if (next !== "taiken") {
+      if (!slimKyodo) setJoinIntent("");
+      setSessionMinutes("");
+    }
   }
 
-  function handleSubmit() {
-    if (!formReady || visitType === null || rating === null || sent) return;
+  async function handleSubmit() {
+    if (!formReady || visitType === null || rating === null || sent || submitting) {
+      return;
+    }
 
     const generatedReview = shownDraft.trim();
     setDraft(generatedReview);
-    setSent(true);
+    setSaveError("");
+    setSubmitting(true);
     try {
-      void navigator.clipboard.writeText(generatedReview);
-    } catch {
-      /* ignore */
+      const result = await submitTodaClosingSurvey({
+        storeId: store.id,
+        storeName: store.name,
+        visitType,
+        fullName,
+        furigana: slimKyodo ? "" : furigana,
+        phone: slimKyodo ? "" : phone,
+        email: slimKyodo ? "" : emailTrimmed,
+        gender,
+        age: slimKyodo ? "" : age,
+        sessionMinutes:
+          slimKyodo && visitType === "taiken" ? sessionMinutes : "",
+        university: slimKyodo || !isStudent ? "" : university,
+        gymExperience,
+        howFound: howFound.join(" / "),
+        howFoundOther: needsHowFoundOther ? howFoundOther : "",
+        rating,
+        joinIntent: slimKyodo || visitType === "taiken" ? joinIntent : "",
+        extraComment: slimKyodo ? "" : extraComment,
+        positives,
+        generatedReview,
+        submissionId: submissionIdRef.current,
+      });
+      if (!result.ok) {
+        setSaveError(result.error || CUSTOMER_SAVE_FAILED);
+        return;
+      }
+      try {
+        void navigator.clipboard.writeText(generatedReview);
+      } catch {
+        /* ignore */
+      }
+      setSent(true);
+    } finally {
+      setSubmitting(false);
     }
-
-    void submitTodaClosingSurvey({
-      storeId: store.id,
-      storeName: store.name,
-      visitType,
-      fullName,
-      furigana,
-      phone,
-      email: emailTrimmed,
-      gender,
-      age,
-      university: isStudent ? university : "",
-      gymExperience,
-      howFound,
-      howFoundOther: needsHowFoundOther ? howFoundOther : "",
-      rating,
-      joinIntent: visitType === "taiken" ? joinIntent : "",
-      extraComment,
-      positives,
-      generatedReview,
-      submissionId: submissionIdRef.current,
-    });
   }
 
   if (sent) {
@@ -403,6 +490,17 @@ export function TodaClosingSurvey({ store }: Props) {
               href={appInstallUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(event) => {
+                const url = resolveAppInstallUrl(store, {
+                  userAgent: navigator.userAgent,
+                  platform: navigator.platform,
+                  maxTouchPoints: navigator.maxTouchPoints,
+                });
+                if (url === appInstallUrl) return;
+                event.preventDefault();
+                setAppInstallUrl(url);
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
               className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-white px-4 text-[14px] font-bold text-[color:var(--joyfit-red)] shadow-[0_6px_16px_rgba(0,0,0,0.12)] transition hover:bg-white/92"
             >
               {store.appInstallLinkLabel}
@@ -459,60 +557,66 @@ export function TodaClosingSurvey({ store }: Props) {
             placeholder="山田 花子"
           />
         </section>
-        <section className="space-y-2">
-          <FieldLabel required>フリガナ</FieldLabel>
-          <Input
-            value={furigana}
-            onChange={(e) => setFurigana(e.target.value)}
-            className={memberFormInputClass}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="ヤマダ ハナコ"
-          />
-        </section>
-        <section className="space-y-2">
-          <FieldLabel required hint={PHONE_HINT}>
-            {PHONE_FIELD_TITLE}
-          </FieldLabel>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(digitsOnly(e.target.value))}
-            onKeyDown={handlePhoneKeyDown}
-            className={memberFormInputClass}
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={11}
-            autoComplete="tel-national"
-            placeholder={PHONE_PLACEHOLDER}
-            aria-invalid={phoneInvalid}
-          />
-          {phoneInvalid ? (
-            <p className={memberFormErrorClass}>{PHONE_ERROR}</p>
-          ) : null}
-        </section>
-        <section className="space-y-2">
-          <FieldLabel required>メールアドレス</FieldLabel>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={memberFormInputClass}
-            type="email"
-            inputMode="email"
-            name="closing-email"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="example@email.com"
-            aria-invalid={emailInvalid}
-          />
-          {emailInvalid ? (
-            <p className={memberFormErrorClass}>
-              メールアドレスの形式をご確認ください
-            </p>
-          ) : null}
-        </section>
+        {slimKyodo ? null : (
+          <section className="space-y-2">
+            <FieldLabel required>フリガナ</FieldLabel>
+            <Input
+              value={furigana}
+              onChange={(e) => setFurigana(e.target.value)}
+              className={memberFormInputClass}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="ヤマダ ハナコ"
+            />
+          </section>
+        )}
+        {slimKyodo ? null : (
+          <>
+            <section className="space-y-2">
+              <FieldLabel required hint={PHONE_HINT}>
+                {PHONE_FIELD_TITLE}
+              </FieldLabel>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(digitsOnly(e.target.value))}
+                onKeyDown={handlePhoneKeyDown}
+                className={memberFormInputClass}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={11}
+                autoComplete="tel-national"
+                placeholder={PHONE_PLACEHOLDER}
+                aria-invalid={phoneInvalid}
+              />
+              {phoneInvalid ? (
+                <p className={memberFormErrorClass}>{PHONE_ERROR}</p>
+              ) : null}
+            </section>
+            <section className="space-y-2">
+              <FieldLabel required>メールアドレス</FieldLabel>
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={memberFormInputClass}
+                type="email"
+                inputMode="email"
+                name="closing-email"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="example@email.com"
+                aria-invalid={emailInvalid}
+              />
+              {emailInvalid ? (
+                <p className={memberFormErrorClass}>
+                  メールアドレスの形式をご確認ください
+                </p>
+              ) : null}
+            </section>
+          </>
+        )}
 
         <section className="space-y-2">
           <FieldLabel required>性別</FieldLabel>
@@ -530,9 +634,15 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
+        {slimKyodo ? null : (
+          <section className="space-y-2">
+            <FieldLabel required>ご年齢</FieldLabel>
+            <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={setAge} />
+          </section>
+        )}
+
+        {slimKyodo ? null : (
         <section className="space-y-2">
-          <FieldLabel required>ご年齢</FieldLabel>
-          <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={setAge} />
           <button
             type="button"
             className={memberFormChoiceClass(isStudent)}
@@ -556,39 +666,72 @@ export function TodaClosingSurvey({ store }: Props) {
             />
           ) : null}
         </section>
+        )}
 
         <section className="space-y-2">
-          <FieldLabel required>ジムのご利用経験について</FieldLabel>
+          <FieldLabel required>
+            {slimKyodo ? KYODO_TRAINING_TITLE : "ジムのご利用経験について"}
+          </FieldLabel>
           <div className="grid grid-cols-2 gap-2">
-            {GYM_EXPERIENCE_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={cn(
-                  memberFormChoiceClass(gymExperience === opt),
-                  "min-h-12 px-2 text-center text-[12px] leading-snug",
-                )}
-                onClick={() => setGymExperience(opt)}
-              >
-                {opt}
-              </button>
-            ))}
+            {(slimKyodo ? KYODO_TRAINING_OPTIONS : GYM_EXPERIENCE_OPTIONS).map(
+              (opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={cn(
+                    memberFormChoiceClass(gymExperience === opt),
+                    "min-h-12 px-2 text-center text-[13px] leading-snug",
+                    !slimKyodo && "text-[12px]",
+                  )}
+                  onClick={() => setGymExperience(opt)}
+                >
+                  {opt}
+                </button>
+              ),
+            )}
           </div>
         </section>
 
         <section className="space-y-2">
-          <FieldLabel required>当クラブをどこでお知りになりましたか？</FieldLabel>
+          <div className="space-y-1">
+            <FieldLabel required>
+              {slimKyodo ? KYODO_HOW_FOUND_TITLE : HOW_FOUND_TITLE}
+            </FieldLabel>
+            {slimKyodo ? (
+              <p className={memberFormHintClass}>{KYODO_HOW_FOUND_HINT}</p>
+            ) : null}
+          </div>
           <div className="grid grid-cols-2 gap-2">
-            {HOW_FOUND_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={memberFormChoiceClass(howFound === opt)}
-                onClick={() => setHowFound(opt)}
-              >
-                {opt}
-              </button>
-            ))}
+            {(slimKyodo ? KYODO_HOW_FOUND_OPTIONS : HOW_FOUND_OPTIONS).map(
+              (opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  aria-pressed={howFound.includes(opt)}
+                  className={cn(
+                    memberFormChoiceClass(howFound.includes(opt)),
+                    slimKyodo && "min-h-12 px-2 text-center text-[13px] leading-snug",
+                    slimKyodo &&
+                      opt === KYODO_HOW_FOUND_CAMPAIGN &&
+                      !howFound.includes(opt) &&
+                      "border-[color:var(--joyfit-red)]/40 bg-[color:var(--joyfit-red)]/[0.06] font-semibold text-[color:var(--joyfit-red)]",
+                  )}
+                  onClick={() => {
+                    if (slimKyodo) {
+                      setHowFound((prev) =>
+                        prev.includes(opt)
+                          ? prev.filter((v) => v !== opt)
+                          : [...prev, opt],
+                      );
+                      return;
+                    }
+                    setHowFound((prev) => (prev[0] === opt ? [] : [opt]));
+                  }}
+                >
+                  {opt}
+                </button>
+              ),
+            )}
           </div>
           {needsHowFoundOther ? (
             <Input
@@ -601,58 +744,257 @@ export function TodaClosingSurvey({ store }: Props) {
           ) : null}
         </section>
 
-        {visitType === "taiken" ? (
-          <section className="space-y-2">
+        {(slimKyodo && visitType !== null) || visitType === "taiken" ? (
+          <section className="space-y-3">
             <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
-            <div className="grid grid-cols-2 gap-2">
-              {JOIN_OPTIONS.map((opt) => (
+            {slimKyodo ? (
+            <button
+              type="button"
+              aria-pressed={joinIntent === JOIN_SAME_DAY_LABEL}
+              onClick={() => setJoinIntent(JOIN_SAME_DAY_LABEL)}
+              className={cn(
+                "w-full overflow-hidden rounded-[1.35rem] border text-left transition",
+                joinIntent === JOIN_SAME_DAY_LABEL
+                  ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_12px_24px_rgba(165,53,75,0.28)]"
+                  : "border-zinc-800/70 bg-white text-zinc-900 shadow-[0_4px_14px_rgba(24,24,27,0.08)] hover:-translate-y-0.5",
+              )}
+            >
+              <p
+                className={cn(
+                  "px-4 py-2 text-[12px] font-bold tracking-[0.14em]",
+                  joinIntent === JOIN_SAME_DAY_LABEL
+                    ? "bg-black/12 text-white"
+                    : "bg-[color:var(--joyfit-red)] text-white",
+                )}
+              >
+                {visitType === "taiken"
+                  ? KYODO_JOIN_PERK_TAIKEN
+                  : KYODO_JOIN_PERK_KENGAKU}
+              </p>
+              <div className="px-5 py-4">
+                <p className="flex items-baseline gap-2">
+                  <span className="text-[3.25rem] font-bold leading-none tracking-[-0.05em]">
+                    {KYODO_JOIN_PERK_AMOUNT}
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-md px-2 py-0.5 text-[12px] font-bold",
+                      joinIntent === JOIN_SAME_DAY_LABEL
+                        ? "bg-white/18 text-white"
+                        : "bg-zinc-100 text-zinc-700",
+                    )}
+                  >
+                    {KYODO_JOIN_PERK_UNIT}
+                  </span>
+                </p>
+                <p
+                  className={cn(
+                    "mt-1.5 text-[14px] font-semibold tracking-tight",
+                    joinIntent === JOIN_SAME_DAY_LABEL
+                      ? "text-white/90"
+                      : "text-zinc-600",
+                  )}
+                >
+                  {KYODO_JOIN_PERK_FEE}
+                </p>
+              </div>
+              <p
+                className={cn(
+                  "border-t border-dashed py-3.5 text-center text-[15px] font-bold tracking-[0.2em]",
+                  joinIntent === JOIN_SAME_DAY_LABEL
+                    ? "border-white/30 bg-black/10"
+                    : "border-zinc-200 bg-zinc-50",
+                )}
+              >
+                {JOIN_SAME_DAY_LABEL}
+              </p>
+            </button>
+            ) : (
+            <button
+              type="button"
+              aria-pressed={joinIntent === JOIN_SAME_DAY_LABEL}
+              onClick={() => setJoinIntent(JOIN_SAME_DAY_LABEL)}
+              className={cn(
+                "w-full overflow-hidden rounded-[1.25rem] border text-left transition",
+                joinIntent === JOIN_SAME_DAY_LABEL
+                  ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_22px_rgba(0,0,0,0.16)]"
+                  : "border-zinc-800/80 bg-white text-zinc-900 shadow-[0_4px_12px_rgba(24,24,27,0.08)] hover:-translate-y-0.5",
+              )}
+            >
+              <p
+                className={cn(
+                  "border-b py-2.5 text-center text-[12px] font-bold tracking-[0.28em]",
+                  joinIntent === JOIN_SAME_DAY_LABEL
+                    ? "border-white/25 bg-black/10 text-white/90"
+                    : "border-zinc-200 bg-zinc-50 text-zinc-500",
+                )}
+              >
+                {JOIN_PERK_KICKER}
+              </p>
+              <div className="grid grid-cols-2 items-center py-5">
+                <div className="flex flex-col items-end justify-center pr-5">
+                  <p className="text-[3.15rem] font-bold leading-none tracking-[-0.06em]">
+                    {JOIN_PERK_AMOUNT}
+                  </p>
+                  <p className="mt-1.5 text-[15px] font-bold tracking-[0.22em]">
+                    {JOIN_PERK_UNIT}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "flex flex-col items-start justify-center border-l border-dashed py-1 pl-5",
+                    joinIntent === JOIN_SAME_DAY_LABEL
+                      ? "border-white/45"
+                      : "border-zinc-300",
+                  )}
+                >
+                  <p className="text-[16px] font-bold leading-snug tracking-tight">
+                    {JOIN_PERK_FEE}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-1.5 text-[13px] font-medium leading-relaxed",
+                      joinIntent === JOIN_SAME_DAY_LABEL
+                        ? "text-white/88"
+                        : "text-zinc-500",
+                    )}
+                  >
+                    {JOIN_PERK_COMBO}
+                  </p>
+                </div>
+              </div>
+              <p
+                className={cn(
+                  "border-t py-3.5 text-center text-[16px] font-bold tracking-[0.22em]",
+                  joinIntent === JOIN_SAME_DAY_LABEL
+                    ? "border-white/25 bg-black/10"
+                    : "border-zinc-200 bg-zinc-50",
+                )}
+              >
+                {JOIN_SAME_DAY_LABEL}
+              </p>
+            </button>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              {JOIN_OPTIONS.slice(1).map((opt) => (
                 <button
                   key={opt}
                   type="button"
-                  className={memberFormChoiceClass(joinIntent === opt)}
+                  className={cn(
+                    memberFormChoiceClass(joinIntent === opt),
+                    "px-1.5 text-[13px]",
+                  )}
                   onClick={() => setJoinIntent(opt)}
                 >
                   {opt}
                 </button>
               ))}
             </div>
+            {slimKyodo && visitType === "taiken" ? (
+              <section className="space-y-2 pt-1">
+                <FieldLabel required hint={SESSION_MINUTES_HINT}>
+                  {SESSION_MINUTES_TITLE}
+                </FieldLabel>
+                <div className="grid grid-cols-5 gap-2">
+                  {SESSION_MINUTES_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={cn(
+                        memberFormChoiceClass(sessionMinutes === opt),
+                        "min-h-11 px-1 text-[13px] font-semibold",
+                      )}
+                      onClick={() => setSessionMinutes(opt)}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </section>
         ) : null}
 
-        <section className="space-y-2">
-          <FieldLabel>{EXTRA_COMMENT_TITLE}</FieldLabel>
-          <Textarea
-            value={extraComment}
-            onChange={(e) => setExtraComment(e.target.value)}
-            rows={3}
-            className={memberFormTextareaClass}
-            placeholder="任意"
-          />
-        </section>
+        {slimKyodo ? null : (
+          <section className="space-y-2">
+            <FieldLabel>{EXTRA_COMMENT_TITLE}</FieldLabel>
+            <Textarea
+              value={extraComment}
+              onChange={(e) => setExtraComment(e.target.value)}
+              rows={3}
+              className={memberFormTextareaClass}
+              placeholder="任意"
+            />
+          </section>
+        )}
 
-        <section className="space-y-2 border-t border-zinc-100 pt-6">
-          <div className="space-y-1">
-            <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>
-            <p className={memberFormHintClass}>
-              {REVIEW_POSITIVES_HINT}（最大{MAX_REVIEW_POSITIVES}つ）
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {REVIEW_POSITIVE_OPTIONS.map((opt) => {
+        <section className="space-y-3 border-t border-zinc-100 pt-6">
+          {slimKyodo ? (
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-[color:var(--joyfit-red)]">
+                {KYODO_POSITIVES_KICKER}
+              </p>
+              <p className="text-[1.2rem] font-bold tracking-tight text-zinc-900">
+                {KYODO_POSITIVES_TITLE}
+              </p>
+              <p className={memberFormHintClass}>
+                {KYODO_POSITIVES_HINT}（最大{MAX_REVIEW_POSITIVES}つ）
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>
+              <p className={memberFormHintClass}>
+                {REVIEW_POSITIVES_HINT}（最大{MAX_REVIEW_POSITIVES}つ）
+              </p>
+            </div>
+          )}
+          <div
+            className={
+              slimKyodo ? "grid grid-cols-2 gap-2.5" : "flex flex-wrap gap-2"
+            }
+          >
+            {(slimKyodo
+              ? KYODO_REVIEW_POSITIVE_OPTIONS
+              : REVIEW_POSITIVE_OPTIONS
+            ).map((opt) => {
               const active = positives.includes(opt);
               return (
                 <button
                   key={opt}
                   type="button"
                   aria-pressed={active}
-                  className={memberFormChoiceClass(active)}
+                  className={
+                    slimKyodo
+                      ? cn(
+                          "relative min-h-[4.35rem] rounded-2xl border px-3.5 py-3 text-left transition",
+                          active
+                            ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_10px_20px_rgba(165,53,75,0.2)]"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-800 shadow-[0_2px_8px_rgba(24,24,27,0.04)] hover:-translate-y-0.5 hover:border-zinc-400 hover:bg-white",
+                        )
+                      : memberFormChoiceClass(active)
+                  }
                   onClick={() =>
                     setPositives((prev) =>
                       toggleLimited(prev, opt, MAX_REVIEW_POSITIVES),
                     )
                   }
                 >
-                  {opt}
+                  {slimKyodo ? (
+                    <>
+                      <span className="block pr-5 text-[13px] font-semibold leading-snug tracking-tight">
+                        {opt}
+                      </span>
+                      {active ? (
+                        <Check
+                          className="absolute right-2.5 top-2.5 h-4 w-4"
+                          strokeWidth={2.6}
+                        />
+                      ) : null}
+                    </>
+                  ) : (
+                    opt
+                  )}
                 </button>
               );
             })}
@@ -680,13 +1022,18 @@ export function TodaClosingSurvey({ store }: Props) {
           />
         </section>
 
+        {saveError ? (
+          <p className={memberFormErrorClass}>{saveError}</p>
+        ) : !formReady ? (
+          <p className={memberFormHintClass}>未入力の項目があります</p>
+        ) : null}
         <Button
           type="button"
-          onClick={handleSubmit}
-          disabled={!formReady}
+          onClick={() => void handleSubmit()}
+          disabled={!formReady || submitting}
           className="h-12 w-full rounded-2xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-200 disabled:text-zinc-400"
         >
-          {REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
+          {submitting ? "保存中…" : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
         </Button>
       </div>
     </div>

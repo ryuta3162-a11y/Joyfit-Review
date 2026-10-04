@@ -48,8 +48,7 @@ export const CLOSING_STORES: Record<ClosingStoreSlug, ClosingStore> = {
     googleReviewUrl:
       "https://www.google.com/maps/place//data=!4m3!3m2!1s0x6018ebf70f0ce3d5:0x11aae5a2eeb77b1d!12e1?source=g.page.m.kd._&laa=lu-desktop-review-solicitation",
     mapsUrl: "https://maps.app.goo.gl/zWhH3JD89u7LyzoV9",
-    appInstallUrl:
-      "https://play.google.com/store/apps/details?id=jp.fit365.fit365appandroid",
+    appInstallUrl: "https://fit365.jp/pr_app/",
     appInstallIosUrl: "https://apps.apple.com/jp/app/fit365-app/id1521399707",
     appInstallAndroidUrl:
       "https://play.google.com/store/apps/details?id=jp.fit365.fit365appandroid",
@@ -65,11 +64,21 @@ export function parseClosingStoreSlug(value: string | undefined | null): Closing
 
 export function resolveAppInstallUrl(
   store: ClosingStore,
-  userAgent = "",
+  hints: string | { userAgent?: string; platform?: string; maxTouchPoints?: number } = "",
 ): string {
-  if (/iPhone|iPad|iPod/i.test(userAgent)) return store.appInstallIosUrl;
-  if (/Android/i.test(userAgent)) return store.appInstallAndroidUrl;
-  return store.appInstallUrl;
+  const parsed = typeof hints === "string" ? { userAgent: hints } : hints;
+  const ua = parsed.userAgent || "";
+  const platform = parsed.platform || "";
+  const touch = parsed.maxTouchPoints ?? 0;
+  const isIos =
+    /iPhone|iPad|iPod/i.test(ua) ||
+    ((/Mac/i.test(platform) || /Macintosh/i.test(ua)) && touch > 1);
+  if (isIos) return store.appInstallIosUrl;
+  if (/Android/i.test(ua) || /Android/i.test(platform)) {
+    return store.appInstallAndroidUrl;
+  }
+  if (/Mac/i.test(ua) || /Mac/i.test(platform)) return store.appInstallIosUrl;
+  return store.appInstallAndroidUrl;
 }
 
 /** @deprecated 戸田単体時の別名。CLOSING_STORES.toda を使う */
@@ -83,6 +92,12 @@ export const VISIT_TYPE_LABEL: Record<TodaVisitType, string> = {
 };
 
 export const PAGE_TITLE = "見学体験後アンケート";
+export const REVIEW_LP_TITLE = "口コミ投稿";
+export const REVIEW_LP_THANKS = "ご協力ありがとうございます";
+export const REVIEW_LP_COPIED =
+  "口コミ文をコピーしました。Googleに貼り付けて投稿できます";
+export const REVIEW_LP_SUBMIT_LABEL = "口コミを投稿する";
+export const REVIEW_LP_GOOGLE_AGAIN = "Googleの投稿画面を開く";
 
 export const PHONE_FIELD_TITLE = "ご連絡先（電話番号）";
 export const PHONE_HINT = "ハイフンなし";
@@ -115,12 +130,41 @@ export const GYM_EXPERIENCE_OPTIONS = [
   "数ヶ月以内に他店を利用",
 ] as const;
 
+export const KYODO_TRAINING_TITLE = "トレーニング歴";
+export const KYODO_TRAINING_OPTIONS = [
+  "未経験",
+  "ブランクあり",
+  "2、3ヶ月",
+  "1年未満",
+  "1〜3年",
+  "3年以上",
+] as const;
+
 export const HOW_FOUND_OPTIONS = [
   "WEB広告",
   "SNS",
   "チラシ",
   "知人・友人の紹介",
   "現地を見て",
+  "その他",
+] as const;
+
+export const HOW_FOUND_TITLE = "当クラブをどこでお知りになりましたか？";
+export const KYODO_HOW_FOUND_TITLE = "ご来店のきっかけを教えてください";
+export const KYODO_HOW_FOUND_HINT = "当てはまるものをすべて選択";
+export const KYODO_HOW_FOUND_CAMPAIGN = "限定キャンペーン";
+export const KYODO_HOW_FOUND_OPTIONS = [
+  KYODO_HOW_FOUND_CAMPAIGN,
+  "ホームページ",
+  "Googleマップ",
+  "窓面写真",
+  "紹介",
+  "口コミ",
+  "Instagram",
+  "TikTok",
+  "チラシ",
+  "のぼり",
+  "入口TV（サイネージ）",
   "その他",
 ] as const;
 
@@ -132,6 +176,17 @@ export const EXTRA_COMMENT_TITLE =
   "追加で何かご意見があればご記載ください";
 
 export const JOIN_QUESTION_TITLE = "ご入会はされますか？";
+export const JOIN_PERK_KICKER = "体験当日限定";
+export const JOIN_PERK_AMOUNT = "1,000";
+export const JOIN_PERK_UNIT = "円OFF";
+export const JOIN_PERK_FEE = "翌々月の月会費";
+export const JOIN_PERK_COMBO = "他キャンペーンと併用可";
+export const KYODO_JOIN_PERK_KENGAKU = "見学された方限定";
+export const KYODO_JOIN_PERK_TAIKEN = "体験された方限定";
+export const KYODO_JOIN_PERK_AMOUNT = "500";
+export const KYODO_JOIN_PERK_UNIT = "ポイント";
+export const KYODO_JOIN_PERK_FEE = "エンジョイポイント";
+export const JOIN_SAME_DAY_LABEL = "本日入会する";
 
 export const JOIN_OPTIONS = [
   "本日入会する",
@@ -140,10 +195,28 @@ export const JOIN_OPTIONS = [
   "検討中",
 ] as const;
 
+export const SESSION_MINUTES_TITLE = "利用時間";
+export const SESSION_MINUTES_HINT = "10分単位";
+export const SESSION_MINUTES_OPTIONS = [
+  "10分",
+  "20分",
+  "30分",
+  "40分",
+  "50分",
+  "60分",
+  "70分",
+  "80分",
+  "90分",
+  "それ以上",
+] as const;
+
 export const REVIEW_POSITIVES_TITLE =
   "見学・体験で、どこが良かったですか？";
 export const REVIEW_POSITIVES_HINT =
   "当てはまるものをいくつかタップしてください";
+export const KYODO_POSITIVES_KICKER = "印象に残ったこと";
+export const KYODO_POSITIVES_TITLE = "今日、ここがよかった";
+export const KYODO_POSITIVES_HINT = "気に入ったものを選んでください";
 export const DRAFT_FIELD_TITLE = "ご回答内容の確認（修正できます）";
 export const DRAFT_PLACEHOLDER =
   "よかった点を選ぶと、ここにご回答内容ができます";
@@ -155,18 +228,22 @@ export const MAX_REVIEW_POSITIVES = 4;
 
 export const REVIEW_POSITIVE_OPTIONS = [
   "スタッフの案内が丁寧",
-  "店内が清潔で新しい",
-  "マシンが充実している",
+  "店内が清潔だった",
+  "マシンが充実",
   "24時間通える",
   "駐車場がある",
-  "通いやすい立地",
+  "家から近い",
   "初心者でも入りやすい",
-  "料金が分かりやすい",
+  "キャンペーンがお得",
   "セキュリティが安心",
-  "レディースエリアがある",
   "雰囲気が明るい",
   "説明が分かりやすい",
+  "スタッフの対応が良い",
 ] as const;
+
+export const KYODO_REVIEW_POSITIVE_OPTIONS = REVIEW_POSITIVE_OPTIONS.map((opt) =>
+  opt === "キャンペーンがお得" ? "6か月限定価格" : opt,
+);
 
 export function toggleLimited(
   current: string[],
@@ -190,12 +267,12 @@ const REVIEW_POSITIVE_PHRASE: Record<string, ReviewPhrase> = {
     midAlso: "案内も丁寧で",
     end: "スタッフの案内が丁寧でした",
   },
-  店内が清潔で新しい: {
-    mid: "店内が清潔で新しく",
-    midAlso: "店内も清潔で新しく",
-    end: "店内が清潔で新しかったです",
+  店内が清潔だった: {
+    mid: "店内が清潔で",
+    midAlso: "店内も清潔で",
+    end: "店内が清潔でした",
   },
-  マシンが充実している: {
+  マシンが充実: {
     mid: "マシンが充実していて",
     midAlso: "マシンも充実していて",
     end: "マシンが充実していました",
@@ -208,32 +285,32 @@ const REVIEW_POSITIVE_PHRASE: Record<string, ReviewPhrase> = {
   駐車場がある: {
     mid: "駐車場があり",
     midAlso: "駐車場もあり",
-    end: "駐車場もあるので通いやすいです",
+    end: "駐車場があります",
   },
-  通いやすい立地: {
-    mid: "立地が通いやすく",
-    midAlso: "立地も通いやすく",
-    end: "立地が通いやすいです",
+  家から近い: {
+    mid: "家から近く",
+    midAlso: "家からも近く",
+    end: "家から近いです",
   },
   初心者でも入りやすい: {
     mid: "初心者でも入りやすく",
     midAlso: "初心者でも入りやすく",
-    end: "初心者でも入りやすいと感じました",
+    end: "初心者でも入りやすいです",
   },
-  料金が分かりやすい: {
-    mid: "料金が分かりやすく",
-    midAlso: "料金も分かりやすく",
-    end: "料金が分かりやすいです",
+  キャンペーンがお得: {
+    mid: "キャンペーンがお得で",
+    midAlso: "キャンペーンもお得で",
+    end: "キャンペーンがお得でした",
+  },
+  "6か月限定価格": {
+    mid: "6か月限定価格がお得で",
+    midAlso: "6か月限定価格も魅力で",
+    end: "6か月限定価格がお得でした",
   },
   セキュリティが安心: {
     mid: "セキュリティが安心で",
     midAlso: "セキュリティも安心で",
     end: "セキュリティが安心です",
-  },
-  レディースエリアがある: {
-    mid: "レディースエリアがあり",
-    midAlso: "レディースエリアもあり",
-    end: "レディースエリアがあるのもよかったです",
   },
   雰囲気が明るい: {
     mid: "雰囲気が明るく",
@@ -244,6 +321,11 @@ const REVIEW_POSITIVE_PHRASE: Record<string, ReviewPhrase> = {
     mid: "説明が分かりやすく",
     midAlso: "説明も分かりやすく",
     end: "説明が分かりやすかったです",
+  },
+  スタッフの対応が良い: {
+    mid: "スタッフの対応が良く",
+    midAlso: "対応も良く",
+    end: "スタッフの対応が良かったです",
   },
 };
 
@@ -266,20 +348,43 @@ export type TodaReviewDraftInput = {
   positives: string[];
   extraComment: string;
   rating: number;
+  kyodo?: boolean;
+  howFound?: string[];
 };
+
+function joinKyodoCampaignLine(positives: string[]): string {
+  const extras = positives.filter((item) => item !== "6か月限定価格");
+  const extraLine = joinPositivePhrases(extras);
+  if (!extraLine) {
+    return "今月の限定キャンペーンが6か月間ずっとお得でした。";
+  }
+  return `今月の限定キャンペーンが6か月間ずっとお得で、しかも${extraLine}`;
+}
 
 export function buildTodaReviewDraft(input: TodaReviewDraftInput): string {
   const visitWord = VISIT_TYPE_LABEL[input.visitType];
   const lines: string[] = [];
-  lines.push(`${input.storeName}を${visitWord}しました。`);
+  if (input.kyodo) {
+    lines.push(
+      input.visitType === "kengaku"
+        ? `${input.storeName}を無料で見学しました。`
+        : `${input.storeName}で無料体験ができました。`,
+    );
+  } else {
+    lines.push(`${input.storeName}を${visitWord}しました。`);
+  }
 
-  const positivesLine = joinPositivePhrases(input.positives);
+  const campaignFound =
+    input.kyodo && (input.howFound || []).includes(KYODO_HOW_FOUND_CAMPAIGN);
+  const positivesLine = campaignFound
+    ? joinKyodoCampaignLine(input.positives)
+    : joinPositivePhrases(input.positives);
   if (positivesLine) lines.push(positivesLine);
 
   const comment = input.extraComment.trim();
   if (comment) lines.push(comment);
 
-  if (input.rating >= 4) {
+  if (!input.kyodo && input.rating >= 4) {
     lines.push(
       input.visitType === "kengaku"
         ? "見学できてよかったです。"

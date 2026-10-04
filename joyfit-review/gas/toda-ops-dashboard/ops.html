@@ -2,18 +2,19 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>戸田 見学体験 運用</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
       :root {
         --brand: #e85a86;
         --brand-dark: #c4406b;
-        --ink: #27272a;
-        --muted: #71717a;
-        --line: #e4e4e7;
-        --bg: #faf7f8;
+        --ink: #0c0a09;
+        --muted: #44403c;
+        --line: #e7e5e4;
+        --bg: #f5f5f4;
         --card: #ffffff;
-        --ok: #15803d;
+        --ok: #047857;
         --warn: #b45309;
       }
       * { box-sizing: border-box; }
@@ -21,200 +22,442 @@
         margin: 0;
         min-height: 100vh;
         font-family: "Hiragino Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--bg);
+        background:
+          radial-gradient(1200px 400px at 0% -10%, rgba(232,90,134,0.12), transparent 55%),
+          var(--bg);
         color: var(--ink);
       }
       .hero {
-        background: var(--brand);
-        color: #fff;
-        padding: 22px 18px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 18px 28px 8px;
       }
       .hero h1 {
         margin: 0;
-        font-size: 1.2rem;
+        font-size: 1.05rem;
         font-weight: 800;
+        letter-spacing: 0.08em;
       }
-      .hero p {
-        margin: 6px 0 0;
-        font-size: 0.82rem;
-        opacity: 0.9;
-      }
-      .tabs {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-top: 16px;
-      }
+      .tabs { display: flex; gap: 18px; }
       .tab {
         border: 0;
-        border-radius: 999px;
-        padding: 10px 12px;
+        background: transparent;
+        padding: 8px 0 10px;
         font-weight: 800;
-        background: rgba(255,255,255,0.18);
-        color: #fff;
+        color: #a8a29a;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
       }
-      .tab.active { background: #fff; color: var(--brand-dark); }
-      .page { padding: 14px 14px 40px; max-width: 720px; margin: 0 auto; }
-      .filters {
+      .tab.active { color: var(--brand-dark); border-bottom-color: var(--brand); }
+      .page { padding: 10px 28px 40px; }
+      .toolbar {
         display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 4px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
         margin-bottom: 12px;
       }
+      .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
       .chip {
-        flex: 0 0 auto;
         border: 1px solid var(--line);
         background: #fff;
-        border-radius: 999px;
-        padding: 8px 12px;
-        font-size: 0.8rem;
-        font-weight: 700;
+        border-radius: 4px;
+        padding: 6px 11px;
+        font-size: 0.78rem;
+        font-weight: 800;
         color: var(--ink);
+        cursor: pointer;
+        transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
       }
-      .chip.active {
-        border-color: var(--brand);
-        background: var(--brand);
-        color: #fff;
-      }
-      .status {
-        font-size: 0.82rem;
-        color: var(--muted);
-        margin-bottom: 12px;
-      }
-      .card {
+      .chip:hover { transform: translateY(-1px); border-color: var(--brand); }
+      .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+      .hint { font-size: 0.8rem; color: #292524; font-weight: 700; }
+      .table-wrap {
         background: var(--card);
         border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 14px;
-        margin-bottom: 12px;
-        box-shadow: 0 8px 20px rgba(24,24,27,0.05);
+        overflow: auto;
       }
-      .card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 8px;
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1220px;
+        font-size: 0.9rem;
+        color: #0c0a09;
+        font-weight: 600;
       }
-      .name { font-size: 1.05rem; font-weight: 800; margin: 0; }
-      .kana { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
-      .badge {
-        border-radius: 999px;
-        padding: 4px 8px;
-        font-size: 0.72rem;
+      th, td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        font-size: 0.78rem;
+        color: #292524;
         font-weight: 800;
-        background: #f4f4f5;
+        letter-spacing: 0.06em;
+        z-index: 1;
+      }
+      table.hide-visit .col-visit { display: none; }
+      table.hide-ops .col-ops { display: none; }
+      table.hide-survey .col-survey { display: none; }
+      table.is-kyodo .col-contact,
+      table.is-kyodo .col-kana,
+      table.is-kyodo .col-age { display: none; }
+      table:not(.is-kyodo) .col-duration { display: none; }
+      .col-member { text-align: center; }
+      .member {
+        width: 12em;
+        min-width: 12em;
+        height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0 10px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, "Cascadia Mono", "Segoe UI", sans-serif;
+        background: #fff;
+        color: #0c0a09;
+        text-align: center;
+      }
+      .name { font-weight: 800; }
+      .badge {
+        display: inline-block;
+        padding: 2px 7px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        background: #f5f5f4;
       }
       .badge.taiken { background: #fce7f3; color: var(--brand-dark); }
-      .badge.join { background: #dcfce7; color: var(--ok); }
-      .meta {
+      .badge.join { background: #d1fae5; color: var(--ok); }
+      .email-cell {
         display: grid;
-        grid-template-columns: 88px 1fr;
-        gap: 4px 8px;
-        margin-top: 10px;
+        grid-template-columns: 22ch 32px;
+        column-gap: 6px;
+        align-items: center;
+      }
+      .email-cell span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: 0.82rem;
       }
-      .meta b { color: var(--muted); font-weight: 700; }
-      .actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-top: 12px;
+      .member::placeholder { color: #a8a29a; font-weight: 700; letter-spacing: 0.02em; }
+      .ico {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        padding: 0;
+        border: 1.5px solid #d6d3d1;
+        border-radius: 4px;
+        background: #fff;
+        color: #44403c;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
+      .ico:hover { border-color: var(--brand); color: var(--brand-dark); }
+      .ico svg { width: 16px; height: 16px; }
+      .board-act {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 12px 0 10px;
+        border: 1.5px solid #d6d3d1;
+        border-radius: 4px;
+        background: #fff;
+        color: #44403c;
+        font-size: 0.76rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .board-act:hover { border-color: var(--brand); color: var(--brand-dark); }
+      .board-act svg { width: 16px; height: 16px; flex: 0 0 16px; }
       .btn {
         border: 0;
-        border-radius: 12px;
-        min-height: 44px;
-        font-weight: 800;
-        font-size: 0.82rem;
-      }
-      .btn.ghost {
-        background: #f4f4f5;
-        color: var(--ink);
-      }
-      .btn.on {
-        background: var(--brand);
-        color: #fff;
-      }
-      .btn.warn {
-        background: #fff7ed;
-        color: var(--warn);
-      }
-      .btn.warn.on {
-        background: var(--ok);
-        color: #fff;
-      }
-      .member {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .member input {
-        flex: 1;
-        min-width: 0;
-        height: 44px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
+        border-radius: 4px;
+        min-height: 34px;
         padding: 0 12px;
-        font-size: 1rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-      }
-      .copy {
-        width: 88px;
-        border: 0;
-        border-radius: 12px;
-        background: #111827;
-        color: #fff;
         font-weight: 800;
+        font-size: 0.76rem;
+        cursor: pointer;
       }
-      .stats {
+      .btn.ghost { background: #f5f5f4; color: var(--ink); }
+      .btn.on { background: var(--brand); color: #fff; }
+      .ok-btn {
+        min-width: 72px;
+        height: 40px;
+        padding: 0 16px;
+        border: 2px solid #0c0a09;
+        border-radius: 6px;
+        background: #fff;
+        color: #0c0a09;
+        font-size: 0.92rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+      .ok-btn:hover { background: #0c0a09; color: #fff; }
+      .board { display: grid; gap: 0; }
+      .grid2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
+        gap: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .grid2 > .card {
+        padding: 14px 22px 18px 0;
+        border-right: 1px solid var(--line);
+      }
+      .grid2 > .card:nth-child(2n) {
+        padding-left: 22px;
+        padding-right: 0;
+        border-right: 0;
+      }
+      .grid2 > .card:nth-child(-n+2):nth-last-child(n+3) {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+      .grid2 > .card:nth-child(n+3) { padding-top: 18px; }
+      .pies { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75em; }
+      .pie-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .pie-canvas {
+        width: 11em;
+        max-width: 100%;
+        aspect-ratio: 1;
+        height: auto;
+      }
+      .legend {
+        display: grid;
+        gap: 0.32em;
+        width: max-content;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .legend div {
+        display: grid;
+        grid-template-columns: 0.55em auto auto;
+        column-gap: 0.5em;
+        align-items: center;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #0c0a09;
+        line-height: 1.25;
+      }
+      .legend i { width: 0.55em; height: 0.55em; border-radius: 1px; }
+      .legend strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .chart-box { height: 15em; }
+      .chart-box.tall { height: 16em; }
+      .card {
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 14px 0 18px;
+      }
+      .grid2 > .card { border-bottom: 0; }
+      .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 0.5em; }
+      .card-title { min-width: 0; }
+      .card h2 { margin: 0; font-size: 0.84rem; font-weight: 800; letter-spacing: 0.02em; color: #0c0a09; }
+      .kicker {
+        margin: 0.2em 0 0;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--brand-dark);
+        letter-spacing: 0.01em;
+      }
+      .card-head .ico {
+        background: transparent;
+        border-color: transparent;
+      }
+      .card-head .ico:hover { border-color: var(--brand); background: #fff; }
+      .month-rows { display: grid; gap: 0; }
+      .month-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.15em 1.1em;
+        align-items: baseline;
+        padding: 0.4em 0;
+        border-bottom: 1px solid #e7e5e4;
+        font-variant-numeric: tabular-nums;
+      }
+      .month-row:last-child { border-bottom: 0; }
+      .month-row strong { font-size: 0.9rem; min-width: 2.2em; }
+      .month-row > div { white-space: nowrap; }
+      .month-row b { font-size: 1.05rem; color: #0c0a09; }
+      .month-row i { font-style: normal; color: var(--brand-dark); font-size: 0.8rem; font-weight: 800; margin-left: 0.2em; }
+      .month-row span { color: #44403c; font-size: 0.75rem; font-weight: 800; margin-right: 0.2em; }
+      .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75em; }
+      .chart-box.age { height: 16.5em; }
+      .school-list { display: grid; gap: 0.5em; padding: 0.1em 0; align-content: start; }
+      .school-track {
+        height: 8px;
+        background: #e7e5e4;
+        overflow: hidden;
+      }
+      .school-track i { display: block; height: 100%; }
+      .school-row {
+        display: grid;
+        grid-template-columns: minmax(5.5em, 8.5em) 1fr max-content max-content;
+        gap: 0.45em;
+        align-items: center;
+      }
+      .school-row span { font-size: 0.86rem; font-weight: 800; color: #0c0a09; }
+      .school-row b {
+        font-size: 1.12rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        min-width: 2.4em;
+        text-align: right;
+      }
+      .school-row em {
+        font-style: normal;
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--brand-dark);
+        min-width: 2.8em;
+        text-align: right;
+      }
+      .rank { display: grid; gap: 10px; }
+      .rank-row {
+        display: grid;
+        grid-template-columns: 92px 1fr 40px;
         gap: 10px;
+        align-items: center;
       }
-      .stat {
-        background: #fff;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 14px;
+      .rank-row span { font-size: 0.84rem; font-weight: 800; color: #0c0a09; }
+      .rank-row b { font-variant-numeric: tabular-nums; font-size: 0.9rem; text-align: right; color: #0c0a09; }
+      .bar {
+        height: 8px;
+        background: #f3e8eb;
+        overflow: hidden;
       }
-      .stat span { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
-      .stat b { display: block; margin-top: 6px; font-size: 1.7rem; }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--brand);
+      }
+      .toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        background: var(--ink);
+        color: #fff;
+        padding: 10px 14px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        display: none;
+        z-index: 20;
+      }
       .hidden { display: none; }
+      .empty { padding: 28px; color: var(--muted); }
     </style>
   </head>
   <body>
     <div class="hero">
-      <h1>FIT365 戸田新曽</h1>
-      <p>見学体験の対応と個別会費調整</p>
+      <h1 id="storeName">FIT365 戸田新曽</h1>
       <div class="tabs">
-        <button class="tab active" data-view="floor" type="button">現場</button>
-        <button class="tab" data-view="admin" type="button">数字</button>
+        <button class="tab active" data-view="floor" type="button">一覧</button>
+        <button class="tab" data-view="admin" type="button">グラフ</button>
       </div>
     </div>
     <div class="page">
       <div id="floor">
-        <div class="filters" id="filters"></div>
-        <div class="status" id="status">読み込み中…</div>
-        <div id="list"></div>
+        <div class="toolbar">
+          <div class="filters" id="filters"></div>
+          <div class="hint" id="status">読み込み中</div>
+        </div>
+        <div class="table-wrap">
+          <table id="table">
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th class="col-visit">見学体験</th>
+                <th>お名前</th>
+                <th class="col-kana">フリガナ</th>
+                <th class="col-contact">電話番号</th>
+                <th class="col-contact">メール</th>
+                <th class="col-survey">性別</th>
+                <th class="col-survey col-age">年齢</th>
+                <th class="col-survey">きっかけ</th>
+                <th class="col-survey">星</th>
+                <th class="col-survey">入会</th>
+                <th class="col-survey col-duration">利用時間</th>
+                <th class="col-member">会員番号</th>
+                <th class="col-ops">会費調整</th>
+              </tr>
+            </thead>
+            <tbody id="list"></tbody>
+          </table>
+        </div>
       </div>
       <div id="admin" class="hidden">
-        <div class="stats" id="stats"></div>
+        <div class="toolbar">
+          <div class="filters" id="months"></div>
+          <div class="filters">
+            <button class="board-act" type="button" data-copy-board title="表示中の件数から学校まで、グラフをすべてコピー">全体コピー</button>
+            <button class="board-act" type="button" data-save-board title="表示中の件数から学校まで、グラフをすべてダウンロード">全体ダウンロード</button>
+            <span class="hint" id="monthStatus"></span>
+          </div>
+        </div>
+        <div id="board" class="board"></div>
       </div>
     </div>
+    <div class="toast" id="toast">コピーしました</div>
     <script>
-      var state = { rows: [], stats: {}, filter: "all", view: "floor" };
+      var STORE = <?!= storeJson ?>;
+      document.documentElement.style.setProperty("--brand", STORE.brandColor);
+      document.documentElement.style.setProperty("--brand-dark", STORE.brandDark);
+      document.title = STORE.name + " 見学体験 運用";
+      var ICO_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a2 2 0 0 1 2-2h11"/></svg>';
+      var ICO_UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h11a5 5 0 1 1 0 10H8"/><path d="M8 4 3 8l5 4"/></svg>';
+      var ICO_SAVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>';
+      var gymShort = {
+        "初めて利用する": "初めて",
+        "現在も他のジムを利用": "他店利用",
+        "1年以上のブランクあり": "ブランク",
+        "数ヶ月以内に他店を利用": "数ヶ月以内",
+        "未経験": "未経験",
+        "ブランクあり": "ブランク",
+        "2、3ヶ月": "2、3ヶ月",
+        "1年未満": "1年未満",
+        "1〜3年": "1〜3年",
+        "3年以上": "3年以上"
+      };
+      var state = { rows: [], filter: STORE.id === "kyodo" ? "all" : "feeList", view: "floor", month: "" };
+      var charts = {};
+      var palette = [STORE.brandColor, "#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626"];
+      var AGE_ORDER = ["10代", "20代", "30代", "40代", "50代", "60代", "70代以上"];
+      var GENDER_ORDER = ["男性", "女性", "回答しない"];
+      var GENDER_COLOR = { "男性": "#2563eb", "女性": STORE.brandColor, "回答しない": "#a8a29a" };
       var filters = [
-        { id: "all", label: "すべて" },
-        { id: "unhandled", label: "未対応" },
-        { id: "join", label: "本日入会" },
+        { id: "feeList", label: "会費調整リスト" },
         { id: "taiken", label: "体験" },
         { id: "kengaku", label: "見学" },
-        { id: "fee", label: "未調整" }
+        { id: "all", label: "すべて" }
       ];
 
       function $(id) { return document.getElementById(id); }
+      function esc(v) {
+        return String(v || "").replace(/[&<>"']/g, function (ch) {
+          return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch];
+        });
+      }
+      function pct(n, total) { return total ? Math.round((n / total) * 100) : 0; }
 
       function renderFilters() {
         $("filters").innerHTML = filters.map(function (f) {
@@ -223,70 +466,576 @@
       }
 
       function matches(row) {
-        if (state.filter === "unhandled") return !row.handled;
-        if (state.filter === "join") return row.sameDayJoin;
-        if (state.filter === "taiken") return String(row.visitType).indexOf("体験") >= 0;
-        if (state.filter === "kengaku") return String(row.visitType).indexOf("見学") >= 0;
-        if (state.filter === "fee") return row.sameDayJoin && !row.feeAdjusted;
+        if (state.filter === "feeList") return row.sameDayJoin && !row.feeAdjusted;
+        if (state.filter === "taiken") return String(row.visitType || "").indexOf("体験") >= 0;
+        if (state.filter === "kengaku") return String(row.visitType || "").indexOf("見学") >= 0;
         return true;
       }
 
-      function esc(v) {
-        return String(v || "").replace(/[&<>"']/g, function (ch) {
-          return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch];
-        });
+      function listRows() {
+        return state.rows.filter(matches);
+      }
+
+      function monthRows() {
+        if (state.month === "all") return state.rows || [];
+        return (state.rows || []).filter(function (row) { return row.monthKey === state.month; });
+      }
+
+      function copyText(value) {
+        if (!value) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(value);
       }
 
       function renderList() {
-        var rows = state.rows.filter(matches);
-        $("status").textContent = rows.length + "件";
+        var hideVisit = state.filter === "taiken" || state.filter === "kengaku" || state.filter === "feeList";
+        var showOps = state.filter === "feeList";
+        $("table").classList.toggle("hide-visit", hideVisit);
+        $("table").classList.toggle("hide-ops", !showOps);
+        $("table").classList.toggle("hide-survey", showOps);
+        $("table").classList.toggle("is-kyodo", STORE.id === "kyodo");
+        var rows = listRows();
+        $("status").textContent = showOps
+          ? ("未調整 " + rows.length + "件　即入のみ　OKで済")
+          : (rows.length + "件");
         $("list").innerHTML = rows.map(function (row) {
           return (
-            '<article class="card" data-row="' + row.sheetRow + '">' +
-              '<div class="card-top">' +
-                "<div><p class=\"name\">" + esc(row.fullName) + "</p><p class=\"kana\">" + esc(row.furigana) + "</p></div>" +
-                "<div>" +
-                  '<span class="badge' + (String(row.visitType).indexOf("体験") >= 0 ? " taiken" : "") + '">' + esc(row.visitType || "-") + "</span> " +
-                  (row.sameDayJoin ? '<span class="badge join">本日入会</span>' : "") +
-                "</div>" +
-              "</div>" +
-              '<div class="meta">' +
-                "<b>日付</b><span>" + esc(row.dateLabel) + "</span>" +
-                "<b>電話</b><span>" + esc(row.phone) + "</span>" +
-                "<b>メール</b><span>" + esc(row.email) + "</span>" +
-                "<b>性別</b><span>" + esc(row.gender) + "</span>" +
-                "<b>年齢</b><span>" + esc(row.age) + "</span>" +
-                "<b>学校</b><span>" + esc(row.university || "-") + "</span>" +
-                "<b>経験</b><span>" + esc(row.gymExperience) + "</span>" +
-                "<b>きっかけ</b><span>" + esc(row.howFound) + "</span>" +
-                "<b>星</b><span>" + esc(row.rating) + "</span>" +
-                "<b>入会</b><span>" + esc(row.joinIntent || "-") + "</span>" +
-              "</div>" +
-              '<div class="member">' +
-                '<input data-member value="' + esc(row.memberCode) + '" placeholder="会員番号" inputmode="numeric" />' +
-                '<button class="copy" type="button" data-copy>コピー</button>' +
-              "</div>" +
-              '<div class="actions">' +
-                '<button class="btn ' + (row.handled ? "on" : "ghost") + '" data-handled type="button">' + (row.handled ? "対応済み" : "未対応") + "</button>" +
-                '<button class="btn warn ' + (row.feeAdjusted ? "on" : "") + '" data-fee type="button">' + (row.feeAdjusted ? "調整済み" : "未調整") + "</button>" +
-              "</div>" +
-            "</article>"
+            '<tr data-row="' + row.sheetRow + '">' +
+              "<td>" + esc(row.dateLabel) + "</td>" +
+              '<td class="col-visit"><span class="badge' + (row.visitType === "体験" ? " taiken" : "") + '">' + esc(row.visitType) + "</span></td>" +
+              '<td class="name">' + esc(row.fullName) + "</td>" +
+              '<td class="col-kana">' + esc(row.furigana) + "</td>" +
+              '<td class="col-contact">' + esc(row.phone) + "</td>" +
+              '<td class="col-contact"><div class="email-cell"><span title="' + esc(row.email) + '">' + esc(row.email) + '</span><button class="ico" type="button" data-copy-email data-value="' + esc(row.email) + '" title="複製">' + ICO_COPY + "</button></div></td>" +
+              '<td class="col-survey">' + esc(row.gender) + "</td>" +
+              '<td class="col-survey col-age">' + esc(row.age) + "</td>" +
+              '<td class="col-survey">' + esc(row.howFound) + "</td>" +
+              '<td class="col-survey">' + esc(row.rating) + "</td>" +
+              '<td class="col-survey">' + (row.joinIntent === "即入" ? '<span class="badge join">即入</span>' : esc(row.joinIntent)) + "</td>" +
+              '<td class="col-survey col-duration">' + esc(row.sessionMinutes) + "</td>" +
+              '<td class="col-member"><input class="member" data-member value="' + esc(row.memberCode) + '" maxlength="10" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="10桁" aria-label="会員番号" /></td>' +
+              '<td class="col-ops"><button class="ok-btn" type="button" data-fee-ok>OK</button></td>' +
+            "</tr>"
           );
-        }).join("") || '<p class="status">該当なし</p>';
+        }).join("") || '<tr><td class="empty" colspan="13">該当なし</td></tr>';
+      }
+
+      function countBy(rows, key, mapFn) {
+        var map = {};
+        rows.forEach(function (row) {
+          var label = mapFn ? mapFn(row[key]) : String(row[key] || "").trim();
+          if (!label) return;
+          map[label] = (map[label] || 0) + 1;
+        });
+        return Object.keys(map).map(function (label) {
+          return { label: label, n: map[label] };
+        }).sort(function (a, b) { return b.n - a.n; });
+      }
+
+      function countHowFound(rows) {
+        var map = {};
+        rows.forEach(function (row) {
+          String(row.howFound || "")
+            .split(/\s*\/\s*|[、,]/)
+            .map(function (part) { return part.trim(); })
+            .filter(Boolean)
+            .forEach(function (label) {
+              map[label] = (map[label] || 0) + 1;
+            });
+        });
+        return Object.keys(map).map(function (label) {
+          return { label: label, n: map[label] };
+        }).sort(function (a, b) { return b.n - a.n; });
+      }
+
+      function monthKeys() {
+        var seen = {};
+        var keys = [];
+        (state.rows || []).forEach(function (row) {
+          if (!row.monthKey || seen[row.monthKey]) return;
+          seen[row.monthKey] = true;
+          keys.push(row.monthKey);
+        });
+        keys.sort();
+        return keys;
+      }
+
+      function monthLabel(key) {
+        var hit = (state.rows || []).find(function (r) { return r.monthKey === key; });
+        return hit ? hit.monthLabel : key;
+      }
+
+      function isStudent(row) {
+        return row.university && row.university !== "学生ではない";
+      }
+
+      function statsFor(rows) {
+        var total = rows.length;
+        var kengaku = rows.filter(function (r) { return r.visitType === "見学"; }).length;
+        var taiken = rows.filter(function (r) { return r.visitType === "体験"; }).length;
+        var join = rows.filter(function (r) { return r.sameDayJoin; }).length;
+        var students = rows.filter(isStudent).length;
+        return {
+          total: total,
+          kengaku: kengaku,
+          taiken: taiken,
+          join: join,
+          joinRate: taiken ? pct(join, taiken) : 0,
+          students: students,
+          studentRate: pct(students, total)
+        };
+      }
+
+      function genderLabel(v) {
+        var s = String(v || "").trim();
+        if (s === "男性" || s === "男") return "男性";
+        if (s === "女性" || s === "女") return "女性";
+        if (!s) return "";
+        return "回答しない";
+      }
+
+      function ageLabel(v) {
+        var s = String(v || "").trim();
+        if (AGE_ORDER.indexOf(s) >= 0) return s;
+        var n = parseInt(s, 10);
+        if (isNaN(n)) return s;
+        if (n < 20) return "10代";
+        if (n < 30) return "20代";
+        if (n < 40) return "30代";
+        if (n < 50) return "40代";
+        if (n < 60) return "50代";
+        if (n < 70) return "60代";
+        return "70代以上";
+      }
+
+      function countInOrder(rows, mapFn, order) {
+        var map = {};
+        rows.forEach(function (row) {
+          var label = mapFn(row);
+          if (!label) return;
+          map[label] = (map[label] || 0) + 1;
+        });
+        var labels = order.filter(function (label) { return map[label]; });
+        Object.keys(map).forEach(function (label) {
+          if (labels.indexOf(label) < 0) labels.push(label);
+        });
+        return labels.map(function (label) { return { label: label, n: map[label] || 0 }; });
+      }
+
+      function ageByGender(rows) {
+        var ages = AGE_ORDER.filter(function (age) {
+          return rows.some(function (r) { return ageLabel(r.age) === age; });
+        });
+        return {
+          ages: ages,
+          male: ages.map(function (age) {
+            return rows.filter(function (r) { return genderLabel(r.gender) === "男性" && ageLabel(r.age) === age; }).length;
+          }),
+          female: ages.map(function (age) {
+            return rows.filter(function (r) { return genderLabel(r.gender) === "女性" && ageLabel(r.age) === age; }).length;
+          })
+        };
+      }
+
+      function schoolHtml(items) {
+        var total = items.reduce(function (n, it) { return n + it.n; }, 0) || 1;
+        return '<div class="school-list">' + items.map(function (it, i) {
+          var w = Math.max(4, Math.round(it.n / total * 100));
+          return '<div class="school-row"><span>' + esc(it.label) + '</span><div class="school-track"><i style="width:' + w + "%;background:" + palette[i % palette.length] + '"></i></div><b>' + it.n + "件</b><em>" + pct(it.n, total) + "%</em></div>";
+        }).join("") + "</div>";
+      }
+
+      function np(n, total) {
+        return n + "件 " + pct(n, total) + "%";
+      }
+
+      function legendHtml(items, total, colors) {
+        var cols = colors || palette;
+        return '<div class="legend">' + items.map(function (it, i) {
+          return "<div><i style=\"background:" + cols[i % cols.length] + '"></i><span>' + esc(it.label) + "</span><strong>" + np(it.n, total) + "</strong></div>";
+        }).join("") + "</div>";
+      }
+
+      function pieCard(title, canvasId, items, total, colors, kicker) {
+        return '<article class="card" data-card><div class="card-head"><div class="card-title"><h2>' + title + "</h2>" +
+          (kicker ? '<p class="kicker">' + kicker + "</p>" : "") +
+          "</div><div>" + iconBtn() + "</div></div>" +
+          '<div class="pie-wrap"><div class="pie-canvas"><canvas id="' + canvasId + '"></canvas></div>' + legendHtml(items, total, colors) + "</div></article>";
+      }
+
+      var dxSlicePct = {
+        id: "dxSlicePct",
+        afterDatasetsDraw: function (chart) {
+          if (chart.config.type !== "doughnut") return;
+          var meta = chart.getDatasetMeta(0);
+          if (!meta || !meta.data) return;
+          var ctx = chart.ctx;
+          var ds = chart.data.datasets[0].data;
+          var total = ds.reduce(function (a, b) { return Number(a) + Number(b); }, 0) || 1;
+          ctx.save();
+          ctx.font = "800 11px 'Hiragino Sans', sans-serif";
+          ctx.fillStyle = "#fff";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          meta.data.forEach(function (arc, i) {
+            var value = Number(ds[i] || 0);
+            var p = pct(value, total);
+            if (p < 14) return;
+            var ang = (arc.startAngle + arc.endAngle) / 2;
+            var r = (arc.innerRadius + arc.outerRadius) / 2;
+            ctx.fillText(p + "%", arc.x + Math.cos(ang) * r, arc.y + Math.sin(ang) * r);
+          });
+          ctx.restore();
+        }
+      };
+
+      var dxBarLabels = {
+        id: "dxBarLabels",
+        afterDatasetsDraw: function (chart) {
+          if (chart.config.type !== "bar" || chart.data.datasets.length !== 1) return;
+          var ctx = chart.ctx;
+          var ds = chart.data.datasets[0];
+          var meta = chart.getDatasetMeta(0);
+          var total = ds.data.reduce(function (a, b) { return Number(a) + Number(b); }, 0) || 1;
+          ctx.save();
+          ctx.font = "800 11px 'Hiragino Sans', sans-serif";
+          ctx.fillStyle = "#0c0a09";
+          ctx.textBaseline = "middle";
+          meta.data.forEach(function (el, i) {
+            var value = Number(ds.data[i] || 0);
+            var label = value + "件 " + pct(value, total) + "%";
+            if (chart.options.indexAxis === "y") {
+              ctx.textAlign = "left";
+              ctx.fillText(label, el.x + 6, el.y);
+            } else {
+              ctx.textAlign = "center";
+              ctx.textBaseline = "bottom";
+              ctx.fillText(label, el.x, el.y - 4);
+            }
+          });
+          ctx.restore();
+        }
+      };
+
+      function groupedAge(id, data, total) {
+        var el = $(id);
+        if (!el || typeof Chart === "undefined") return;
+        var maxN = 0;
+        data.male.concat(data.female).forEach(function (n) { if (n > maxN) maxN = n; });
+        charts[id] = new Chart(el, {
+          type: "bar",
+          data: {
+            labels: data.ages,
+            datasets: [
+              { label: "男性", data: data.male, backgroundColor: "#2563eb", borderRadius: 2, barPercentage: 0.72, categoryPercentage: 0.7 },
+              { label: "女性", data: data.female, backgroundColor: STORE.brandColor, borderRadius: 2, barPercentage: 0.72, categoryPercentage: 0.7 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            clip: false,
+            devicePixelRatio: Math.max(2, window.devicePixelRatio || 1),
+            layout: { padding: { top: 26, bottom: 4 } },
+            plugins: {
+              legend: { position: "bottom", labels: { color: "#0c0a09", font: { size: 12, weight: "800" }, boxWidth: 12, padding: 16 } },
+              tooltip: {
+                backgroundColor: "#0c0a09",
+                titleFont: { weight: "800", size: 13 },
+                bodyFont: { weight: "700", size: 12 },
+                padding: 10,
+                callbacks: {
+                  label: function (ctx) {
+                    var n = Number(ctx.raw || 0);
+                    var gTotal = ctx.dataset.data.reduce(function (a, b) { return Number(a) + Number(b); }, 0) || 1;
+                    return ctx.dataset.label + " " + n + "件　全体 " + pct(n, total) + "%　" + ctx.dataset.label + "のうち " + pct(n, gTotal) + "%";
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: "#0c0a09", font: { size: 12, weight: "800" } } },
+              y: {
+                beginAtZero: true,
+                grace: "22%",
+                suggestedMax: Math.max(maxN + 1, 4),
+                ticks: { stepSize: 1, precision: 0, color: "#0c0a09", font: { size: 12, weight: "700" } },
+                grid: { color: "#e7e5e4" }
+              }
+            }
+          },
+          plugins: [{
+            id: "dxGroupPct",
+            afterDatasetsDraw: function (chart) {
+              var ctx = chart.ctx;
+              var area = chart.chartArea;
+              ctx.save();
+              ctx.font = "800 10px 'Hiragino Sans', sans-serif";
+              ctx.fillStyle = "#0c0a09";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "bottom";
+              chart.data.datasets.forEach(function (ds, di) {
+                var meta = chart.getDatasetMeta(di);
+                if (!meta || !meta.data) return;
+                meta.data.forEach(function (bar, i) {
+                  var value = Number(ds.data[i] || 0);
+                  if (!value) return;
+                  var y = Math.max(bar.y - 4, area.top + 11);
+                  ctx.fillText(pct(value, total) + "%", bar.x, y);
+                });
+              });
+              ctx.restore();
+            }
+          }]
+        });
+      }
+
+      function doughnut(id, items, colors) {
+        var cols = colors || palette;
+        makeChart(id, {
+          type: "doughnut",
+          data: {
+            labels: items.map(function (it) { return it.label; }),
+            datasets: [{ data: items.map(function (it) { return it.n; }), backgroundColor: cols, borderWidth: 2, borderColor: "#f5f5f4", hoverOffset: 6, hoverBorderWidth: 0 }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: "58%",
+            layout: { padding: 2 },
+            plugins: { legend: { display: false } }
+          },
+          plugins: [dxSlicePct]
+        });
+      }
+
+      function bars(id, items, horizontal) {
+        var total = items.reduce(function (n, it) { return n + it.n; }, 0) || 1;
+        var maxN = items.reduce(function (n, it) { return Math.max(n, it.n); }, 0);
+        var valueScale = {
+          beginAtZero: true,
+          grace: "18%",
+          suggestedMax: Math.max(maxN + 1, 3),
+          ticks: { stepSize: 1, precision: 0, color: "#0c0a09", font: { size: 12, weight: "700" } },
+          grid: { color: "#e7e5e4" }
+        };
+        var catScale = { grid: { display: false }, ticks: { color: "#0c0a09", font: { size: 12, weight: "800" } } };
+        makeChart(id, {
+          type: "bar",
+          data: {
+            labels: items.map(function (it) { return it.label; }),
+            datasets: [{ data: items.map(function (it) { return it.n; }), backgroundColor: palette, hoverBackgroundColor: palette.map(function (c) { return c; }), borderRadius: 2, barThickness: 18 }]
+          },
+          options: {
+            maintainAspectRatio: false,
+            indexAxis: horizontal ? "y" : "x",
+            clip: false,
+            layout: { padding: { right: horizontal ? 78 : 8, top: 18 } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: "#0c0a09",
+                titleFont: { weight: "800", size: 13 },
+                bodyFont: { weight: "700", size: 12 },
+                padding: 10,
+                callbacks: { label: function (ctx) { return np(ctx.raw, total); } }
+              }
+            },
+            scales: {
+              x: horizontal ? valueScale : catScale,
+              y: horizontal ? catScale : valueScale
+            }
+          },
+          plugins: [dxBarLabels]
+        });
+      }
+
+      function killCharts() {
+        Object.keys(charts).forEach(function (id) { if (charts[id]) charts[id].destroy(); });
+        charts = {};
+      }
+
+      function makeChart(id, config) {
+        var el = $(id);
+        if (!el || typeof Chart === "undefined") return;
+        config.options = config.options || {};
+        if (config.options.devicePixelRatio == null) {
+          config.options.devicePixelRatio = Math.max(2, window.devicePixelRatio || 1);
+        }
+        charts[id] = new Chart(el, config);
+      }
+
+      function resizeCharts() {
+        Object.keys(charts).forEach(function (id) {
+          if (charts[id]) charts[id].resize();
+        });
+      }
+
+      function iconBtn(copy) {
+        return '<button class="ico" type="button" data-copy-card title="複製">' + ICO_COPY + '</button><button class="ico" type="button" data-save-card title="保存">' + ICO_SAVE + "</button>";
+      }
+
+      function renderMonths() {
+        var months = monthKeys().map(function (key) { return { key: key, label: monthLabel(key) }; });
+        $("months").innerHTML = months.concat([{ key: "all", label: "すべて" }]).map(function (m) {
+          return '<button class="chip' + (state.month === m.key ? " active" : "") + '" data-month="' + m.key + '">' + m.label + "</button>";
+        }).join("");
+        $("admin").querySelector("[data-copy-board]").innerHTML = ICO_COPY + "全体コピー";
+        $("admin").querySelector("[data-save-board]").innerHTML = ICO_SAVE + "全体ダウンロード";
       }
 
       function renderStats() {
-        var s = state.stats || {};
-        $("stats").innerHTML = [
-          ["回答", s.total || 0],
-          ["見学", s.kengaku || 0],
-          ["体験", s.taiken || 0],
-          ["本日入会", s.sameDayJoin || 0],
-          ["未対応", s.unhandled || 0],
-          ["未調整", s.feePending || 0]
-        ].map(function (item) {
-          return '<div class="stat"><span>' + item[0] + "</span><b>" + item[1] + "</b></div>";
+        var rows = monthRows();
+        var s = statsFor(rows);
+        $("monthStatus").textContent = s.total + "件";
+        var keys = state.month === "all" ? monthKeys() : [state.month];
+        var monthHtml = keys.map(function (key) {
+          var st = statsFor((state.rows || []).filter(function (r) { return r.monthKey === key; }));
+          var vt = st.total || 1;
+          return '<div class="month-row"><strong>' + esc(monthLabel(key)) + "</strong>" +
+            "<div><span>見学</span><b>" + st.kengaku + "件</b><i>" + pct(st.kengaku, vt) + "%</i></div>" +
+            "<div><span>体験</span><b>" + st.taiken + "件</b><i>" + pct(st.taiken, vt) + "%</i></div>" +
+            "<div><span>即入</span><b>" + st.join + "件</b><i>" + st.joinRate + "%</i></div>" +
+            "<div><span>回答</span><b>" + st.total + "件</b></div></div>";
         }).join("");
+
+        var found = countHowFound(rows);
+        var joinItems = countInOrder(rows, function (r) { return r.joinIntent; }, ["即入", "後日", "検討中", "入会しない"]);
+        var gym = countBy(rows, "gymExperience", function (v) { return gymShort[v] || v; });
+        var schools = countBy(rows.filter(isStudent), "university");
+        var visit = countInOrder(rows, function (r) { return r.visitType; }, ["見学", "体験"]);
+        var visitColors = visit.map(function (it) { return it.label === "見学" ? "#2563eb" : STORE.brandColor; });
+        var gender = countInOrder(rows, function (r) { return genderLabel(r.gender); }, GENDER_ORDER);
+        var genderColors = gender.map(function (it) { return GENDER_COLOR[it.label] || "#a8a29a"; });
+        var studentItems = [
+          { label: "学生", n: s.students },
+          { label: "学生以外", n: Math.max(0, s.total - s.students) }
+        ];
+        var studentColors = [STORE.brandColor, "#a8a29a"];
+        var demo = ageByGender(rows);
+
+        var isKyodo = STORE.id === "kyodo";
+        $("board").innerHTML =
+          '<div class="grid2">' +
+            pieCard("見学体験", "cVisit", visit, s.total, visitColors) +
+            pieCard("入会", "cJoin", joinItems, s.total, null, "即入 " + s.join + "件 " + s.joinRate + "%　体験のうち") +
+            pieCard("性別", "cGender", gender, s.total, genderColors) +
+            (isKyodo
+              ? pieCard("トレーニング歴", "cGymPie", gym, s.total)
+              : pieCard("学生", "cStudent", studentItems, s.total, studentColors)) +
+          "</div>" +
+          (isKyodo ? "" : (
+          '<div class="grid2">' +
+            '<article class="card" data-card><div class="card-head"><h2>男女別 年齢</h2><div>' + iconBtn() + "</div></div><div class=\"chart-box age\"><canvas id=\"cAge\"></canvas></div></article>" +
+            '<article class="card" data-card><div class="card-head"><h2>学校</h2><div>' + iconBtn() + "</div></div>" + (schools.length ? schoolHtml(schools) : '<p class="empty">該当なし</p>') + "</article>" +
+          "</div>"
+          )) +
+          '<article class="card" data-card><div class="card-head"><h2>月別 見学体験</h2><div>' + iconBtn() + "</div></div><div class=\"month-rows\">" + monthHtml + "</div>" +
+            (state.month === "all" ? '<div class="chart-box"><canvas id="cMonth"></canvas></div>' : "") +
+          "</article>" +
+          '<div class="grid2">' +
+            '<article class="card" data-card><div class="card-head"><h2>きっかけ</h2><div>' + iconBtn() + "</div></div><div class=\"chart-box\"><canvas id=\"cFound\"></canvas></div></article>" +
+            (isKyodo ? "" : '<article class="card" data-card><div class="card-head"><h2>ジム経験</h2><div>' + iconBtn() + "</div></div><div class=\"chart-box\"><canvas id=\"cGym\"></canvas></div></article>") +
+          "</div>";
+
+        killCharts();
+        doughnut("cVisit", visit, visitColors);
+        doughnut("cJoin", joinItems);
+        doughnut("cGender", gender, genderColors);
+        if (isKyodo) doughnut("cGymPie", gym);
+        else doughnut("cStudent", studentItems, studentColors);
+        if (!isKyodo) groupedAge("cAge", demo, s.total);
+        bars("cFound", found, true);
+        if (!isKyodo) bars("cGym", gym, true);
+        if (state.month === "all") {
+          makeChart("cMonth", {
+            type: "bar",
+            data: {
+              labels: keys.map(monthLabel),
+              datasets: [
+                { label: "見学", data: keys.map(function (key) { return statsFor((state.rows || []).filter(function (r) { return r.monthKey === key; })).kengaku; }), backgroundColor: "#2563eb", borderRadius: 2, barThickness: 22 },
+                { label: "体験", data: keys.map(function (key) { return statsFor((state.rows || []).filter(function (r) { return r.monthKey === key; })).taiken; }), backgroundColor: STORE.brandColor, borderRadius: 2, barThickness: 22 }
+              ]
+            },
+            options: {
+              maintainAspectRatio: false,
+              plugins: { legend: { labels: { color: "#0c0a09", font: { size: 12, weight: "800" }, boxWidth: 12 } } },
+              scales: {
+                x: { grid: { display: false }, ticks: { color: "#0c0a09", font: { size: 13, weight: "800" } } },
+                y: { beginAtZero: true, ticks: { precision: 0, color: "#0c0a09", font: { size: 12, weight: "700" } }, grid: { color: "#e7e5e4" } }
+              }
+            }
+          });
+        }
+      }
+
+      function showToast(text) {
+        var el = $("toast");
+        el.textContent = text;
+        el.style.display = "block";
+        setTimeout(function () { el.style.display = "none"; }, 1400);
+      }
+
+      var CAPTURE_SCALE = 3;
+
+      function withHiResCharts(run) {
+        var prev = [];
+        Object.keys(charts).forEach(function (id) {
+          var c = charts[id];
+          if (!c) return;
+          prev.push({ c: c, dpr: c.options.devicePixelRatio });
+          c.options.devicePixelRatio = CAPTURE_SCALE;
+          c.resize();
+        });
+        setTimeout(function () {
+          run(function () {
+            prev.forEach(function (item) {
+              item.c.options.devicePixelRatio = item.dpr;
+              item.c.resize();
+            });
+          });
+        }, 80);
+      }
+
+      function cardToPng(el, done) {
+        if (typeof html2canvas === "undefined") return;
+        withHiResCharts(function (restore) {
+          html2canvas(el, {
+            scale: CAPTURE_SCALE,
+            backgroundColor: "#f5f5f4",
+            useCORS: true,
+            logging: false,
+            imageTimeout: 0,
+            onclone: function (doc) {
+              Array.prototype.forEach.call(doc.querySelectorAll(".ico, .board-act"), function (n) { n.style.display = "none"; });
+            }
+          }).then(function (canvas) {
+            canvas.toBlob(function (blob) {
+              restore();
+              done(blob);
+            }, "image/png");
+          }).catch(function () { restore(); });
+        });
+      }
+
+      function copyPng(el, whole) {
+        cardToPng(el, function (blob) {
+          if (navigator.clipboard && window.ClipboardItem) {
+            navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(function () {
+              showToast(whole ? "全体をコピーしました" : "画像をコピーしました");
+            }).catch(function () { downloadPng(blob, whole ? "toda-board.png" : "toda-graph.png", whole); });
+          } else downloadPng(blob, whole ? "toda-board.png" : "toda-graph.png", whole);
+        });
+      }
+
+      function downloadPng(blob, name, whole) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+        showToast(whole ? "全体をダウンロードしました" : "画像を保存しました");
       }
 
       function apply(result) {
@@ -295,16 +1044,30 @@
           return;
         }
         state.rows = result.rows || [];
-        state.stats = result.stats || {};
+        if (!state.month) {
+          var keys = monthKeys();
+          state.month = keys.length ? keys[keys.length - 1] : "all";
+        }
+        renderMonths();
         renderList();
-        renderStats();
+        if (state.view === "admin") renderStats();
       }
 
       function save(sheetRow, payload) {
         payload.sheetRow = sheetRow;
-        google.script.run.withSuccessHandler(apply).withFailureHandler(function (err) {
+        payload.store = STORE.id;
+        google.script.run.withFailureHandler(function (err) {
           $("status").textContent = String(err);
-        }).updateTodaOpsRow(payload);
+        }).updateOpsRow(payload);
+      }
+
+      function patchRow(sheetRow, fields) {
+        var row = (state.rows || []).find(function (r) { return r.sheetRow === sheetRow; });
+        if (row) {
+          Object.keys(fields).forEach(function (key) { row[key] = fields[key]; });
+        }
+        renderList();
+        save(sheetRow, fields);
       }
 
       document.querySelectorAll(".tab").forEach(function (btn) {
@@ -313,6 +1076,10 @@
           document.querySelectorAll(".tab").forEach(function (el) { el.classList.toggle("active", el === btn); });
           $("floor").classList.toggle("hidden", state.view !== "floor");
           $("admin").classList.toggle("hidden", state.view !== "admin");
+          if (state.view === "admin") {
+            renderStats();
+            setTimeout(resizeCharts, 50);
+          }
         });
       });
 
@@ -324,43 +1091,61 @@
         renderList();
       });
 
-      $("list").addEventListener("click", function (e) {
-        var card = e.target.closest(".card");
-        if (!card) return;
-        var row = Number(card.getAttribute("data-row"));
-        if (e.target.matches("[data-copy]")) {
-          var value = card.querySelector("[data-member]").value.trim();
-          if (!value) return;
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(value);
-          } else {
-            card.querySelector("[data-member]").select();
-            document.execCommand("copy");
-          }
-          e.target.textContent = "コピー済";
-          setTimeout(function () { e.target.textContent = "コピー"; }, 900);
+      $("months").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-month]");
+        if (!btn) return;
+        state.month = btn.getAttribute("data-month");
+        renderMonths();
+        renderStats();
+      });
+
+      $("admin").addEventListener("click", function (e) {
+        if (e.target.closest("[data-copy-board]")) { copyPng($("board"), true); return; }
+        if (e.target.closest("[data-save-board]")) {
+          cardToPng($("board"), function (blob) { downloadPng(blob, "toda-board.png", true); });
           return;
         }
-        if (e.target.matches("[data-handled]")) {
-          var next = e.target.textContent !== "対応済み";
-          save(row, { handled: next });
+        var card = e.target.closest("[data-card]");
+        if (!card) return;
+        if (e.target.closest("[data-copy-card]")) copyPng(card);
+        if (e.target.closest("[data-save-card]")) {
+          cardToPng(card, function (blob) { downloadPng(blob, "toda-graph.png"); });
         }
-        if (e.target.matches("[data-fee]")) {
-          var feeNext = e.target.textContent !== "調整済み";
-          save(row, { feeAdjusted: feeNext });
+      });
+
+      $("list").addEventListener("click", function (e) {
+        var card = e.target.closest("tr[data-row]");
+        if (!card) return;
+        var row = Number(card.getAttribute("data-row"));
+        var emailBtn = e.target.closest("[data-copy-email]");
+        if (emailBtn) { copyText(emailBtn.getAttribute("data-value")); return; }
+        if (e.target.closest("[data-fee-ok]")) {
+          patchRow(row, { feeAdjusted: true });
         }
+      });
+
+      $("list").addEventListener("input", function (e) {
+        if (!e.target.matches("[data-member]")) return;
+        e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
       });
 
       $("list").addEventListener("change", function (e) {
         if (!e.target.matches("[data-member]")) return;
-        var card = e.target.closest(".card");
-        save(Number(card.getAttribute("data-row")), { memberCode: e.target.value });
+        var sheetRow = Number(e.target.closest("tr[data-row]").getAttribute("data-row"));
+        var value = e.target.value.replace(/\D/g, "").slice(0, 10);
+        e.target.value = value;
+        var row = (state.rows || []).find(function (r) { return r.sheetRow === sheetRow; });
+        if (row) row.memberCode = value;
+        save(sheetRow, { memberCode: value });
       });
 
+      $("storeName").textContent = STORE.name;
       renderFilters();
+      window.addEventListener("resize", resizeCharts);
+      if (window.visualViewport) window.visualViewport.addEventListener("resize", resizeCharts);
       google.script.run.withSuccessHandler(apply).withFailureHandler(function (err) {
         $("status").textContent = String(err);
-      }).listTodaOpsRows();
+      }).listOpsRows(STORE.id);
     </script>
   </body>
 </html>
