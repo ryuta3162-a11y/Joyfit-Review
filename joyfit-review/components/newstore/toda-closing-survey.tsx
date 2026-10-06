@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { brandCssVars, BRAND_THEMES } from "@/lib/brand";
-import { buildKyodoReviewDraft } from "@/lib/newstore/kyodo-review";
+import { buildKyodoReviewDraft, campaignMonthLabel } from "@/lib/newstore/kyodo-review";
 import {
   REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL,
   SURVEY_COMPLETION_THANK_YOU,
@@ -50,11 +50,10 @@ import {
   JOIN_PERK_FEE,
   JOIN_PERK_KICKER,
   JOIN_PERK_UNIT,
-  KYODO_JOIN_PERK_AMOUNT,
-  KYODO_JOIN_PERK_FEE,
-  KYODO_JOIN_PERK_KENGAKU,
-  KYODO_JOIN_PERK_TAIKEN,
-  KYODO_JOIN_PERK_UNIT,
+  KYODO_JOIN_BONUS,
+  KYODO_JOIN_BONUS_KICKER,
+  KYODO_JOIN_DETAIL_LABEL,
+  KYODO_JOIN_DETAIL_URL,
   JOIN_QUESTION_TITLE,
   JOIN_SAME_DAY_LABEL,
   MAX_REVIEW_POSITIVES,
@@ -331,6 +330,17 @@ export function TodaClosingSurvey({ store }: Props) {
   const phoneInvalid = phone.length > 0 && !isPhoneComplete(phone);
   const needsHowFoundOther = howFound.includes("その他");
 
+  const reviewHowFound = useMemo(() => {
+    if (!slimKyodo) return howFound;
+    if (
+      joinIntent === JOIN_SAME_DAY_LABEL &&
+      !howFound.includes(KYODO_HOW_FOUND_CAMPAIGN)
+    ) {
+      return [...howFound, KYODO_HOW_FOUND_CAMPAIGN];
+    }
+    return howFound;
+  }, [slimKyodo, joinIntent, howFound]);
+
   const liveDraft = useMemo(() => {
     if (!visitType) return "";
     if (slimKyodo) {
@@ -340,7 +350,7 @@ export function TodaClosingSurvey({ store }: Props) {
         visitType,
         positives,
         seed: reviewSeed,
-        howFound,
+        howFound: reviewHowFound,
         extraComment,
       });
     }
@@ -360,6 +370,7 @@ export function TodaClosingSurvey({ store }: Props) {
     extraComment,
     rating,
     howFound,
+    reviewHowFound,
   ]);
 
   const shownDraft = draftTouched ? draft : liveDraft;
@@ -465,7 +476,7 @@ export function TodaClosingSurvey({ store }: Props) {
         </div>
 
         <div className="space-y-5 rounded-[1.75rem] bg-white px-5 py-7 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-          {shownDraft ? (
+          {goGoogle && shownDraft ? (
             <div className="survey-success-fade-up survey-success-fade-up--delay-2 text-left">
               <p className="mb-2 text-[13px] font-semibold text-zinc-700">
                 {SUCCESS_DRAFT_LABEL}
@@ -748,67 +759,66 @@ export function TodaClosingSurvey({ store }: Props) {
           <section className="space-y-3">
             <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
             {slimKyodo ? (
-            <button
-              type="button"
-              aria-pressed={joinIntent === JOIN_SAME_DAY_LABEL}
-              onClick={() => setJoinIntent(JOIN_SAME_DAY_LABEL)}
-              className={cn(
-                "w-full overflow-hidden rounded-[1.35rem] border text-left transition",
-                joinIntent === JOIN_SAME_DAY_LABEL
-                  ? "border-[color:var(--joyfit-red)] bg-[color:var(--joyfit-red)] text-white shadow-[0_12px_24px_rgba(165,53,75,0.28)]"
-                  : "border-zinc-800/70 bg-white text-zinc-900 shadow-[0_4px_14px_rgba(24,24,27,0.08)] hover:-translate-y-0.5",
-              )}
-            >
-              <p
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-2xl border border-[#C21632]/25 bg-white text-center shadow-[0_10px_24px_rgba(194,22,50,0.10)]">
+                <p className="bg-[#C21632] py-2.5 text-[12px] font-bold tracking-[0.24em] text-white">
+                  {campaignMonthLabel()}限定キャンペーン
+                </p>
+                <div className="px-5 pb-5 pt-5">
+                  <p className="text-[12px] font-medium tracking-wide text-zinc-500">
+                    今なら
+                  </p>
+                  <p className="mt-1 flex flex-wrap items-end justify-center gap-x-2">
+                    <span className="pb-1.5 text-[14px] font-semibold tracking-tight text-zinc-800">
+                      6か月間
+                    </span>
+                    <span className="text-[2.9rem] font-bold leading-none tracking-[-0.05em] text-[#C21632]">
+                      2,990
+                    </span>
+                    <span className="pb-1 text-[1.25rem] font-bold tracking-tight text-[#C21632]">
+                      円！
+                    </span>
+                  </p>
+                  <div className="mt-5 rounded-xl bg-zinc-50 px-4 py-3.5">
+                    <span className="inline-block rounded-full border border-[#C21632] px-3 py-0.5 text-[11px] font-bold tracking-wide text-[#C21632]">
+                      {KYODO_JOIN_BONUS_KICKER}
+                    </span>
+                    <p className="mt-2 text-[13px] font-medium leading-relaxed text-zinc-700">
+                      {KYODO_JOIN_BONUS}
+                    </p>
+                  </div>
+                  <a
+                    href={KYODO_JOIN_DETAIL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-block text-[12px] font-semibold tracking-wide text-[#C21632] underline decoration-[#C21632]/40 underline-offset-4"
+                  >
+                    {KYODO_JOIN_DETAIL_LABEL}
+                  </a>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-pressed={joinIntent === JOIN_SAME_DAY_LABEL}
+                onClick={() => setJoinIntent(JOIN_SAME_DAY_LABEL)}
                 className={cn(
-                  "px-4 py-2 text-[12px] font-bold tracking-[0.14em]",
-                  joinIntent === JOIN_SAME_DAY_LABEL
-                    ? "bg-black/12 text-white"
-                    : "bg-[color:var(--joyfit-red)] text-white",
+                  memberFormChoiceClass(joinIntent === JOIN_SAME_DAY_LABEL),
+                  "flex w-full items-center justify-start gap-2 px-3.5 py-3 text-[15px]",
                 )}
               >
-                {visitType === "taiken"
-                  ? KYODO_JOIN_PERK_TAIKEN
-                  : KYODO_JOIN_PERK_KENGAKU}
-              </p>
-              <div className="px-5 py-4">
-                <p className="flex items-baseline gap-2">
-                  <span className="text-[3.25rem] font-bold leading-none tracking-[-0.05em]">
-                    {KYODO_JOIN_PERK_AMOUNT}
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-md px-2 py-0.5 text-[12px] font-bold",
-                      joinIntent === JOIN_SAME_DAY_LABEL
-                        ? "bg-white/18 text-white"
-                        : "bg-zinc-100 text-zinc-700",
-                    )}
-                  >
-                    {KYODO_JOIN_PERK_UNIT}
-                  </span>
-                </p>
-                <p
+                <span
                   className={cn(
-                    "mt-1.5 text-[14px] font-semibold tracking-tight",
+                    "flex h-5 w-5 items-center justify-center rounded-md border",
                     joinIntent === JOIN_SAME_DAY_LABEL
-                      ? "text-white/90"
-                      : "text-zinc-600",
+                      ? "border-white bg-white text-[color:var(--joyfit-red)]"
+                      : "border-zinc-800/70 bg-white text-transparent",
                   )}
                 >
-                  {KYODO_JOIN_PERK_FEE}
-                </p>
-              </div>
-              <p
-                className={cn(
-                  "border-t border-dashed py-3.5 text-center text-[15px] font-bold tracking-[0.2em]",
-                  joinIntent === JOIN_SAME_DAY_LABEL
-                    ? "border-white/30 bg-black/10"
-                    : "border-zinc-200 bg-zinc-50",
-                )}
-              >
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>
                 {JOIN_SAME_DAY_LABEL}
-              </p>
-            </button>
+              </button>
+            </div>
             ) : (
             <button
               type="button"
