@@ -309,6 +309,7 @@ export function TodaClosingSurvey({ store }: Props) {
   const [saveError, setSaveError] = useState("");
   const [reviewSeed, setReviewSeed] = useState(0);
   const [draftCopied, setDraftCopied] = useState(false);
+  const [showMissing, setShowMissing] = useState(false);
 
   useEffect(() => {
     void warmupClosingSurveyGas();
@@ -375,22 +376,61 @@ export function TodaClosingSurvey({ store }: Props) {
   const durationReady =
     !slimKyodo || visitType !== "taiken" || Boolean(sessionMinutes);
 
-  const formReady =
+  const missingFields: { id: string; label: string }[] = [];
+  if (visitType === null) missingFields.push({ id: "visit", label: "見学・体験" });
+  if (!fullName.trim()) missingFields.push({ id: "name", label: "お名前" });
+  if (!slimKyodo && !furigana.trim()) {
+    missingFields.push({ id: "furigana", label: "フリガナ" });
+  }
+  if (!contactReady) missingFields.push({ id: "contact", label: "電話番号・メール" });
+  if (!gender) missingFields.push({ id: "gender", label: "性別" });
+  if (!ageReady) missingFields.push({ id: "age", label: "ご年齢" });
+  if (!gymExperience) {
+    missingFields.push({
+      id: "gym",
+      label: slimKyodo ? KYODO_TRAINING_TITLE : "ジムのご利用経験",
+    });
+  }
+  if (howFound.length === 0 || (needsHowFoundOther && !howFoundOther.trim())) {
+    missingFields.push({
+      id: "howFound",
+      label: slimKyodo ? KYODO_HOW_FOUND_TITLE : HOW_FOUND_TITLE,
+    });
+  }
+  if (
     visitType !== null &&
-    fullName.trim() &&
-    (slimKyodo || furigana.trim()) &&
-    contactReady &&
-    Boolean(gender) &&
-    ageReady &&
-    Boolean(gymExperience) &&
-    howFound.length > 0 &&
-    (!needsHowFoundOther || howFoundOther.trim()) &&
-    rating !== null &&
-    (slimKyodo
-      ? Boolean(joinIntent)
-      : visitType === "kengaku" || Boolean(joinIntent)) &&
-    durationReady &&
-    positives.length > 0;
+    !joinIntent &&
+    (slimKyodo || visitType === "taiken")
+  ) {
+    missingFields.push({ id: "join", label: JOIN_QUESTION_TITLE });
+  }
+  if (!durationReady) missingFields.push({ id: "duration", label: SESSION_MINUTES_TITLE });
+  if (positives.length === 0) {
+    missingFields.push({
+      id: "positives",
+      label: slimKyodo ? KYODO_POSITIVES_TITLE : REVIEW_POSITIVES_TITLE,
+    });
+  }
+  if (rating === null) missingFields.push({ id: "rating", label: "星評価" });
+
+  const formReady = missingFields.length === 0;
+  const missingIds = new Set(missingFields.map((field) => field.id));
+
+  function fieldClass(id: string, base: string) {
+    return cn(
+      base,
+      "scroll-mt-6 transition-shadow",
+      showMissing &&
+        missingIds.has(id) &&
+        "rounded-xl ring-2 ring-[color:var(--joyfit-red)] ring-offset-4 ring-offset-white",
+    );
+  }
+
+  function jumpToField(id: string) {
+    document
+      .getElementById(`field-${id}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   function selectVisitType(next: TodaVisitType) {
     setVisitType(next);
@@ -611,7 +651,7 @@ export function TodaClosingSurvey({ store }: Props) {
       <PageHeader store={store} />
 
       <div className="space-y-5 rounded-[1.75rem] bg-white px-5 py-6 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-        <div className="grid grid-cols-2 gap-3">
+        <div id="field-visit" className={fieldClass("visit", "grid grid-cols-2 gap-3")}>
           <VisitTypeButton
             label="見学"
             selected={visitType === "kengaku"}
@@ -624,7 +664,7 @@ export function TodaClosingSurvey({ store }: Props) {
           />
         </div>
 
-        <section className="space-y-2">
+        <section id="field-name" className={fieldClass("name", "space-y-2")}>
           <FieldLabel required>お名前 (フルネーム)</FieldLabel>
           <Input
             value={fullName}
@@ -635,7 +675,7 @@ export function TodaClosingSurvey({ store }: Props) {
           />
         </section>
         {slimKyodo ? null : (
-          <section className="space-y-2">
+          <section id="field-furigana" className={fieldClass("furigana", "space-y-2")}>
             <FieldLabel required>フリガナ</FieldLabel>
             <Input
               value={furigana}
@@ -649,7 +689,7 @@ export function TodaClosingSurvey({ store }: Props) {
           </section>
         )}
         {slimKyodo ? null : (
-          <>
+          <div id="field-contact" className={fieldClass("contact", "space-y-5")}>
             <section className="space-y-2">
               <FieldLabel required hint={PHONE_HINT}>
                 {PHONE_FIELD_TITLE}
@@ -692,10 +732,10 @@ export function TodaClosingSurvey({ store }: Props) {
                 </p>
               ) : null}
             </section>
-          </>
+          </div>
         )}
 
-        <section className="space-y-2">
+        <section id="field-gender" className={fieldClass("gender", "space-y-2")}>
           <FieldLabel required>性別</FieldLabel>
           <div className="grid grid-cols-3 gap-2">
             {GENDER_OPTIONS.map((opt) => (
@@ -712,7 +752,7 @@ export function TodaClosingSurvey({ store }: Props) {
         </section>
 
         {slimKyodo ? null : (
-          <section className="space-y-2">
+          <section id="field-age" className={fieldClass("age", "space-y-2")}>
             <FieldLabel required>ご年齢</FieldLabel>
             <ChoiceWrap options={AGE_OPTIONS} value={age} onChange={setAge} />
           </section>
@@ -745,7 +785,7 @@ export function TodaClosingSurvey({ store }: Props) {
         </section>
         )}
 
-        <section className="space-y-2">
+        <section id="field-gym" className={fieldClass("gym", "space-y-2")}>
           <FieldLabel required>
             {slimKyodo ? KYODO_TRAINING_TITLE : "ジムのご利用経験について"}
           </FieldLabel>
@@ -769,7 +809,7 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className="space-y-2">
+        <section id="field-howFound" className={fieldClass("howFound", "space-y-2")}>
           <div className="space-y-1">
             <FieldLabel required>
               {slimKyodo ? KYODO_HOW_FOUND_TITLE : HOW_FOUND_TITLE}
@@ -822,7 +862,7 @@ export function TodaClosingSurvey({ store }: Props) {
         </section>
 
         {(slimKyodo && visitType !== null) || visitType === "taiken" ? (
-          <section className="space-y-3">
+          <section id="field-join" className={fieldClass("join", "space-y-3")}>
             <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
             {slimKyodo ? (
             <div className="space-y-3">
@@ -947,7 +987,7 @@ export function TodaClosingSurvey({ store }: Props) {
               ))}
             </div>
             {slimKyodo && visitType === "taiken" ? (
-              <section className="space-y-2 pt-1">
+              <section id="field-duration" className={fieldClass("duration", "space-y-2 pt-1")}>
                 <FieldLabel required hint={SESSION_MINUTES_HINT}>
                   {SESSION_MINUTES_TITLE}
                 </FieldLabel>
@@ -984,7 +1024,10 @@ export function TodaClosingSurvey({ store }: Props) {
           </section>
         )}
 
-        <section className="space-y-3 border-t border-zinc-100 pt-6">
+        <section
+          id="field-positives"
+          className={fieldClass("positives", "space-y-3 border-t border-zinc-100 pt-6")}
+        >
           {slimKyodo ? (
             <FieldLabel required hint={`最大${MAX_REVIEW_POSITIVES}つ`}>
               {KYODO_POSITIVES_TITLE}
@@ -1049,7 +1092,7 @@ export function TodaClosingSurvey({ store }: Props) {
           </div>
         </section>
 
-        <section className="space-y-2 text-center">
+        <section id="field-rating" className={fieldClass("rating", "space-y-2 text-center")}>
           <FieldLabel required>{RATING_QUESTION}</FieldLabel>
           <p className={memberFormHintClass}>{RATING_HINT}</p>
           <RatingStars rating={rating ?? 0} onSelect={setRating} />
@@ -1073,13 +1116,57 @@ export function TodaClosingSurvey({ store }: Props) {
         {saveError ? (
           <p className={memberFormErrorClass}>{saveError}</p>
         ) : !formReady ? (
-          <p className={memberFormHintClass}>未入力の項目があります</p>
+          <div
+            className={cn(
+              "rounded-xl px-4 py-3",
+              showMissing
+                ? "border border-[color:var(--joyfit-red)]/40 bg-[color:var(--joyfit-red)]/[0.05]"
+                : "bg-zinc-50",
+            )}
+          >
+            <p
+              className={cn(
+                "text-[13px] font-semibold",
+                showMissing ? "text-[color:var(--joyfit-red)]" : "text-zinc-600",
+              )}
+            >
+              未入力の項目があります（タップで移動）
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {missingFields.map((field) => (
+                <button
+                  key={field.id}
+                  type="button"
+                  onClick={() => {
+                    setShowMissing(true);
+                    jumpToField(field.id);
+                  }}
+                  className="rounded-full border border-[color:var(--joyfit-red)]/50 bg-white px-3 py-1 text-[12px] font-semibold text-[color:var(--joyfit-red)] active:bg-[color:var(--joyfit-red)]/10"
+                >
+                  {field.label}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : null}
         <Button
           type="button"
-          onClick={() => void handleSubmit()}
-          disabled={!formReady || submitting}
-          className="h-12 w-full rounded-2xl border-0 bg-[color:var(--joyfit-red)] text-base font-semibold text-white hover:bg-[color:var(--joyfit-red-dark)] disabled:bg-zinc-200 disabled:text-zinc-400"
+          onClick={() => {
+            if (!formReady) {
+              setShowMissing(true);
+              const first = missingFields[0];
+              if (first) jumpToField(first.id);
+              return;
+            }
+            void handleSubmit();
+          }}
+          disabled={submitting}
+          className={cn(
+            "h-12 w-full rounded-2xl border-0 text-base font-semibold disabled:bg-zinc-200 disabled:text-zinc-400",
+            formReady
+              ? "bg-[color:var(--joyfit-red)] text-white hover:bg-[color:var(--joyfit-red-dark)]"
+              : "bg-zinc-200 text-zinc-500 hover:bg-zinc-200",
+          )}
         >
           {submitting ? "保存中…" : REVIEW_GOOGLE_POST_SUBMIT_BUTTON_LABEL}
         </Button>
