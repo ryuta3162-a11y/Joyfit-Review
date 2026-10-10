@@ -38,8 +38,6 @@ import {
   KYODO_HOW_FOUND_HINT,
   KYODO_HOW_FOUND_OPTIONS,
   KYODO_HOW_FOUND_TITLE,
-  KYODO_POSITIVES_HINT,
-  KYODO_POSITIVES_KICKER,
   KYODO_POSITIVES_TITLE,
   KYODO_REVIEW_POSITIVE_OPTIONS,
   KYODO_TRAINING_OPTIONS,
@@ -535,6 +533,17 @@ export function TodaClosingSurvey({ store }: Props) {
               {SUCCESS_GOOGLE_BUTTON_LABEL}
             </a>
           ) : null}
+
+          {slimKyodo ? (
+            <div className="survey-success-fade-up survey-success-fade-up--delay-4 rounded-xl border border-[color:var(--joyfit-red)]/25 bg-[color:var(--joyfit-red)]/[0.04] px-4 py-3 text-center">
+              <p className="text-[11px] font-bold tracking-wide text-[color:var(--joyfit-red)]">
+                {KYODO_JOIN_BONUS_KICKER}
+              </p>
+              <p className="mt-1 text-[13px] font-semibold leading-snug text-zinc-800">
+                {KYODO_JOIN_BONUS}
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -760,42 +769,22 @@ export function TodaClosingSurvey({ store }: Props) {
             <FieldLabel required>{JOIN_QUESTION_TITLE}</FieldLabel>
             {slimKyodo ? (
             <div className="space-y-3">
-              <div className="overflow-hidden rounded-2xl border border-[#C21632]/25 bg-white text-center shadow-[0_10px_24px_rgba(194,22,50,0.10)]">
-                <p className="bg-[#C21632] py-2.5 text-[12px] font-bold tracking-[0.24em] text-white">
-                  {campaignMonthLabel()}限定キャンペーン
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#C21632]/25 bg-[#C21632]/[0.04] px-3.5 py-2.5">
+                <p className="flex flex-wrap items-baseline gap-x-1.5 text-[12px] font-semibold text-zinc-700">
+                  <span className="text-[#C21632]">{campaignMonthLabel()}限定</span>
+                  <span>6か月間</span>
+                  <span className="text-[1.15rem] font-bold leading-none text-[#C21632]">
+                    2,990円
+                  </span>
                 </p>
-                <div className="px-5 pb-5 pt-5">
-                  <p className="text-[12px] font-medium tracking-wide text-zinc-500">
-                    今なら
-                  </p>
-                  <p className="mt-1 flex flex-wrap items-end justify-center gap-x-2">
-                    <span className="pb-1.5 text-[14px] font-semibold tracking-tight text-zinc-800">
-                      6か月間
-                    </span>
-                    <span className="text-[2.9rem] font-bold leading-none tracking-[-0.05em] text-[#C21632]">
-                      2,990
-                    </span>
-                    <span className="pb-1 text-[1.25rem] font-bold tracking-tight text-[#C21632]">
-                      円！
-                    </span>
-                  </p>
-                  <div className="mt-5 rounded-xl bg-zinc-50 px-4 py-3.5">
-                    <span className="inline-block rounded-full border border-[#C21632] px-3 py-0.5 text-[11px] font-bold tracking-wide text-[#C21632]">
-                      {KYODO_JOIN_BONUS_KICKER}
-                    </span>
-                    <p className="mt-2 text-[13px] font-medium leading-relaxed text-zinc-700">
-                      {KYODO_JOIN_BONUS}
-                    </p>
-                  </div>
-                  <a
-                    href={KYODO_JOIN_DETAIL_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-block text-[12px] font-semibold tracking-wide text-[#C21632] underline decoration-[#C21632]/40 underline-offset-4"
-                  >
-                    {KYODO_JOIN_DETAIL_LABEL}
-                  </a>
-                </div>
+                <a
+                  href={KYODO_JOIN_DETAIL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-[11px] font-semibold text-[#C21632] underline decoration-[#C21632]/40 underline-offset-4"
+                >
+                  {KYODO_JOIN_DETAIL_LABEL}
+                </a>
               </div>
               <button
                 type="button"
@@ -940,17 +929,9 @@ export function TodaClosingSurvey({ store }: Props) {
 
         <section className="space-y-3 border-t border-zinc-100 pt-6">
           {slimKyodo ? (
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-[color:var(--joyfit-red)]">
-                {KYODO_POSITIVES_KICKER}
-              </p>
-              <p className="text-[1.2rem] font-bold tracking-tight text-zinc-900">
-                {KYODO_POSITIVES_TITLE}
-              </p>
-              <p className={memberFormHintClass}>
-                {KYODO_POSITIVES_HINT}（最大{MAX_REVIEW_POSITIVES}つ）
-              </p>
-            </div>
+            <FieldLabel required hint={`最大${MAX_REVIEW_POSITIVES}つ`}>
+              {KYODO_POSITIVES_TITLE}
+            </FieldLabel>
           ) : (
             <div className="space-y-1">
               <FieldLabel required>{REVIEW_POSITIVES_TITLE}</FieldLabel>

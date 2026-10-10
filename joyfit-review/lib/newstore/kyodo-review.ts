@@ -740,24 +740,93 @@ const CHIPS: ChipDef[] = [
   },
 ];
 
-const OPENINGS: Record<TodaVisitType, ((name: string) => string)[]> = {
-  taiken: [
-    (name) => `${name}で無料体験してきました。`,
-    (name) => `${name}の無料体験に行ってきました。`,
-    (name) => `${name}で無料体験ができました。`,
-    (name) => `無料体験で${name}に寄ってみました。`,
-    (name) => `${name}を無料で体験してきました。`,
-  ],
-  kengaku: [
-    (name) => `${name}を無料で見学してきました。`,
-    (name) => `${name}へ無料見学に行ってきました。`,
-    (name) => `${name}を無料で見学しました。`,
-    (name) => `無料で${name}を見学してきました。`,
-    (name) => `${name}の店内を無料で見せてもらいました。`,
-  ],
-};
+function areaMention(storeName: string): string {
+  if (storeName.includes("経堂")) return "経堂";
+  return "";
+}
 
-function campaignMonthLabel(): string {
+function brandMention(storeName: string): string {
+  if (/JOYFIT/i.test(storeName)) return "JOYFIT24";
+  return "";
+}
+
+function openingsFor(visitType: TodaVisitType, storeName: string): string[] {
+  const area = areaMention(storeName);
+  const brand = brandMention(storeName);
+  if (visitType === "taiken") {
+    return [
+      "無料体験してきました。",
+      "無料で体験してきました。",
+      "無料体験に行ってきました。",
+      "無料体験で寄ってみました。",
+      ...(area
+        ? [
+            `${area}で無料体験してきました。`,
+            `${area}のジムを無料体験してきました。`,
+            `${area}で無料体験ができました。`,
+          ]
+        : []),
+      ...(brand
+        ? [
+            `${brand}で無料体験してきました。`,
+            `${brand}の無料体験に行ってきました。`,
+            `${brand}を無料で体験してきました。`,
+          ]
+        : []),
+    ];
+  }
+  return [
+    "無料で見学してきました。",
+    "無料見学してきました。",
+    "店内を無料で見せてもらいました。",
+    "無料見学で寄ってみました。",
+    ...(area
+      ? [
+          `${area}で無料見学してきました。`,
+          `${area}のジムを無料で見学しました。`,
+          `${area}のジムを無料見学してきました。`,
+        ]
+      : []),
+    ...(brand
+      ? [
+          `${brand}を無料で見学してきました。`,
+          `${brand}へ無料見学に行ってきました。`,
+          `${brand}の店内を無料で見せてもらいました。`,
+        ]
+      : []),
+  ];
+}
+
+function ifThenOpenings(visitType: TodaVisitType, storeName: string): string[] {
+  const area = areaMention(storeName);
+  const brand = brandMention(storeName);
+  if (visitType === "taiken") {
+    return [
+      "無料体験したら",
+      "無料で体験したら",
+      ...(area ? [`${area}で無料体験したら`] : []),
+      ...(brand ? [`${brand}で無料体験したら`] : []),
+    ];
+  }
+  return [
+    "無料で見学したら",
+    "無料見学したら",
+    ...(area ? [`${area}で無料見学したら`] : []),
+    ...(brand ? [`${brand}を無料で見学したら`] : []),
+  ];
+}
+
+function campaignCloses(storeName: string, campaignEnd: string): string[] {
+  const area = areaMention(storeName);
+  const brand = brandMention(storeName);
+  return [
+    `${campaignEnd}。`,
+    ...(area ? [`${area}では${campaignEnd}。`] : []),
+    ...(brand ? [`${brand}は${campaignEnd}。`] : []),
+  ];
+}
+
+export function campaignMonthLabel(): string {
   return `${new Date().getMonth() + 1}月`;
 }
 
@@ -765,18 +834,39 @@ function fillCampaignCopy(text: string): string {
   return text.replaceAll("{month}", campaignMonthLabel());
 }
 
-const CAMPAIGN_ONLY = [
-  "{month}限定で、6か月間ずっと2,990円なのがお得でした。",
-  "{month}のキャンペーンで、6か月ずっと2,990円でした。",
-  "6か月間ずっと月額2,990円のキャンペーンがありました。",
-  "{month}限定の2,990円キャンペーンがあって、始めやすかったです。",
-];
-
-const CAMPAIGN_LEAD = [
-  (extra: string) => `{month}限定で6か月ずっと2,990円で、${extra}`,
-  (extra: string) => `6か月2,990円のキャンペーンもあって、${extra}`,
-  (extra: string) => `{month}のキャンペーンが6か月2,990円なのと、${extra}`,
-];
+function pickCampaignPack(rng: () => number): {
+  sentence: string;
+  mid: string;
+  end: string;
+} {
+  const month = campaignMonthLabel();
+  const sentences = [
+    `${month}限定で、6か月間ずっと2,990円なのがお得でした。`,
+    `${month}のキャンペーンで、6か月ずっと2,990円でした。`,
+    `6か月間ずっと月額2,990円のキャンペーンがありました。`,
+    `${month}限定の2,990円キャンペーンがあって、始めやすかったです。`,
+    `6か月間2,990円で通えるキャンペーンがありました。`,
+    `最初の6か月が2,990円で始めやすかったです。`,
+  ];
+  const mids = [
+    `${month}限定で6か月ずっと2,990円`,
+    `6か月間ずっと月額2,990円`,
+    `最初の6か月が2,990円`,
+    `${month}限定の2,990円キャンペーン`,
+    `6か月2,990円のキャンペーン`,
+  ];
+  const ends = [
+    `${month}限定で6か月ずっと2,990円でした`,
+    `6か月間ずっと月額2,990円でした`,
+    `最初の6か月が2,990円で始めやすかったです`,
+    `${month}限定の2,990円キャンペーンがありました`,
+  ];
+  return {
+    sentence: sentences[pickIndex(sentences.length, rng)] ?? sentences[0]!,
+    mid: mids[pickIndex(mids.length, rng)] ?? mids[0]!,
+    end: ends[pickIndex(ends.length, rng)] ?? ends[0]!,
+  };
+}
 
 function hashString(input: string): number {
   let h = 2166136261;
@@ -885,6 +975,23 @@ function joinTwoBeats(phrases: PhraseVariant[]): string {
   return `${first}${joinChained(rest)}`;
 }
 
+function joinSentences(phrases: PhraseVariant[]): string {
+  return phrases.map((phrase) => phrase.sentence).join("");
+}
+
+function joinBlocks(blocks: string[]): string {
+  return blocks.filter((block) => Boolean(block.trim())).join("\n");
+}
+
+function splitPhrases(phrases: PhraseVariant[]): {
+  head: PhraseVariant[];
+  tail: PhraseVariant[];
+} {
+  if (phrases.length <= 1) return { head: phrases, tail: [] };
+  const cut = Math.max(1, Math.floor(phrases.length / 2));
+  return { head: phrases.slice(0, cut), tail: phrases.slice(cut) };
+}
+
 export function buildKyodoReviewDraft(input: {
   storeName: string;
   visitType: TodaVisitType;
@@ -894,12 +1001,19 @@ export function buildKyodoReviewDraft(input: {
   extraComment?: string;
 }): string {
   const openRng = rngFor(input.seed, `open:${input.visitType}`);
-  const joinRng = rngFor(input.seed, "join");
   const orderRng = rngFor(input.seed, "order");
   const campaignRng = rngFor(input.seed, "campaign");
-  const openings = OPENINGS[input.visitType];
-  const openingFn = openings[pickIndex(openings.length, openRng)];
-  const opening = openingFn ? openingFn(input.storeName) : "";
+  const flowRng = rngFor(input.seed, "flow");
+  const openings = openingsFor(input.visitType, input.storeName);
+  const opening = openings[pickIndex(openings.length, openRng)] ?? "";
+  const namelessOpenings = openings.filter(
+    (item) =>
+      !item.includes("JOYFIT") &&
+      !item.includes("経堂") &&
+      !item.includes(input.storeName),
+  );
+  const bareOpening =
+    namelessOpenings[pickIndex(namelessOpenings.length, openRng)] ?? opening;
 
   const campaignFound = (input.howFound || []).includes("限定キャンペーン");
   const labels = shuffleInPlace(
@@ -912,40 +1026,126 @@ export function buildKyodoReviewDraft(input: {
     .map((label) => phraseFor(label, input.seed))
     .filter((phrase): phrase is PhraseVariant => Boolean(phrase));
 
-  const joinBody = (items: PhraseVariant[]): string => {
-    if (items.length === 0) return "";
-    return pickIndex(2, joinRng) === 1
-      ? joinTwoBeats(items)
-      : joinChained(items);
-  };
+  const campaign = campaignFound ? pickCampaignPack(campaignRng) : null;
+  const chained = joinChained(phrases);
+  const twoBeats = joinTwoBeats(phrases);
+  const shorts = joinSentences(phrases);
+  const first = phrases[0];
+  const rest = phrases.slice(1);
+  const { head, tail } = splitPhrases(phrases);
+  const flow = pickIndex(15, flowRng);
 
-  const lines = [opening];
-  if (campaignFound) {
-    if (phrases.length === 0) {
-      lines.push(
-        fillCampaignCopy(
-          CAMPAIGN_ONLY[pickIndex(CAMPAIGN_ONLY.length, campaignRng)] ?? "",
-        ),
-      );
-    } else if (phrases.length >= 3 || pickIndex(2, campaignRng) === 0) {
-      lines.push(
-        fillCampaignCopy(
-          CAMPAIGN_ONLY[pickIndex(CAMPAIGN_ONLY.length, campaignRng)] ?? "",
-        ),
-      );
-      const body = joinBody(phrases);
-      if (body) lines.push(body);
-    } else {
-      const extra = joinChained(phrases);
-      const lead = CAMPAIGN_LEAD[pickIndex(CAMPAIGN_LEAD.length, campaignRng)];
-      if (lead && extra) lines.push(fillCampaignCopy(lead(extra)));
+  let draft = "";
+  switch (flow) {
+    case 0:
+      draft = joinBlocks([opening, campaign?.sentence ?? "", chained]);
+      break;
+    case 1:
+      draft = joinBlocks([opening, chained, campaign?.sentence ?? ""]);
+      break;
+    case 2:
+      draft = joinBlocks([campaign?.sentence ?? "", opening, chained]);
+      break;
+    case 3:
+      draft = campaign
+        ? joinBlocks([`${campaign.mid}なので、${opening}`, chained || shorts])
+        : joinBlocks([opening, chained]);
+      break;
+    case 4:
+      draft = joinBlocks([opening, shorts, campaign?.sentence ?? ""]);
+      break;
+    case 5:
+      draft = joinBlocks([
+        opening,
+        joinSentences(head),
+        campaign?.sentence ?? "",
+        joinSentences(tail),
+      ]);
+      break;
+    case 6:
+      draft = [opening, chained, campaign?.sentence ?? ""]
+        .filter((part) => Boolean(part.trim()))
+        .join("");
+      break;
+    case 7:
+      draft = first
+        ? joinBlocks([
+            first.sentence,
+            opening,
+            joinChained(rest) || joinSentences(rest),
+            campaign?.sentence ?? "",
+          ])
+        : joinBlocks([opening, campaign?.sentence ?? ""]);
+      break;
+    case 8:
+      if (campaign && first) {
+        const woven = rest.length
+          ? `${campaign.mid}で、${first.end}。${joinChained(rest) || joinSentences(rest)}`
+          : `${campaign.mid}で、${first.end}。`;
+        draft = joinBlocks([opening, woven]);
+      } else {
+        draft = joinBlocks([opening, campaign?.sentence ?? "", chained]);
+      }
+      break;
+    case 9: {
+      const closes = campaign
+        ? campaignCloses(input.storeName, campaign.end)
+        : [];
+      draft = campaign
+        ? joinBlocks([
+            bareOpening,
+            chained || shorts,
+            closes[pickIndex(closes.length, campaignRng)] ?? campaign.sentence,
+          ])
+        : joinBlocks([opening, chained || shorts]);
+      break;
     }
-  } else if (phrases.length > 0) {
-    const body = joinBody(phrases);
-    if (body) lines.push(body);
+    case 10:
+      if (first) {
+        const ifThens = ifThenOpenings(input.visitType, input.storeName);
+        const ifThen = ifThens[pickIndex(ifThens.length, openRng)] ?? ifThens[0];
+        draft = joinBlocks([
+          `${ifThen}、${first.end}。`,
+          joinChained(rest) || joinSentences(rest),
+          campaign?.sentence ?? "",
+        ]);
+      } else {
+        draft = joinBlocks([opening, campaign?.sentence ?? ""]);
+      }
+      break;
+    case 11:
+      draft = joinBlocks([opening, twoBeats, campaign?.sentence ?? ""]);
+      break;
+    case 12:
+      draft = joinBlocks([
+        opening,
+        joinChained(head) || joinSentences(head),
+        campaign?.sentence ?? "",
+        joinChained(tail) || joinSentences(tail),
+      ]);
+      break;
+    case 13:
+      draft = campaign
+        ? joinBlocks([
+            `${campaignMonthLabel()}の2,990円キャンペーンを見て、${opening}`,
+            shorts || chained,
+          ])
+        : joinBlocks([opening, shorts || chained]);
+      break;
+    default: {
+      const bits = phrases.map((phrase) => phrase.sentence);
+      if (campaign) {
+        bits.splice(pickIndex(bits.length + 1, campaignRng), 0, campaign.sentence);
+      }
+      draft =
+        pickIndex(2, flowRng) === 0
+          ? joinBlocks([opening, ...bits])
+          : joinBlocks([...bits, opening]);
+      break;
+    }
   }
 
   const comment = String(input.extraComment || "").trim();
-  if (comment) lines.push(comment);
-  return lines.filter(Boolean).join("\n");
+  if (comment) draft = draft ? `${draft}\n${comment}` : comment;
+  return draft.trim();
 }

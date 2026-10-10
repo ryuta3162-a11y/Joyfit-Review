@@ -181,12 +181,12 @@ export const JOIN_PERK_AMOUNT = "1,000";
 export const JOIN_PERK_UNIT = "円OFF";
 export const JOIN_PERK_FEE = "翌々月の月会費";
 export const JOIN_PERK_COMBO = "他キャンペーンと併用可";
-export const KYODO_JOIN_PERK_KENGAKU = "見学された方限定";
-export const KYODO_JOIN_PERK_TAIKEN = "体験された方限定";
-export const KYODO_JOIN_PERK_AMOUNT = "500";
-export const KYODO_JOIN_PERK_UNIT = "ポイント";
-export const KYODO_JOIN_PERK_FEE = "エンジョイポイント";
 export const JOIN_SAME_DAY_LABEL = "本日入会する";
+export const KYODO_JOIN_BONUS_KICKER = "このまま入会した方限定";
+export const KYODO_JOIN_BONUS =
+  "ご入会後、追加で500円分のエンジョイポイントをプレゼントします。";
+export const KYODO_JOIN_DETAIL_LABEL = "詳細";
+export const KYODO_JOIN_DETAIL_URL = "https://lp-24kyodo.vercel.app/";
 
 export const JOIN_OPTIONS = [
   "本日入会する",
