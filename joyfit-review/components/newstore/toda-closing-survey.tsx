@@ -335,17 +335,6 @@ export function TodaClosingSurvey({ store }: Props) {
   const phoneInvalid = phone.length > 0 && !isPhoneComplete(phone);
   const needsHowFoundOther = howFound.includes("その他");
 
-  const reviewHowFound = useMemo(() => {
-    if (!slimKyodo) return howFound;
-    if (
-      joinIntent === JOIN_SAME_DAY_LABEL &&
-      !howFound.includes(KYODO_HOW_FOUND_CAMPAIGN)
-    ) {
-      return [...howFound, KYODO_HOW_FOUND_CAMPAIGN];
-    }
-    return howFound;
-  }, [slimKyodo, joinIntent, howFound]);
-
   const liveDraft = useMemo(() => {
     if (!visitType) return "";
     if (slimKyodo) {
@@ -355,7 +344,7 @@ export function TodaClosingSurvey({ store }: Props) {
         visitType,
         positives,
         seed: reviewSeed,
-        howFound: reviewHowFound,
+        howFound,
         extraComment,
       });
     }
@@ -375,7 +364,6 @@ export function TodaClosingSurvey({ store }: Props) {
     extraComment,
     rating,
     howFound,
-    reviewHowFound,
   ]);
 
   const shownDraft = draftTouched ? draft : liveDraft;
