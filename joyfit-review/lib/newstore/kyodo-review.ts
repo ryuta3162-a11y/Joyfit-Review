@@ -191,22 +191,22 @@ const CHIPS: ChipDef[] = [
     kind: "common",
     variants: [
       {
-        mid: "{month}限定で6か月ずっと2,990円で",
-        midAlso: "{month}限定で6か月ずっと2,990円でもあり",
-        end: "{month}限定で6か月ずっと2,990円でした",
-        sentence: "{month}限定で、6か月間ずっと2,990円なのがお得でした。",
+        mid: "{month}限定で{period}ずっと{price}で",
+        midAlso: "{month}限定で{period}ずっと{price}でもあり",
+        end: "{month}限定で{period}ずっと{price}でした",
+        sentence: "{month}限定で、{period}ずっと{price}なのがお得でした。",
       },
       {
-        mid: "6か月間ずっと月額2,990円で",
-        midAlso: "6か月間ずっと月額2,990円でもあり",
-        end: "6か月間ずっと月額2,990円でした",
-        sentence: "6か月間ずっと月額2,990円のキャンペーンがありました。",
+        mid: "{month}のキャンペーンで{period}ずっと月額{price}で",
+        midAlso: "{month}のキャンペーンで{period}ずっと月額{price}でもあり",
+        end: "{month}のキャンペーンで{period}ずっと月額{price}でした",
+        sentence: "{month}のキャンペーンで、{period}ずっと月額{price}でした。",
       },
       {
-        mid: "最初の6か月が2,990円で始めやすくて",
-        midAlso: "最初の6か月も2,990円で始めやすくて",
-        end: "最初の6か月が2,990円で始めやすかったです",
-        sentence: "最初の6か月が2,990円で始めやすかったです。",
+        mid: "{month}限定で最初の{period}が{price}で始めやすくて",
+        midAlso: "{month}限定で最初の{period}も{price}で始めやすくて",
+        end: "{month}限定で最初の{period}が{price}で始めやすかったです",
+        sentence: "{month}限定で最初の{period}が{price}なので、始めやすかったです。",
       },
     ],
   },
@@ -830,41 +830,63 @@ export function campaignMonthLabel(): string {
   return `${new Date().getMonth() + 1}月`;
 }
 
-function fillCampaignCopy(text: string): string {
-  return text.replaceAll("{month}", campaignMonthLabel());
+const CAMPAIGN_PERIODS = ["6か月間", "半年間", "6か月", "半年"];
+const CAMPAIGN_PRICES = [
+  "2,990円",
+  "2,990円",
+  "2,990円",
+  "3,000円ほど",
+  "約3,000円",
+  "3,000円弱",
+  "3,000円",
+];
+
+function fillCampaignCopy(text: string, rng: () => number): string {
+  const period = CAMPAIGN_PERIODS[pickIndex(CAMPAIGN_PERIODS.length, rng)]!;
+  const price = CAMPAIGN_PRICES[pickIndex(CAMPAIGN_PRICES.length, rng)]!;
+  return text
+    .replaceAll("{month}", campaignMonthLabel())
+    .replaceAll("{period}", period)
+    .replaceAll("{price}", price);
 }
 
 function pickCampaignPack(rng: () => number): {
   sentence: string;
   mid: string;
   end: string;
+  lead: string;
 } {
-  const month = campaignMonthLabel();
   const sentences = [
-    `${month}限定で、6か月間ずっと2,990円なのがお得でした。`,
-    `${month}のキャンペーンで、6か月ずっと2,990円でした。`,
-    `6か月間ずっと月額2,990円のキャンペーンがありました。`,
-    `${month}限定の2,990円キャンペーンがあって、始めやすかったです。`,
-    `6か月間2,990円で通えるキャンペーンがありました。`,
-    `最初の6か月が2,990円で始めやすかったです。`,
+    "{month}限定で、{period}ずっと{price}なのがお得でした。",
+    "{month}のキャンペーンで、{period}ずっと月{price}でした。",
+    "{month}限定で{period}ずっと月額{price}のキャンペーンがありました。",
+    "{month}中に入会すると{period}は{price}で通えるそうです。",
+    "{month}限定で最初の{period}が{price}なので、始めやすかったです。",
+    "{month}限定で、{period}は月{price}で通えるキャンペーンがありました。",
   ];
   const mids = [
-    `${month}限定で6か月ずっと2,990円`,
-    `6か月間ずっと月額2,990円`,
-    `最初の6か月が2,990円`,
-    `${month}限定の2,990円キャンペーン`,
-    `6か月2,990円のキャンペーン`,
+    "{month}限定で{period}ずっと{price}",
+    "{month}のキャンペーンで{period}ずっと月額{price}",
+    "{month}限定で最初の{period}が{price}",
+    "{month}限定で{period}{price}のキャンペーン",
   ];
   const ends = [
-    `${month}限定で6か月ずっと2,990円でした`,
-    `6か月間ずっと月額2,990円でした`,
-    `最初の6か月が2,990円で始めやすかったです`,
-    `${month}限定の2,990円キャンペーンがありました`,
+    "{month}限定で{period}ずっと{price}でした",
+    "{month}のキャンペーンで{period}ずっと月額{price}でした",
+    "{month}限定で最初の{period}が{price}で始めやすかったです",
+    "{month}限定で{period}{price}のキャンペーンがありました",
   ];
+  const leads = [
+    "{month}限定で{period}{price}のキャンペーンを見て、",
+    "{month}限定で{period}ずっと{price}と知って、",
+  ];
+  const pick = (list: string[]) =>
+    fillCampaignCopy(list[pickIndex(list.length, rng)] ?? list[0]!, rng);
   return {
-    sentence: sentences[pickIndex(sentences.length, rng)] ?? sentences[0]!,
-    mid: mids[pickIndex(mids.length, rng)] ?? mids[0]!,
-    end: ends[pickIndex(ends.length, rng)] ?? ends[0]!,
+    sentence: pick(sentences),
+    mid: pick(mids),
+    end: pick(ends),
+    lead: pick(leads),
   };
 }
 
@@ -944,10 +966,10 @@ function phraseFor(label: string, seed: number): PhraseVariant | null {
   const picked = chip.variants[pickIndex(chip.variants.length, rng)];
   if (!picked) return null;
   return {
-    mid: fillCampaignCopy(picked.mid),
-    midAlso: fillCampaignCopy(picked.midAlso),
-    end: fillCampaignCopy(picked.end),
-    sentence: fillCampaignCopy(picked.sentence),
+    mid: fillCampaignCopy(picked.mid, rng),
+    midAlso: fillCampaignCopy(picked.midAlso, rng),
+    end: fillCampaignCopy(picked.end, rng),
+    sentence: fillCampaignCopy(picked.sentence, rng),
   };
 }
 
@@ -1127,7 +1149,7 @@ export function buildKyodoReviewDraft(input: {
     case 13:
       draft = campaign
         ? joinBlocks([
-            `${campaignMonthLabel()}の2,990円キャンペーンを見て、${opening}`,
+            `${campaign.lead}${opening}`,
             shorts || chained,
           ])
         : joinBlocks([opening, shorts || chained]);
