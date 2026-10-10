@@ -9,7 +9,8 @@ import {
 const DEFAULT_CLOSING_GAS_URL =
   "https://script.google.com/macros/s/AKfycbyjyfr1fCvYQjvuFhLbkINwo7KUk8MhNwYALvXjecJ-zM5J1z4TfHJ0YnLHAQcmB-ZS6A/exec";
 
-const GAS_TIMEOUT_MS = 20_000;
+const GAS_TIMEOUT_MS = 30_000;
+const GAS_RETRY_TIMEOUT_MS = 22_000;
 
 export type SubmitTodaClosingSurveyInput = {
   storeId: string;
@@ -77,33 +78,34 @@ export async function submitTodaClosingSurvey(
     return { ok: false, error: CUSTOMER_SAVE_FAILED };
   }
 
-  const posted = await postJsonToGasWebApp(
-    gasUrl,
-    {
-      action: "todaClosingSurvey",
-      storeId: input.storeId.trim(),
-      storeName: input.storeName.trim(),
-      visitType: input.visitType,
-      fullName: input.fullName.trim(),
-      furigana: input.furigana.trim(),
-      phone: input.phone.trim(),
-      email: input.email.trim(),
-      gender: input.gender.trim(),
-      age: input.age.trim(),
-      university: isKyodo ? "" : input.university.trim(),
-      gymExperience: input.gymExperience.trim(),
-      howFound: input.howFound.trim(),
-      howFoundOther: input.howFoundOther.trim(),
-      rating: input.rating,
-      joinIntent: input.joinIntent.trim(),
-      extraComment: input.extraComment.trim(),
-      positives: input.positives,
-      generatedReview: input.generatedReview.trim(),
-      submissionId: input.submissionId.trim(),
-      sessionMinutes: input.sessionMinutes?.trim() || "",
-    },
-    GAS_TIMEOUT_MS,
-  );
+  const payload = {
+    action: "todaClosingSurvey",
+    storeId: input.storeId.trim(),
+    storeName: input.storeName.trim(),
+    visitType: input.visitType,
+    fullName: input.fullName.trim(),
+    furigana: input.furigana.trim(),
+    phone: input.phone.trim(),
+    email: input.email.trim(),
+    gender: input.gender.trim(),
+    age: input.age.trim(),
+    university: isKyodo ? "" : input.university.trim(),
+    gymExperience: input.gymExperience.trim(),
+    howFound: input.howFound.trim(),
+    howFoundOther: input.howFoundOther.trim(),
+    rating: input.rating,
+    joinIntent: input.joinIntent.trim(),
+    extraComment: input.extraComment.trim(),
+    positives: input.positives,
+    generatedReview: input.generatedReview.trim(),
+    submissionId: input.submissionId.trim(),
+    sessionMinutes: input.sessionMinutes?.trim() || "",
+  };
+
+  let posted = await postJsonToGasWebApp(gasUrl, payload, GAS_TIMEOUT_MS);
+  if ("timeout" in posted || ("json" in posted && posted.json.error === "server busy")) {
+    posted = await postJsonToGasWebApp(gasUrl, payload, GAS_RETRY_TIMEOUT_MS);
+  }
 
   if ("timeout" in posted) {
     return { ok: false, error: CUSTOMER_SAVE_SLOW };

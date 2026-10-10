@@ -325,7 +325,10 @@ function applyStaffDropdowns_(sheet) {
 
 /** 日本語ヘッダー（2行目）で見学/体験などを絞り込みできる */
 function applyHeaderFilter_(sheet) {
-  var lastRow = Math.max(sheet.getLastRow(), 3);
+  var lastRow = Math.max(sheet.getLastRow() + 200, sheet.getMaxRows(), 3);
+  if (lastRow > sheet.getMaxRows()) {
+    sheet.insertRowsAfter(sheet.getMaxRows(), lastRow - sheet.getMaxRows());
+  }
   var lastCol = HEADER_EN.length;
   var existing = sheet.getFilter();
   if (existing) existing.remove();
@@ -423,9 +426,12 @@ function saveSurveyResponse(data) {
     ]]);
     sheet.getRange(nextRow, 7).setNumberFormat("@").setValue(phone);
     sheet.getRange(nextRow, 23).setValue(String(data.sessionMinutes || "").trim());
-    if (isKyodo) applyKyodoSheet_(sheet);
+    if (isKyodo && !sheet.isColumnHiddenByUser(6)) applyKyodoSheet_(sheet);
     try {
-      applyHeaderFilter_(sheet);
+      var filter = sheet.getFilter();
+      if (!filter || filter.getRange().getLastRow() < nextRow) {
+        applyHeaderFilter_(sheet);
+      }
     } catch (filterErr) {}
 
     if (submissionId) {

@@ -3,6 +3,9 @@
   "functions": {
     "app/**/*.ts": {
       "maxDuration": 60
+    },
+    "app/**/*.tsx": {
+      "maxDuration": 60
     }
   }
 }
