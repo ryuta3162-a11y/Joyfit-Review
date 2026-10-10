@@ -224,6 +224,17 @@ export const SUCCESS_SAVED = "回答を保存しました";
 export const SUCCESS_DRAFT_LABEL = "ご回答内容";
 export const SUCCESS_GOOGLE_BUTTON_LABEL =
   "こちらからアンケートご協力をお願いします";
+export const KYODO_REVIEW_REQUEST_TITLE = "Googleマップへのご感想（任意）";
+export const KYODO_REVIEW_REQUEST_BODY =
+  "よろしければ、今日の感想をGoogleマップにお寄せください。良かった点も気になった点も、感じたままで大丈夫です。";
+export const KYODO_REVIEW_COPY_LABEL = "文章をコピー";
+export const KYODO_REVIEW_COPIED = "文章をコピーしました";
+export const KYODO_REVIEW_STEPS = [
+  "下のボタンでGoogleマップを開く",
+  "星をタップして評価を選ぶ",
+  "文章欄を長押しして貼り付け（自由に書き直せます）",
+] as const;
+export const KYODO_REVIEW_BUTTON_LABEL = "Googleマップで口コミを書く";
 export const MAX_REVIEW_POSITIVES = 4;
 
 export const REVIEW_POSITIVE_OPTIONS = [
