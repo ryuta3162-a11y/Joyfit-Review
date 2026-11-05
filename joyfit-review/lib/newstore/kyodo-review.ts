@@ -191,22 +191,22 @@ const CHIPS: ChipDef[] = [
     kind: "common",
     variants: [
       {
-        mid: "{month}限定で{period}{price}なら始めやすそうで",
-        midAlso: "{month}限定で{period}{price}なのも魅力で",
-        end: "{month}限定で{period}{price}なら始めやすそうだなと思いました",
-        sentence: "{month}限定で{period}{price}なら、始めやすそうだなと思いました。",
+        mid: "限定キャンペーンで{period}{price}なら始めやすそうで",
+        midAlso: "限定キャンペーンで{period}{price}なのも魅力で",
+        end: "限定キャンペーンで{period}{price}なら始めやすそうだなと思いました",
+        sentence: "限定キャンペーンで{period}{price}なら、始めやすそうだなと思いました。",
       },
       {
-        mid: "{month}だけ{period}ずっと{price}で",
-        midAlso: "{month}だけ{period}ずっと{price}でもあり",
-        end: "{month}だけ{period}ずっと{price}だったので気になって寄ってみました",
-        sentence: "{month}だけ{period}ずっと{price}だったので、気になって寄ってみました。",
+        mid: "{month}限定キャンペーンで{period}ずっと{price}でお得で",
+        midAlso: "{month}限定キャンペーンで{period}ずっと{price}でお得でもあり",
+        end: "{month}限定キャンペーンで{period}ずっと{price}でお得でした",
+        sentence: "{month}限定キャンペーンで、{period}ずっと{price}でお得でした。",
       },
       {
-        mid: "{month}限定で最初の{period}が{price}で",
-        midAlso: "{month}限定で最初の{period}が{price}でもあり",
-        end: "{month}限定で最初の{period}が{price}なのも魅力でした",
-        sentence: "{month}限定で最初の{period}が{price}なのも魅力でした。",
+        mid: "最初の{period}が{price}のキャンペーンがあって",
+        midAlso: "最初の{period}が{price}のキャンペーンもあり",
+        end: "最初の{period}が{price}のキャンペーンも魅力でした",
+        sentence: "最初の{period}が{price}のキャンペーンも魅力でした。",
       },
     ],
   },
@@ -855,28 +855,30 @@ function pickCampaignPack(rng: () => number): {
   lead: string;
 } {
   const sentences = [
-    "{month}限定で{period}{price}なら、始めやすそうだなと思いました。",
-    "{month}だけ{period}ずっと{price}だったので、気になって寄ってみました。",
-    "{month}限定で最初の{period}が{price}なのも魅力でした。",
-    "{month}中に入会すると{period}は{price}で通えるそうです。",
-    "{month}限定で{period}ずっと{price}なら、通いやすそうでした。",
-    "{month}のキャンペーンで、{period}{price}だったのも決め手でした。",
+    "限定キャンペーンで{period}{price}なら、始めやすそうだなと思いました。",
+    "{month}限定キャンペーンで、{period}ずっと{price}でお得でした。",
+    "限定キャンペーンをやっていて、最初の{period}が{price}なのも魅力でした。",
+    "入会すると{period}は{price}で通えるそうです。",
+    "限定キャンペーンで{period}ずっと{price}なら、通いやすそうでした。",
+    "{month}の限定キャンペーンで、{period}{price}だったのも決め手でした。",
+    "限定キャンペーンで{period}{price}だったので、気になって寄ってみました。",
+    "{month}限定で最初の{period}が{price}でお得でした。",
   ];
   const mids = [
-    "{month}限定で{period}{price}",
-    "{month}だけ{period}ずっと{price}",
-    "{month}限定で最初の{period}が{price}",
-    "{month}限定で{period}ずっと{price}",
+    "限定キャンペーンで{period}{price}",
+    "{month}限定キャンペーンで{period}ずっと{price}",
+    "最初の{period}が{price}のキャンペーン",
+    "限定キャンペーンで{period}ずっと{price}でお得",
   ];
   const ends = [
-    "{month}限定で{period}{price}なら始めやすそうだなと思いました",
-    "{month}だけ{period}ずっと{price}だったので気になって寄ってみました",
-    "{month}限定で最初の{period}が{price}なのも魅力でした",
-    "{month}中に入会すると{period}は{price}で通えるそうです",
+    "限定キャンペーンで{period}{price}なら始めやすそうだなと思いました",
+    "{month}限定キャンペーンで{period}ずっと{price}でお得でした",
+    "限定キャンペーンをやっていて最初の{period}が{price}なのも魅力でした",
+    "入会すると{period}は{price}で通えるそうです",
   ];
   const leads = [
-    "{month}限定で{period}{price}のキャンペーンを見て、",
-    "{month}だけ{period}ずっと{price}と知って、",
+    "限定キャンペーンで{period}{price}を見て、",
+    "{month}限定キャンペーンを知って、",
   ];
   const pick = (list: string[]) =>
     fillCampaignCopy(list[pickIndex(list.length, rng)] ?? list[0]!, rng);
