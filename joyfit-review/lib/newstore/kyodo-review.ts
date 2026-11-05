@@ -191,22 +191,22 @@ const CHIPS: ChipDef[] = [
     kind: "common",
     variants: [
       {
-        mid: "{month}限定で{period}ずっと{price}で",
-        midAlso: "{month}限定で{period}ずっと{price}でもあり",
-        end: "{month}限定で{period}ずっと{price}でした",
-        sentence: "{month}限定で、{period}ずっと{price}なのがお得でした。",
+        mid: "{month}限定で{period}{price}なら始めやすそうで",
+        midAlso: "{month}限定で{period}{price}なのも魅力で",
+        end: "{month}限定で{period}{price}なら始めやすそうだなと思いました",
+        sentence: "{month}限定で{period}{price}なら、始めやすそうだなと思いました。",
       },
       {
-        mid: "{month}のキャンペーンで{period}ずっと月額{price}で",
-        midAlso: "{month}のキャンペーンで{period}ずっと月額{price}でもあり",
-        end: "{month}のキャンペーンで{period}ずっと月額{price}でした",
-        sentence: "{month}のキャンペーンで、{period}ずっと月額{price}でした。",
+        mid: "{month}だけ{period}ずっと{price}で",
+        midAlso: "{month}だけ{period}ずっと{price}でもあり",
+        end: "{month}だけ{period}ずっと{price}だったので気になって寄ってみました",
+        sentence: "{month}だけ{period}ずっと{price}だったので、気になって寄ってみました。",
       },
       {
-        mid: "{month}限定で最初の{period}が{price}で始めやすくて",
-        midAlso: "{month}限定で最初の{period}も{price}で始めやすくて",
-        end: "{month}限定で最初の{period}が{price}で始めやすかったです",
-        sentence: "{month}限定で最初の{period}が{price}なので、始めやすかったです。",
+        mid: "{month}限定で最初の{period}が{price}で",
+        midAlso: "{month}限定で最初の{period}が{price}でもあり",
+        end: "{month}限定で最初の{period}が{price}なのも魅力でした",
+        sentence: "{month}限定で最初の{period}が{price}なのも魅力でした。",
       },
     ],
   },
@@ -832,13 +832,11 @@ export function campaignMonthLabel(): string {
 
 const CAMPAIGN_PERIODS = ["6か月間", "半年間", "6か月", "半年"];
 const CAMPAIGN_PRICES = [
-  "2,990円",
-  "2,990円",
-  "2,990円",
-  "3,000円ほど",
-  "約3,000円",
-  "3,000円弱",
-  "3,000円",
+  "3,200円",
+  "3,200円",
+  "3,200円",
+  "約3,200円",
+  "3,200円ほど",
 ];
 
 function fillCampaignCopy(text: string, rng: () => number): string {
@@ -857,28 +855,28 @@ function pickCampaignPack(rng: () => number): {
   lead: string;
 } {
   const sentences = [
-    "{month}限定で、{period}ずっと{price}なのがお得でした。",
-    "{month}のキャンペーンで、{period}ずっと月{price}でした。",
-    "{month}限定で{period}ずっと月額{price}のキャンペーンがありました。",
+    "{month}限定で{period}{price}なら、始めやすそうだなと思いました。",
+    "{month}だけ{period}ずっと{price}だったので、気になって寄ってみました。",
+    "{month}限定で最初の{period}が{price}なのも魅力でした。",
     "{month}中に入会すると{period}は{price}で通えるそうです。",
-    "{month}限定で最初の{period}が{price}なので、始めやすかったです。",
-    "{month}限定で、{period}は月{price}で通えるキャンペーンがありました。",
+    "{month}限定で{period}ずっと{price}なら、通いやすそうでした。",
+    "{month}のキャンペーンで、{period}{price}だったのも決め手でした。",
   ];
   const mids = [
-    "{month}限定で{period}ずっと{price}",
-    "{month}のキャンペーンで{period}ずっと月額{price}",
+    "{month}限定で{period}{price}",
+    "{month}だけ{period}ずっと{price}",
     "{month}限定で最初の{period}が{price}",
-    "{month}限定で{period}{price}のキャンペーン",
+    "{month}限定で{period}ずっと{price}",
   ];
   const ends = [
-    "{month}限定で{period}ずっと{price}でした",
-    "{month}のキャンペーンで{period}ずっと月額{price}でした",
-    "{month}限定で最初の{period}が{price}で始めやすかったです",
-    "{month}限定で{period}{price}のキャンペーンがありました",
+    "{month}限定で{period}{price}なら始めやすそうだなと思いました",
+    "{month}だけ{period}ずっと{price}だったので気になって寄ってみました",
+    "{month}限定で最初の{period}が{price}なのも魅力でした",
+    "{month}中に入会すると{period}は{price}で通えるそうです",
   ];
   const leads = [
     "{month}限定で{period}{price}のキャンペーンを見て、",
-    "{month}限定で{period}ずっと{price}と知って、",
+    "{month}だけ{period}ずっと{price}と知って、",
   ];
   const pick = (list: string[]) =>
     fillCampaignCopy(list[pickIndex(list.length, rng)] ?? list[0]!, rng);

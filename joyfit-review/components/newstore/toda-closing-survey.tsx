@@ -871,7 +871,7 @@ export function TodaClosingSurvey({ store }: Props) {
                   <span className="text-[#C21632]">{campaignMonthLabel()}限定</span>
                   <span>6か月間</span>
                   <span className="text-[1.15rem] font-bold leading-none text-[#C21632]">
-                    2,990円
+                    3,200円
                   </span>
                 </p>
                 <a
