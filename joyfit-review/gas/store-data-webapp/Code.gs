@@ -373,11 +373,16 @@ function isDashboardLabel_(name) {
   if (n.indexOf("■") === 0) return true;
   if (
     n === "累計回答数" ||
+    n === "ユニーク会員数" ||
+    n === "ユニーク氏名数" ||
+    n === "重複回答数" ||
     n === "登録店舗数" ||
     n === "回答あり店舗数" ||
     n === "店舗カバー率" ||
     n === "集計月数" ||
     n === "月間平均（件）" ||
+    n === "月間平均（回答）" ||
+    n === "月間平均（ユニーク会員）" ||
     n === "月別回答数" ||
     n === "年月" ||
     n === "ブランド別累計"
@@ -2539,7 +2544,7 @@ var ALLOWED_MAIL_DOMAIN = "okamoto-group.co.jp";
 
 /**
  * 店舗データ 110行目〜に回答集計の「枠＋数式」を置く。
- * 値は回答シートを参照するため、新規回答が入るとシート側で自動更新される。
+ * 累計に加え、会員番号・氏名のユニーク人数も数式で自動更新する。
  */
 function refreshAnswerStatsSection_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2548,16 +2553,21 @@ function refreshAnswerStatsSection_() {
 
   var start = ANSWER_STATS_START_ROW;
   var masterEnd = start - 1;
-  var monthRow = start + 12;
+  var labelRow = start + 3; // 113
+  var monthTitleRow = start + 14; // 124
+  var monthHeaderRow = start + 15; // 125
+  var monthRow = start + 16; // 126
+  var registeredRow = labelRow + 4; // 117 登録店舗数
+  var uniqueMemberRow = labelRow + 1; // 114
+  var monthCountRow = labelRow + 7; // 120
   var maxRows = sheet.getMaxRows();
-  var needEnd = start + 80;
+  var needEnd = start + 90;
   if (maxRows < needEnd) {
     sheet.insertRowsAfter(maxRows, needEnd - maxRows);
   }
 
-  sheet.getRange(start, 1, 90, 8).clearContent().clearFormat();
+  sheet.getRange(start, 1, 100, 10).clearContent().clearFormat();
 
-  // 上段ブランド件数も集計エリアを除外
   sheet.getRange("B3").setFormula('=COUNTIF(A7:A' + masterEnd + ',"JOYFIT")');
   sheet.getRange("D3").setFormula('=COUNTIF(A7:A' + masterEnd + ',"FIT365")');
   sheet.getRange("F3").setFormula('=COUNTIF(A7:A' + masterEnd + ',"YOGA")');
@@ -2565,29 +2575,99 @@ function refreshAnswerStatsSection_() {
   sheet.getRange(start, 1).setValue("■ 回答集計").setFontWeight("bold").setFontSize(13);
   sheet
     .getRange(start + 1, 1)
-    .setValue("回答シートを参照する数式で自動更新されます（新規回答が入ると反映）")
+    .setValue(
+      "数式で自動更新。ユニーク会員=会員番号の重複除外／ユニーク氏名=同姓同名は1人扱い"
+    )
     .setFontColor("#64748b");
 
-  var labelRow = start + 3;
-  sheet.getRange(labelRow, 1, 6, 1).setValues([
+  sheet.getRange(labelRow, 1, 10, 1).setValues([
     ["累計回答数"],
+    ["ユニーク会員数"],
+    ["ユニーク氏名数"],
+    ["重複回答数"],
     ["登録店舗数"],
     ["回答あり店舗数"],
     ["店舗カバー率"],
     ["集計月数"],
-    ["月間平均（件）"],
+    ["月間平均（回答）"],
+    ["月間平均（ユニーク会員）"],
   ]);
-  sheet.getRange(labelRow, 1, 6, 1).setFontWeight("bold");
+  sheet.getRange(labelRow, 1, 10, 1).setFontWeight("bold");
 
   var joy = "'" + SURVEY_BRAND_SHEET_NAMES.JOYFIT + "'";
   var fit = "'" + SURVEY_BRAND_SHEET_NAMES.FIT365 + "'";
   var yoga = "'" + SURVEY_BRAND_SHEET_NAMES.YOGA + "'";
-  var brandCountRow = labelRow + 1; // JOYFIT 行
+  var brandCountRow = labelRow + 1;
 
+  // 会員番号は数値のため QUERY の <>'' だと落ちる。TOCOL で空白除外する
+  var uniqueCountFormula_ = function (colLetter) {
+    return (
+      "=IFERROR(COUNTA(UNIQUE(TOCOL({" +
+      "IF(" +
+      joy +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      '3000="",,' +
+      joy +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      "3000);" +
+      "IF(" +
+      fit +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      '3000="",,' +
+      fit +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      "3000);" +
+      "IF(" +
+      yoga +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      '3000="",,' +
+      yoga +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      "3000)" +
+      "},3))),0)"
+    );
+  };
+  var brandUniqueFormula_ = function (sheetRef) {
+    return (
+      "=IFERROR(COUNTA(UNIQUE(TOCOL(IF(" +
+      sheetRef +
+      '!F2:F3000="",,' +
+      sheetRef +
+      "!F2:F3000),3))),0)"
+    );
+  };
+
+  // 累計回答数 = ブランド別 COUNTA の合計
   sheet.getRange(labelRow, 2).setFormula("=E" + brandCountRow + "+E" + (brandCountRow + 1) + "+E" + (brandCountRow + 2));
-  sheet.getRange(labelRow + 1, 2).setFormula("=H3");
+  // ユニーク会員数（F列 memberCode）
+  sheet.getRange(uniqueMemberRow, 2).setFormula(uniqueCountFormula_("F"));
+  // ユニーク氏名数（E列 fullName）
+  sheet.getRange(labelRow + 2, 2).setFormula(uniqueCountFormula_("E"));
+  // 重複回答数
+  sheet.getRange(labelRow + 3, 2).setFormula("=MAX(0,B" + labelRow + "-B" + uniqueMemberRow + ")");
+  // 登録店舗数
+  sheet.getRange(registeredRow, 2).setFormula("=H3");
+  // 回答あり店舗数
   sheet
-    .getRange(labelRow + 2, 2)
+    .getRange(labelRow + 5, 2)
     .setFormula(
       "=SUMPRODUCT((E7:E" +
         masterEnd +
@@ -2601,12 +2681,31 @@ function refreshAnswerStatsSection_() {
         masterEnd +
         ")>0))"
     );
-  sheet.getRange(labelRow + 3, 2).setFormula("=IF(B" + (labelRow + 1) + "=0,0,B" + (labelRow + 2) + "/B" + (labelRow + 1) + ")");
-  sheet.getRange(labelRow + 3, 2).setNumberFormat("0.0%");
-  sheet.getRange(labelRow + 4, 2).setFormula("=COUNTA(A" + monthRow + ":A)");
-  sheet.getRange(labelRow + 5, 2).setFormula("=IF(B" + (labelRow + 4) + "=0,0,B" + labelRow + "/B" + (labelRow + 4) + ")");
-  sheet.getRange(labelRow + 5, 2).setNumberFormat("0.0");
-  sheet.getRange(labelRow, 1, 6, 2).setBorder(true, true, true, true, true, true);
+  sheet.getRange(labelRow + 6, 2).setFormula("=IF(B" + registeredRow + "=0,0,B" + (labelRow + 5) + "/B" + registeredRow + ")");
+  sheet.getRange(labelRow + 6, 2).setNumberFormat("0.0%");
+  sheet.getRange(monthCountRow, 2).setFormula("=COUNTA(A" + monthRow + ":A)");
+  sheet.getRange(labelRow + 8, 2).setFormula("=IF(B" + monthCountRow + "=0,0,B" + labelRow + "/B" + monthCountRow + ")");
+  sheet.getRange(labelRow + 8, 2).setNumberFormat("0.0");
+  sheet
+    .getRange(labelRow + 9, 2)
+    .setFormula(
+      '=IFERROR(IF(B' +
+        monthCountRow +
+        '=0,0,AVERAGE(FILTER(F' +
+        monthRow +
+        ":F" +
+        (monthRow + 60) +
+        ",A" +
+        monthRow +
+        ":A" +
+        (monthRow + 60) +
+        '<>""))),0)'
+    );
+  sheet.getRange(labelRow + 9, 2).setNumberFormat("0.0");
+  sheet.getRange(labelRow, 2, 4, 1).setNumberFormat("0"); // 累計〜重複は整数
+  sheet.getRange(registeredRow, 2, 2, 1).setNumberFormat("0");
+  sheet.getRange(monthCountRow, 2).setNumberFormat("0");
+  sheet.getRange(labelRow, 1, 10, 2).setBorder(true, true, true, true, true, true);
 
   sheet.getRange(labelRow, 4).setValue("ブランド別累計").setFontWeight("bold");
   sheet.getRange(brandCountRow, 4).setValue("JOYFIT").setBackground(STORE_BRAND_COLOR.JOYFIT);
@@ -2617,15 +2716,25 @@ function refreshAnswerStatsSection_() {
   sheet.getRange(brandCountRow + 2, 5).setFormula("=COUNTA(" + yoga + "!A2:A)");
   sheet.getRange(brandCountRow, 4, 3, 2).setBorder(true, true, true, true, true, true);
 
-  sheet.getRange(start + 10, 1).setValue("月別回答数").setFontWeight("bold");
-  sheet.getRange(start + 11, 1, 1, 6).setValues([["年月", "合計", "JOYFIT", "FIT365", "YOGA", "店舗あたり"]]);
+  sheet.getRange(labelRow, 7).setValue("ブランド別ユニーク会員").setFontWeight("bold");
+  sheet.getRange(brandCountRow, 7).setValue("JOYFIT").setBackground(STORE_BRAND_COLOR.JOYFIT);
+  sheet.getRange(brandCountRow, 8).setFormula(brandUniqueFormula_(joy));
+  sheet.getRange(brandCountRow + 1, 7).setValue("FIT365").setBackground(STORE_BRAND_COLOR.FIT365);
+  sheet.getRange(brandCountRow + 1, 8).setFormula(brandUniqueFormula_(fit));
+  sheet.getRange(brandCountRow + 2, 7).setValue("YOGA").setBackground(STORE_BRAND_COLOR.YOGA);
+  sheet.getRange(brandCountRow + 2, 8).setFormula(brandUniqueFormula_(yoga));
+  sheet.getRange(brandCountRow, 7, 3, 2).setBorder(true, true, true, true, true, true);
+
+  sheet.getRange(monthTitleRow, 1).setValue("月別回答数").setFontWeight("bold");
   sheet
-    .getRange(start + 11, 1, 1, 6)
+    .getRange(monthHeaderRow, 1, 1, 8)
+    .setValues([["年月", "合計", "JOYFIT", "FIT365", "YOGA", "ユニーク会員", "ユニーク氏名", "店舗あたり"]]);
+  sheet
+    .getRange(monthHeaderRow, 1, 1, 8)
     .setFontWeight("bold")
     .setBackground("#334155")
     .setFontColor("#FFFFFF");
 
-  // 日付セルだけ yyyy-MM 化（列ずれの文字列は除外）
   var monthListFormula =
     "=IFERROR(SORT(UNIQUE(QUERY({" +
     "ARRAYFORMULA(IF(ISNUMBER(" +
@@ -2650,52 +2759,99 @@ function refreshAnswerStatsSection_() {
     'LAMBDA(ym,IF(ym="",,COUNTIFS(SHEET!A2:A3000,">="&DATE(VALUE(LEFT(ym,4)),VALUE(RIGHT(ym,2)),1),SHEET!A2:A3000,"<"&EDATE(DATE(VALUE(LEFT(ym,4)),VALUE(RIGHT(ym,2)),1),1))))';
   sheet
     .getRange(monthRow, 3)
-    .setFormula(
-      "=IFERROR(MAP(A" +
-        monthRow +
-        ":A," +
-        monthCountLambda.replace(/SHEET/g, joy) +
-        '),"")'
-    );
+    .setFormula("=IFERROR(MAP(A" + monthRow + ":A," + monthCountLambda.replace(/SHEET/g, joy) + '),"")');
   sheet
     .getRange(monthRow, 4)
-    .setFormula(
-      "=IFERROR(MAP(A" +
-        monthRow +
-        ":A," +
-        monthCountLambda.replace(/SHEET/g, fit) +
-        '),"")'
-    );
+    .setFormula("=IFERROR(MAP(A" + monthRow + ":A," + monthCountLambda.replace(/SHEET/g, fit) + '),"")');
   sheet
     .getRange(monthRow, 5)
-    .setFormula(
-      "=IFERROR(MAP(A" +
-        monthRow +
-        ":A," +
-        monthCountLambda.replace(/SHEET/g, yoga) +
-        '),"")'
-    );
+    .setFormula("=IFERROR(MAP(A" + monthRow + ":A," + monthCountLambda.replace(/SHEET/g, yoga) + '),"")');
   sheet
     .getRange(monthRow, 2)
     .setFormula('=ARRAYFORMULA(IF(A' + monthRow + ':A="","",C' + monthRow + ":C+D" + monthRow + ":D+E" + monthRow + ":E))");
+
+  // 月別ユニーク（会員番号F / 氏名E）
+  var monthUniqueLambda_ = function (colLetter) {
+    return (
+      "LAMBDA(ym,IF(ym=\"\",,IFERROR(COUNTA(UNIQUE(TOCOL({" +
+      "IF((ISNUMBER(" +
+      joy +
+      "!A2:A3000))*(TEXT(" +
+      joy +
+      '!A2:A3000,"yyyy-MM")=ym)*(' +
+      joy +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      '3000<>""),' +
+      joy +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      "3000,);" +
+      "IF((ISNUMBER(" +
+      fit +
+      "!A2:A3000))*(TEXT(" +
+      fit +
+      '!A2:A3000,"yyyy-MM")=ym)*(' +
+      fit +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      '3000<>""),' +
+      fit +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      "3000,);" +
+      "IF((ISNUMBER(" +
+      yoga +
+      "!A2:A3000))*(TEXT(" +
+      yoga +
+      '!A2:A3000,"yyyy-MM")=ym)*(' +
+      yoga +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      '3000<>""),' +
+      yoga +
+      "!" +
+      colLetter +
+      "2:" +
+      colLetter +
+      "3000,)" +
+      "},3))),0)))"
+    );
+  };
   sheet
     .getRange(monthRow, 6)
+    .setFormula("=IFERROR(MAP(A" + monthRow + ":A," + monthUniqueLambda_("F") + '),"")');
+  sheet
+    .getRange(monthRow, 7)
+    .setFormula("=IFERROR(MAP(A" + monthRow + ":A," + monthUniqueLambda_("E") + '),"")');
+  sheet
+    .getRange(monthRow, 8)
     .setFormula(
       "=ARRAYFORMULA(IF(A" +
         monthRow +
         ':A="","",IF($B$' +
-        (labelRow + 1) +
+        registeredRow +
         "=0,0,B" +
         monthRow +
         ":B/$B$" +
-        (labelRow + 1) +
+        registeredRow +
         ")))"
     );
-  sheet.getRange(monthRow, 6, 40, 1).setNumberFormat("0.00");
-  sheet.getRange(start + 11, 1, 41, 6).setBorder(true, true, true, true, true, true);
+  sheet.getRange(monthRow, 8, 40, 1).setNumberFormat("0.00");
+  sheet.getRange(monthHeaderRow, 1, 41, 8).setBorder(true, true, true, true, true, true);
 
   SpreadsheetApp.flush();
-  Utilities.sleep(1500);
+  Utilities.sleep(2500);
 
   return {
     ok: true,
@@ -2703,9 +2859,12 @@ function refreshAnswerStatsSection_() {
     startRow: start,
     monthRow: monthRow,
     totalAnswers: sheet.getRange(labelRow, 2).getDisplayValue(),
-    registeredStores: sheet.getRange(labelRow + 1, 2).getDisplayValue(),
-    storesWithAnswers: sheet.getRange(labelRow + 2, 2).getDisplayValue(),
-    monthlyAverage: sheet.getRange(labelRow + 5, 2).getDisplayValue(),
+    uniqueMembers: sheet.getRange(uniqueMemberRow, 2).getDisplayValue(),
+    uniqueNames: sheet.getRange(labelRow + 2, 2).getDisplayValue(),
+    duplicateAnswers: sheet.getRange(labelRow + 3, 2).getDisplayValue(),
+    registeredStores: sheet.getRange(registeredRow, 2).getDisplayValue(),
+    monthlyAverageAnswers: sheet.getRange(labelRow + 8, 2).getDisplayValue(),
+    monthlyAverageUnique: sheet.getRange(labelRow + 9, 2).getDisplayValue(),
     sampleMonth: sheet.getRange(monthRow, 1).getDisplayValue(),
   };
 }
