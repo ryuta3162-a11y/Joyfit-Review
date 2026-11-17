@@ -104,6 +104,9 @@ function doGet(e) {
   if (format === "json" && action === "debugStoreSheet") {
     return outputJson(debugStoreSheet_());
   }
+  if (format === "json" && action === "refreshAnswerStats") {
+    return outputJson(refreshAnswerStatsSection_());
+  }
   if (format === "json") {
     var rows = readStoreRows();
     return outputJson(rows);
@@ -683,6 +686,10 @@ function writeStoreMasterLayout_(sheet, rows) {
   sheet.setColumnWidth(8, 90);
   sheet.setColumnWidth(9, 180);
   sheet.setColumnWidth(10, 200);
+
+  try {
+    refreshAnswerStatsSection_();
+  } catch (eStats) {}
 }
 
 /** 既存の回答_* タブをブランド色で色分けする */
@@ -2511,6 +2518,232 @@ function sendLowRatingMail(data, to) {
 }
 
 var ALLOWED_MAIL_DOMAIN = "okamoto-group.co.jp";
+
+/** 店舗データシート上の回答集計セクション開始行（店舗マスタの下） */
+var ANSWER_STATS_START_ROW = 110;
+
+/**
+ * 店舗データシート 110行目〜に回答集計を書き出す。
+ * 累計回答数・回答あり店舗数・月間平均・月ごとの件数を表示する。
+ */
+function refreshAnswerStatsSection_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("店舗データ");
+  if (!sheet) return { ok: false, error: "店舗データ sheet missing" };
+
+  var stats = collectAnswerStats_();
+  var start = ANSWER_STATS_START_ROW;
+  var monthCount = stats.months.length;
+  var blockRows = 14 + monthCount;
+  var maxRows = sheet.getMaxRows();
+  var needEnd = start + blockRows + 5;
+  if (maxRows < needEnd) {
+    sheet.insertRowsAfter(maxRows, needEnd - maxRows);
+  }
+
+  // 旧集計ブロックを消してから書き直す（店舗マスタ本体は触らない）
+  sheet.getRange(start, 1, Math.max(60, blockRows + 10), 8).clearContent().clearFormat();
+
+  sheet.getRange(start, 1).setValue("■ 回答集計").setFontWeight("bold").setFontSize(13);
+  sheet
+    .getRange(start + 1, 1)
+    .setValue(
+      "更新: " +
+        Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm") +
+        "（回答シートから自動集計）"
+    )
+    .setFontColor("#64748b");
+
+  var summary = [
+    ["累計回答数", stats.totalAnswers],
+    ["登録店舗数", stats.registeredStores],
+    ["回答あり店舗数", stats.storesWithAnswers],
+    ["店舗カバー率", stats.registeredStores ? stats.storesWithAnswers / stats.registeredStores : 0],
+    ["集計月数", stats.months.length],
+    ["月間平均（件）", stats.monthlyAverage],
+  ];
+  sheet.getRange(start + 3, 1, 6, 2).setValues(summary);
+  sheet.getRange(start + 3, 1, 6, 1).setFontWeight("bold");
+  sheet.getRange(start + 6, 2).setNumberFormat("0.0%");
+  sheet.getRange(start + 8, 2).setNumberFormat("0.0");
+  sheet.getRange(start + 3, 1, 6, 2).setBorder(true, true, true, true, true, true);
+
+  sheet.getRange(start + 3, 4).setValue("ブランド別累計").setFontWeight("bold");
+  var brandRows = [
+    ["JOYFIT", stats.byBrand.JOYFIT || 0],
+    ["FIT365", stats.byBrand.FIT365 || 0],
+    ["YOGA", stats.byBrand.YOGA || 0],
+  ];
+  sheet.getRange(start + 4, 4, 3, 2).setValues(brandRows);
+  sheet.getRange(start + 4, 4).setBackground(STORE_BRAND_COLOR.JOYFIT);
+  sheet.getRange(start + 5, 4).setBackground(STORE_BRAND_COLOR.FIT365);
+  sheet.getRange(start + 6, 4).setBackground(STORE_BRAND_COLOR.YOGA);
+  sheet.getRange(start + 4, 4, 3, 2).setBorder(true, true, true, true, true, true);
+
+  var tableHeaderRow = start + 10;
+  sheet.getRange(tableHeaderRow, 1).setValue("月別回答数").setFontWeight("bold");
+  var headers = ["年月", "合計", "JOYFIT", "FIT365", "YOGA", "回答店舗数", "店舗あたり"];
+  sheet.getRange(tableHeaderRow + 1, 1, 1, headers.length).setValues([headers]);
+  sheet
+    .getRange(tableHeaderRow + 1, 1, 1, headers.length)
+    .setFontWeight("bold")
+    .setBackground("#334155")
+    .setFontColor("#FFFFFF");
+
+  var monthRows = [];
+  for (var m = 0; m < stats.months.length; m++) {
+    var row = stats.months[m];
+    monthRows.push([
+      row.ym,
+      row.total,
+      row.JOYFIT || 0,
+      row.FIT365 || 0,
+      row.YOGA || 0,
+      row.storeCount,
+      row.perStore,
+    ]);
+  }
+  if (monthRows.length) {
+    sheet.getRange(tableHeaderRow + 2, 1, monthRows.length, headers.length).setValues(monthRows);
+    sheet
+      .getRange(tableHeaderRow + 2, 7, monthRows.length, 1)
+      .setNumberFormat("0.00");
+  }
+  sheet
+    .getRange(tableHeaderRow + 1, 1, Math.max(monthRows.length, 1) + 1, headers.length)
+    .setBorder(true, true, true, true, true, true);
+
+  return {
+    ok: true,
+    startRow: start,
+    totalAnswers: stats.totalAnswers,
+    monthlyAverage: stats.monthlyAverage,
+    monthCount: stats.months.length,
+    storesWithAnswers: stats.storesWithAnswers,
+    registeredStores: stats.registeredStores,
+  };
+}
+
+function collectAnswerStats_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var stores = readStoreRows();
+  var registered = stores.length;
+  var masterIds = {};
+  for (var i = 0; i < stores.length; i++) {
+    var mid = String(stores[i].id || "")
+      .trim()
+      .toLowerCase();
+    if (mid) masterIds[mid] = true;
+  }
+
+  var byBrand = { JOYFIT: 0, FIT365: 0, YOGA: 0 };
+  var monthMap = {};
+  var storeIdsAll = {};
+  var brands = ["JOYFIT", "FIT365", "YOGA"];
+
+  for (var b = 0; b < brands.length; b++) {
+    var brand = brands[b];
+    var sheet = ss.getSheetByName(SURVEY_BRAND_SHEET_NAMES[brand]);
+    if (!sheet) continue;
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) continue;
+    var lastCol = Math.max(sheet.getLastColumn(), 3);
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var tsCol = 1;
+    var storeIdCol = 2;
+    for (var h = 0; h < headers.length; h++) {
+      var key = String(headers[h] || "").trim();
+      if (key === "timestamp") tsCol = h + 1;
+      if (key === "storeId") storeIdCol = h + 1;
+    }
+    var width = Math.max(tsCol, storeIdCol, 3);
+    var values = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+    for (var r = 0; r < values.length; r++) {
+      var row = values[r];
+      var has = false;
+      for (var c = 0; c < Math.min(row.length, 16); c++) {
+        if (row[c] !== "" && row[c] != null) {
+          has = true;
+          break;
+        }
+      }
+      if (!has) continue;
+
+      byBrand[brand]++;
+      var sid = String(row[storeIdCol - 1] || "")
+        .trim()
+        .toLowerCase();
+      if (sid && masterIds[sid]) storeIdsAll[sid] = true;
+
+      var ym = yearMonthKey_(row[tsCol - 1]);
+      if (!ym) continue;
+      if (!monthMap[ym]) {
+        monthMap[ym] = {
+          ym: ym,
+          total: 0,
+          JOYFIT: 0,
+          FIT365: 0,
+          YOGA: 0,
+          storeIds: {},
+        };
+      }
+      monthMap[ym].total++;
+      monthMap[ym][brand]++;
+      if (sid && masterIds[sid]) monthMap[ym].storeIds[sid] = true;
+    }
+  }
+
+  var months = [];
+  for (var k in monthMap) {
+    if (!Object.prototype.hasOwnProperty.call(monthMap, k)) continue;
+    var m = monthMap[k];
+    var storeCount = 0;
+    for (var s in m.storeIds) {
+      if (Object.prototype.hasOwnProperty.call(m.storeIds, s)) storeCount++;
+    }
+    months.push({
+      ym: m.ym,
+      total: m.total,
+      JOYFIT: m.JOYFIT,
+      FIT365: m.FIT365,
+      YOGA: m.YOGA,
+      storeCount: storeCount,
+      perStore: registered ? m.total / registered : 0,
+    });
+  }
+  months.sort(function (a, b) {
+    return String(b.ym).localeCompare(String(a.ym));
+  });
+
+  var totalAnswers = (byBrand.JOYFIT || 0) + (byBrand.FIT365 || 0) + (byBrand.YOGA || 0);
+  var storesWithAnswers = 0;
+  for (var sid2 in storeIdsAll) {
+    if (Object.prototype.hasOwnProperty.call(storeIdsAll, sid2)) storesWithAnswers++;
+  }
+
+  return {
+    totalAnswers: totalAnswers,
+    byBrand: byBrand,
+    registeredStores: registered,
+    storesWithAnswers: storesWithAnswers,
+    months: months,
+    monthlyAverage: months.length ? totalAnswers / months.length : 0,
+  };
+}
+
+function yearMonthKey_(value) {
+  var d = null;
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    d = value;
+  } else {
+    var text = String(value || "").trim();
+    if (!text) return "";
+    var parsed = new Date(text);
+    if (!isNaN(parsed.getTime())) d = parsed;
+  }
+  if (!d) return "";
+  return Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM");
+}
 
 /** 社内ドメイン以外の宛先を除外する（公開URL経由で外部へメールを送らせないため） */
 function filterInternalRecipients_(value) {
